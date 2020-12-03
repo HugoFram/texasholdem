@@ -26,8 +26,19 @@
 -->
 
 
-This is your game interface. You can edit this HTML in your ".tpl" file.
-
+<div id = "table">
+    <!-- BEGIN player -->
+    <div class="playertable whiteblock playertable_{DIR}">
+        <div class="playertablename" style="color:#{PLAYER_COLOR}">
+            {PLAYER_NAME}
+        </div>
+        <div class="playertablecards" id="playertablecards_{PLAYER_ID}">
+        </div>
+        <div class="playertabletokens" id="playertabletokens_{PLAYER_ID}">
+        </div>
+    </div>
+    <!-- END player -->
+</div>
 
 <script type="text/javascript">
 

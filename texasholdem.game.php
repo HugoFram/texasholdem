@@ -147,7 +147,64 @@ class texasholdem extends Table
         In this space, you can put any utility methods useful for your game logic
     */
 
+    function getPlayerDirections() {
+        $result = array();
+    
+        $players = self::loadPlayersBasicInfos();
+        $nextPlayer = self::createNextPlayerTable( array_keys( $players ) );
 
+        $current_player = self::getCurrentPlayerId();
+
+        $numPlayers = count($players);
+
+
+        // Place players around the table depending on the number of players
+        switch($numPlayers) {
+          case 2:
+            $directions = array("S", "N");
+            break;
+          case 3:
+            $directions = array("S", "W", "N");
+            break;
+          case 4:
+            $directions = array("S", "W", "N", "E");
+            break;
+          case 5:
+            $directions = array("SW", "W", "N", "E", "SE");
+            break;
+          case 6:
+            $directions = array("SW", "W", "NW", "NE", "E", "SE");
+            break;
+          case 7:
+            $directions = array("SW", "W", "NW", "N", "NE", "E", "SE");
+            break;
+          case 8:
+            $directions = array("S", "SW", "W", "NW", "N", "NE", "E", "SE");
+            break;
+        }
+        
+        if(!isset($nextPlayer[$current_player]))
+        {
+            // Spectator mode: take any player for south
+            $player_id = $nextPlayer[0];
+            $result[$player_id] = array_shift($directions);
+        }
+        else
+        {
+            // Normal mode: current player is on south
+            $player_id = $current_player;
+            $result[$player_id] = array_shift($directions);
+        }
+        
+        while(count($directions) > 0)
+        {
+            $player_id = $nextPlayer[$player_id];
+            $result[$player_id] = array_shift($directions);
+        }
+
+        //throw new BgaUserException(implode(" - ", array_keys($result)) . implode(" - ", $result));
+        return $result;
+    }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions

@@ -76,7 +76,17 @@
         
         */
 
+        $players_dir = $this->game->getPlayerDirections();
 
+        $this->page->begin_block("texasholdem_texasholdem", "player");
+        foreach($players as $player) {
+            $this->page->insert_block("player", array(
+                "DIR" => $players_dir[$player['player_id']],
+                "PLAYER_COLOR" => $player['player_color'],
+                "PLAYER_NAME" => $player['player_name'],
+                "PLAYER_ID" => $player['player_id']
+            ));
+        }
 
         /*********** Do not change anything below this line  ************/
   	}
