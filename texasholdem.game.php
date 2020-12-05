@@ -39,7 +39,12 @@ class texasholdem extends Table
             //    "my_first_game_variant" => 100,
             //    "my_second_game_variant" => 101,
             //      ...
-        ) );        
+            "roundNumber" => 10,
+            "roundStage" => 11, // 1 = pre-flop, 2 = flop, 3 = turn, 4 = river
+        ) );
+
+        $this->cards = self::getNew("module.common.deck");
+        $this->cards->init("card");
 	}
 	
     protected function getGameName( )
