@@ -84,7 +84,17 @@
                 "DIR" => $players_dir[$player['player_id']],
                 "PLAYER_COLOR" => $player['player_color'],
                 "PLAYER_NAME" => $player['player_name'],
-                "PLAYER_ID" => $player['player_id']
+                "PLAYER_ID" => $player['player_id'],
+                "PLAYER_TOKEN_WHITE" => 15,
+                "PLAYER_TOKEN_BLUE" => 4,
+                "PLAYER_TOKEN_RED" => 3,
+                "PLAYER_TOKEN_GREEN" => 22,
+                "PLAYER_TOKEN_BLACK" => 31,
+                "PLAYER_BET_TOKEN_WHITE" => 1,
+                "PLAYER_BET_TOKEN_BLUE" => 7,
+                "PLAYER_BET_TOKEN_RED" => 0,
+                "PLAYER_BET_TOKEN_GREEN" => 1,
+                "PLAYER_BET_TOKEN_BLACK" => 3,
             ));
         }
 
