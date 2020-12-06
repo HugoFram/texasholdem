@@ -169,7 +169,10 @@
 .token {
     position: absolute;
     width: 50px;
-    height: 50px
+    height: 50px;
+}
+.token:not(.tokenhidden) {
+    cursor: pointer;
 }
 .tokenhidden {
     opacity: 0;
@@ -233,6 +236,12 @@
     margin-left: -16px;
     height: 30px;
     width: 30px;
+    /* Prevent text selection when doubleclicking on tokens*/
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .tokennumberdark {

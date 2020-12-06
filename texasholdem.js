@@ -112,6 +112,13 @@ function (dojo, declare) {
                     }
                 });
 
+                if (player_id == this.player_id) {
+                    // Add relevant onclick event to all immediate children of the element with id playertabletokens_{player_id}
+                    dojo.query('#playertabletokens_' + player_id + ' > *').connect('onclick', this, 'onStockTokenClicked');
+                    // Add relevant onclick event to all immediate children of the element with id bettingarea_{player_id}
+                    dojo.query('#bettingarea_' + player_id + ' > *').connect('onclick', this, 'onBetTokenClicked');
+                }
+
             }
             
             // TODO: Set up your game interface here, according to "gamedatas"
@@ -337,6 +344,101 @@ function (dojo, declare) {
         },        
         
         */
+
+        onStockTokenClicked: function(event) {
+            console.log("onStockTokenClicked");
+
+            // Preventing default browser reaction
+            dojo.stopEvent(event);
+
+            // Check that this action is possible (see "possibleactions" in states.inc.php)
+            if(!this.checkAction('placeBet')) return;
+
+            var stockToken = event.currentTarget;
+            var betToken = $("bet" + stockToken.id);
+            var color = stockToken.id.replace(/token/, "").replace(/_[0-9]+/, "");
+
+            // Retrieve current number of tokens of that color in stock
+            var currentStock = parseInt(stockToken.firstElementChild.textContent);
+
+            // Check if the player has at least one token of that color to bet
+            if (currentStock > 0) {
+                // Create the token number div if it does not exist
+                if (betToken.children.length == 0) {
+                    dojo.place(this.format_block('jstpl_player_bet_token', {
+                        TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
+                        TOKEN_NUM: 0
+                    }), betToken.id);
+                }
+                currentStock--;
+
+                // Move a token from the player's stock to the betting area
+                // 1) Decrement number of token in stock and hide the token if it was the last one
+                dojo.html.set(stockToken.firstElementChild, currentStock);
+                if (currentStock <= 0) {
+                    dojo.addClass(stockToken.id, "tokenhidden");
+                }
+                // 2) Place the visual of a token on top of the token stock pile
+                dojo.place('<div class = "token token' + color + '" id = "slidingstocktoken_' + color + '_' + currentStock + '"></div>', "playertabletokens_" + this.player_id);
+                // 3) Slide the token from the stock to the betting area
+                var anim = this.slideToObject('slidingstocktoken_' + color + '_' + currentStock, betToken.id);
+                dojo.connect(anim, 'onEnd', function(node) {
+                    // 4) Destroy token visual used for the animation
+                    dojo.destroy(node);
+                    // 5) Increment the number from the betting area
+                    dojo.html.set(betToken.firstElementChild, parseInt(betToken.firstElementChild.textContent) + 1);
+                    // 6) Unhide the betting area token if it the first token of that color
+                    if (dojo.hasClass(betToken.id, "tokenhidden")) {
+                        dojo.removeClass(betToken.id, "tokenhidden");
+                    }
+                });
+                anim.play();
+            }
+        },
+
+        onBetTokenClicked: function(event) {
+            console.log("onBetTokenClicked");
+            
+            // Preventing default browser reaction
+            dojo.stopEvent(event);
+
+            // Check that this action is possible (see "possibleactions" in states.inc.php)
+            if(!this.checkAction('placeBet')) return;
+
+            var betToken = event.currentTarget;
+            var stockToken = $(betToken.id.replace(/bet/, ""));
+            var color = stockToken.id.replace(/token/, "").replace(/_[0-9]+/, "");
+
+            // Check if at least one token of that color has been bet
+            if (!dojo.hasClass(betToken.id, "tokenhidden")) {
+                // Retrieve current number of tokens of that color in the betting area
+                var currentBet = parseInt(betToken.firstElementChild.textContent);
+
+                currentBet--;
+
+                // Move a token from the player's betting area to the stock
+                // 1) Decrement number of token in betting area and hide the token if it was the last one
+                dojo.html.set(betToken.firstElementChild, currentBet);
+                if (currentBet <= 0) {
+                    dojo.addClass(betToken.id, "tokenhidden");
+                }
+                // 2) Place the visual of a token on top of the token betting area pile
+                dojo.place('<div class = "token token' + color + ' bettoken" id = "slidingbettoken_' + color + '_' + currentBet + '"></div>', "bettingarea_" + this.player_id);
+                // 3) Slide the token from the betting area to the stock
+                var anim = this.slideToObject('slidingbettoken_' + color + '_' + currentBet, stockToken.id);
+                dojo.connect(anim, 'onEnd', function(node) {
+                    // 4) Destroy token visual used for the animation
+                    dojo.destroy(node);
+                    // 5) Increment the number from the stock
+                    dojo.html.set(stockToken.firstElementChild, parseInt(stockToken.firstElementChild.textContent) + 1);
+                    // 6) Unhide the stock token if it the first token of that color
+                    if (dojo.hasClass(stockToken.id, "tokenhidden")) {
+                        dojo.removeClass(stockToken.id, "tokenhidden");
+                    }
+                });
+                anim.play();
+            }
+        },
 
         
         ///////////////////////////////////////////////////
