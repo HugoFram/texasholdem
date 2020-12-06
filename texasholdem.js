@@ -116,6 +116,7 @@ function (dojo, declare) {
             
             // TODO: Set up your game interface here, according to "gamedatas"
 
+            // Display tokens bet at previous round stages
             var tableTokens = gamedatas.tokensontable;
             for (var i in tableTokens) {
                 var color = tableTokens[i].token_color;
@@ -133,7 +134,62 @@ function (dojo, declare) {
                     dojo.addClass('token' + color + '_table', "tokenhidden");
                 }
             }
- 
+
+            // Display cards in hand
+            var hands = gamedatas.hands;
+            var playerToIsLeftCard = [];
+            for (var i in gamedatas.players) {
+                playerToIsLeftCard.push({
+                    id: gamedatas.players[i].id,
+                    isLeftCard: true
+                });
+            }
+            for (var cardId in hands) {
+                var card = hands[cardId];
+                var player = playerToIsLeftCard.filter(player => player.id == card.location_arg)[0];
+
+                dojo.place(this.format_block('jstpl_card', {
+                    CARD_LOCATION_CLASS: player.isLeftCard == true ? "cardinhand cardinhandleft" : "cardinhand cardinhandright",
+                    CARD_VISIBILITY_CLASS: card.location_arg == this.player_id ? "cardvisible" : "cardhidden",
+                    // For cards in another player's hand, set background position to 0, otherwise one could know the card by inspecting the HTML element style
+                    BACKGROUND_POSITION_LEFT_PERCENTAGE: card.location_arg == this.player_id ? -100 * (card.type_arg - 2) : 0,
+                    BACKGROUND_POSITION_TOP_PERCENTAGE: card.location_arg == this.player_id ? -100 * (card.type - 1) : 0
+                }), 'playertablecards_' + card.location_arg);
+
+                if (player.isLeftCard) {
+                    player.isLeftCard = false;
+                }
+            }
+
+            // Display cards on table
+            // Flop
+            var isFlopShown = Object.keys(gamedatas.cardsflop).length > 0;
+            for (var cardId in [0, 1, 2]) {
+
+                dojo.place(this.format_block('jstpl_card', {
+                    CARD_LOCATION_CLASS: "cardflop",
+                    CARD_VISIBILITY_CLASS: isFlopShown ? "cardvisible" : "cardhidden",
+                    BACKGROUND_POSITION_LEFT_PERCENTAGE: isFlopShown ? -100 * (gamedatas.cardsflop[Object.keys(gamedatas.cardsflop)[cardId]].type_arg - 2) : 0,
+                    BACKGROUND_POSITION_TOP_PERCENTAGE: isFlopShown ? -100 * (gamedatas.cardsflop[Object.keys(gamedatas.cardsflop)[cardId]].type - 1) : 0
+                }), 'river');
+            }
+            // Turn
+            var isTurnShown = Object.keys(gamedatas.cardturn).length > 0;
+            dojo.place(this.format_block('jstpl_card', {
+                CARD_LOCATION_CLASS: "cardturn",
+                CARD_VISIBILITY_CLASS: isTurnShown ? "cardvisible" : "cardhidden",
+                BACKGROUND_POSITION_LEFT_PERCENTAGE: isTurnShown ? -100 * (gamedatas.cardturn.type_arg - 2) : 0,
+                BACKGROUND_POSITION_TOP_PERCENTAGE: isTurnShown ? -100 * (gamedatas.cardturn.type - 1) : 0
+            }), 'river');
+            // River
+            var isRiverShown = Object.keys(gamedatas.cardriver).length > 0;
+            dojo.place(this.format_block('jstpl_card', {
+                CARD_LOCATION_CLASS: "cardturn",
+                CARD_VISIBILITY_CLASS: isRiverShown ? "cardvisible" : "cardhidden",
+                BACKGROUND_POSITION_LEFT_PERCENTAGE: isRiverShown ? -100 * (gamedatas.cardriver.type_arg - 2) : 0,
+                BACKGROUND_POSITION_TOP_PERCENTAGE: isRiverShown ? -100 * (gamedatas.cardriver.type - 1) : 0
+            }), 'river');
+
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
 

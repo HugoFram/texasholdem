@@ -109,7 +109,25 @@ class texasholdem extends Table
         // Initialize tokens bet in previous round stages to 0
         $sql = "INSERT INTO token (token_color, token_number) VALUES ('white', 0), ('blue', 0), ('red', 0), ('green', 0), ('black', 0)";
         self::DbQuery( $sql );
-       
+
+        // Create cards
+        $cards = array();
+        foreach ($this->suits as $suit_id => $suit) {
+            // spade, heart, clubs, diamonds
+            for ($value = 2; $value <= 14; $value++) {
+                $cards[] = array('type' => $suit_id, 'type_arg' => $value, 'nbr' => 1);
+            }
+        }
+        $this->cards->createCards($cards, 'deck');
+
+        // Shuffle deck
+        $this->cards->shuffle('deck');
+
+        // Deal two cards to each player
+        $players = self::loadPlayersBasicInfos();
+        foreach ($players as $player_id => $player) {
+            $cards = $this->cards->pickCards(2, 'deck', $player_id);
+        }       
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
@@ -141,6 +159,14 @@ class texasholdem extends Table
         $result['players'] = self::getCollectionFromDb( $sql );
   
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
+  
+        // Cards in player hand
+        $result['hands'] = $this->cards->getCardsInLocation('hand');
+
+        // Cards played on the table
+        $result['cardsflop'] = $this->cards->getCardsInLocation('flop');
+        $result['cardturn'] = $this->cards->getCardsInLocation('turn');
+        $result['cardriver'] = $this->cards->getCardsInLocation('river');
 
         // Tokens bet at previous betting stages
         $sql = "SELECT token_color, token_number FROM token";

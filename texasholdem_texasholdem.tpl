@@ -50,8 +50,7 @@
             {PLAYER_NAME}
         </div>
         <div class="playertablecards" id="playertablecards_{PLAYER_ID}">
-            <div class = "card cardinhand cardinhandleft cardvisible" style = "background-position: -300% -100%;"></div>
-            <div class = "card cardinhand cardinhandright cardvisible" style = "background-position: -700% -200%;"></div>
+
         </div>
         <div class="playertabletokens" id="playertabletokens_{PLAYER_ID}">
             <div class = "token tokenwhite" id = "tokenwhite_{PLAYER_ID}">
@@ -91,11 +90,7 @@
             </div>
         </div>
         <div class = "tablecards" id = "river">
-            <div class = "card cardflop cardvisible" style = "background-position: -1000% -100%;"></div>
-            <div class = "card cardflop cardvisible" style = "background-position: -1000% 0%;"></div>
-            <div class = "card cardflop cardvisible" style = "background-position: -1100% 0%;"></div>
-            <div class = "card cardturn cardhidden"></div>
-            <div class = "card cardriver cardhidden"></div>
+            
         </div>
     </div>
 </div>
@@ -115,6 +110,10 @@ var jstpl_player_stock_token='<div class = "tokennumber ${TEXT_CLASS}">${TOKEN_N
 var jstpl_player_bet_token='<div class = "tokennumber ${TEXT_CLASS}">${TOKEN_NUM}</div>';
 var jstpl_table_token='<div class = "tokennumber ${TEXT_CLASS}">${TOKEN_NUM}</div>';
 
+// CARD_LOCATION_CLASS = cardflop, cardturn, cardriver, cardinhand cardinhandleft, cardinhand cardinhandright
+// CARD_VISIBILITY_CLASS = cardvisible, cardhidden
+// If cardhidden --> background-position must be 0% 0%
+var jstpl_card='<div class = "card ${CARD_LOCATION_CLASS} ${CARD_VISIBILITY_CLASS}" style = "background-position: ${BACKGROUND_POSITION_LEFT_PERCENTAGE}% ${BACKGROUND_POSITION_TOP_PERCENTAGE}%;"></div>';
 </script>  
 
 {OVERALL_GAME_FOOTER}
