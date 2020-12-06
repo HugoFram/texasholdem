@@ -54,10 +54,85 @@ function (dojo, declare) {
                 var player = gamedatas.players[player_id];
                          
                 // TODO: Setting up players boards if needed
+
+                var tokenColors = ["white", "blue", "red", "green", "black"];
+
+                tokenColors.forEach(color => {
+                    var stockTokens, betTokens;
+                    switch(color) {
+                        case "white": 
+                            stockTokens = player.stock_white;
+                            betTokens = player.bet_white;
+                            break;
+                        case "blue": 
+                            stockTokens = player.stock_blue;
+                            betTokens = player.bet_blue;
+                            break;
+                        case "red": 
+                            stockTokens = player.stock_red;
+                            betTokens = player.bet_red;
+                            break;
+                        case "green": 
+                            stockTokens = player.stock_green;
+                            betTokens = player.bet_green;
+                            break;
+                        case "black": 
+                            stockTokens = player.stock_black;
+                            betTokens = player.bet_black;
+                            break;
+                        default:
+                            stockTokens = 0;
+                            break;
+                    }
+
+                    // Stock tokens
+                    if (stockTokens > 0) {
+                        if (dojo.hasClass('token' + color + '_' + player_id, "tokenhidden")) {
+                            dojo.removeClass('token' + color + '_' + player_id, "tokenhidden");
+                        }
+                        dojo.place(this.format_block('jstpl_player_stock_token', {
+                            TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
+                            TOKEN_NUM: stockTokens
+                        }), 'token' + color + '_' + player_id);
+                    } else {
+                        dojo.addClass('token' + color + '_' + player_id, "tokenhidden");
+                    }
+
+                    // Bet tokens
+                    if (betTokens > 0) {
+                        if (dojo.hasClass('bettoken' + color + '_' + player_id, "tokenhidden")) {
+                            dojo.removeClass('bettoken' + color + '_' + player_id, "tokenhidden");
+                        }
+                        dojo.place(this.format_block('jstpl_player_bet_token', {
+                            TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
+                            TOKEN_NUM: betTokens
+                        }), 'bettoken' + color + '_' + player_id);
+                    } else {
+                        dojo.addClass('bettoken' + color + '_' + player_id, "tokenhidden");
+                    }
+                });
+
             }
             
             // TODO: Set up your game interface here, according to "gamedatas"
-            
+
+            var tableTokens = gamedatas.tokensontable;
+            for (var i in tableTokens) {
+                var color = tableTokens[i].token_color;
+                var tokenNum  = tableTokens[i].token_number;
+
+                if (tokenNum > 0) {
+                    if (dojo.hasClass('token' + color + '_table', "tokenhidden")) {
+                        dojo.removeClass('token' + color + '_table', "tokenhidden");
+                    }
+                    dojo.place(this.format_block('jstpl_table_token', {
+                        TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
+                        TOKEN_NUM: tokenNum
+                    }), 'token' + color + '_table');
+                } else {
+                    dojo.addClass('token' + color + '_table', "tokenhidden");
+                }
+            }
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();

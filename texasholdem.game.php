@@ -70,12 +70,24 @@ class texasholdem extends Table
  
         // Create players
         // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
-        $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar) VALUES ";
+        $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar, player_score,
+            player_stock_token_white, player_stock_token_blue, player_stock_token_red, player_stock_token_green,
+            player_stock_token_black, player_bet_token_white, player_bet_token_blue,
+            player_bet_token_red, player_bet_token_green, player_bet_token_black) VALUES ";
         $values = array();
+        $initial_score = 100;
+        $initial_white_tokens = 10;
+        $initial_blue_tokens = 5;
+        $initial_red_tokens = 4;
+        $initial_green_tokens = 2;
+        $initial_black_tokens = 2;
+        $initial_bet_tokens = 0;
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
-            $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."')";
+            $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."',".
+                $initial_score.",".$initial_white_tokens.",".$initial_blue_tokens.",".$initial_red_tokens.",".$initial_green_tokens.",".$initial_black_tokens.",".
+                $initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.")";
         }
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
@@ -93,6 +105,10 @@ class texasholdem extends Table
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
         // TODO: setup the initial game situation here
+
+        // Initialize tokens bet in previous round stages to 0
+        $sql = "INSERT INTO token (token_color, token_number) VALUES ('white', 0), ('blue', 0), ('red', 0), ('green', 0), ('black', 0)";
+        self::DbQuery( $sql );
        
 
         // Activate first player (which is in general a good idea :) )
@@ -118,11 +134,18 @@ class texasholdem extends Table
     
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $sql = "SELECT player_id id, player_score score FROM player ";
+        $sql = "SELECT player_id id, player_score score, player_stock_token_white stock_white, 
+            player_stock_token_blue stock_blue, player_stock_token_red stock_red, player_stock_token_green stock_green,
+            player_stock_token_black stock_black, player_bet_token_white bet_white, player_bet_token_blue bet_blue,
+            player_bet_token_red bet_red, player_bet_token_green bet_green, player_bet_token_black bet_black FROM player ";
         $result['players'] = self::getCollectionFromDb( $sql );
   
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
-  
+
+        // Tokens bet at previous betting stages
+        $sql = "SELECT token_color, token_number FROM token";
+        $result['tokensontable']= self::getCollectionFromDb( $sql );
+
         return $result;
     }
 
@@ -207,7 +230,6 @@ class texasholdem extends Table
             $result[$player_id] = array_shift($directions);
         }
 
-        //throw new BgaUserException(implode(" - ", array_keys($result)) . implode(" - ", $result));
         return $result;
     }
 
