@@ -294,6 +294,21 @@ class texasholdem extends Table
     
     */
 
+    function placeBet($bet) {
+        self::checkAction("placeBet");
+        $player_id = self::getCurrentPlayerId();
+    }
+
+    function fold() {
+        self::checkAction("fold");
+        $player_id = self::getCurrentPlayerId();
+    }
+
+    function makeChange($tokens) {
+        self::checkAction("makeChange");
+        $player_id = self::getCurrentPlayerId();
+    }
+
     
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state arguments
@@ -322,6 +337,16 @@ class texasholdem extends Table
     }    
     */
 
+    function argPlaceBet() {
+        return array(
+            "white" =>  0,
+            "blue" => 0,
+            "red" => 0,
+            "green" => 0,
+            "black" => 0
+        );
+    }
+
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state actions
 ////////////
@@ -343,6 +368,26 @@ class texasholdem extends Table
         $this->gamestate->nextState( 'some_gamestate_transition' );
     }    
     */
+
+    function stNewHand() {
+        $this->gamestate->nextState();
+    }
+
+    function stNewBet() {
+        $this->gamestate->nextState();
+    }
+
+    function stNextPlayer() {
+        $this->gamestate->nextState("nextPlayer");
+    }
+
+    function stEndBet() {
+        $this->gamestate->nextState("nextBetRound");
+    }
+
+    function stEndHand() {
+        $this->gamestate->nextState("nextHand");
+    }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Zombie

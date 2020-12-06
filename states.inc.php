@@ -58,18 +58,63 @@ $machinestates = array(
         "description" => "",
         "type" => "manager",
         "action" => "stGameSetup",
-        "transitions" => array( "" => 2 )
+        "transitions" => array( "" => 20 )
     ),
-    
-    // Note: ID=2 => your first state
 
-    2 => array(
-    		"name" => "playerTurn",
-    		"description" => clienttranslate('${actplayer} must play a card or pass'),
-    		"descriptionmyturn" => clienttranslate('${you} must play a card or pass'),
-    		"type" => "activeplayer",
-    		"possibleactions" => array( "playCard", "pass" ),
-    		"transitions" => array( "playCard" => 2, "pass" => 2 )
+    // New hand
+    20 => array(
+        "name" => "newHand",
+        "description" => "",
+        "type" => "game",
+        "action" => "stNewHand",
+        "updateGameProgression" => true,   
+        "transitions" => array( "" => 30 )
+    ),
+
+    // New betting round
+    30 => array(
+        "name" => "newBetRound",
+        "description" => "",
+        "type" => "game",
+        "action" => "stNewBet",
+        "updateGameProgression" => true,   
+        "transitions" => array( "" => 40 )
+    ),  
+
+    // Player's turn
+    40 => array(
+        "name" => "playerTurn",
+        "description" => clienttranslate('${actplayer} must choose a bet or fold'),
+        "descriptionmyturn" => clienttranslate('${you} must choose a bet or fold'),
+        "type" => "activeplayer",
+        "args" => "argPlaceBet",
+        "possibleactions" => array( "placeBet", "fold", "makeChange" ),
+        "transitions" => array( "placeBet" => 41, "fold" => 41 )
+    ),
+
+    // Transition to next player or end of betting round
+    41 => array(
+        "name" => "nextPlayer",
+        "description" => "",
+        "type" => "game",
+        "action" => "stNextPlayer",
+        "transitions" => array( "nextPlayer" => 40, "endBetRound" => 31 )
+    ), 
+
+    31 => array(
+        "name" => "endBetRound",
+        "description" => "",
+        "type" => "game",
+        "action" => "stEndBet",
+        "transitions" => array( "nextBetRound" => 30, "endHand" => 21 )
+    ),
+
+    21 => array(
+        "name" => "endHand",
+        "description" => "",
+        "type" => "game",
+        "action" => "stEndHand",
+        "transitions" => array( "nextHand" => 20, "endGame" => 99 )
     ),
     
 /*
