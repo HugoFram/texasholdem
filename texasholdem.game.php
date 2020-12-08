@@ -294,19 +294,67 @@ class texasholdem extends Table
     
     */
 
-    function placeBet($bet) {
+    function placeBet($tokens) {
         self::checkAction("placeBet");
-        $player_id = self::getCurrentPlayerId();
+        $player_id = self::getActivePlayerId();
+
+        // Query current player's tokens stock
+        $sql = "SELECT player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
+            player_stock_token_green, player_stock_token_black FROM player WHERE player_id = '" . $player_id . "'";
+        $current_stock = self::getObjectFromDB($sql);
+        $diff_stock = array();
+
+        // Update player table with new number of tokens in stock and betting area
+        $keys = array(
+            "player_stock_token_white", "player_bet_token_white",
+            "player_stock_token_blue", "player_bet_token_blue",
+            "player_stock_token_red", "player_bet_token_red",
+            "player_stock_token_green", "player_bet_token_green",
+            "player_stock_token_black", "player_bet_token_black"
+        );
+
+        $sql = "UPDATE player SET ";
+        foreach($tokens as $token_id => $token_number) {
+            $sql .= $keys[$token_id] . " = " . $token_number;
+            // Don't add a comma for the last item
+            if ($token_id < (count($tokens) - 1)) {
+                $sql .= ", ";
+            }
+
+            // Compute stock difference
+            if (strpos($keys[$token_id], "stock")) {
+                $color = str_replace("player_stock_token_", "", $keys[$token_id]);
+                $diff_stock[$color] = $token_number - $current_stock[$keys[$token_id]];
+            }
+        }
+        $sql .= " WHERE player_id = '" . $player_id. "'";
+        self::DbQuery($sql);
+
+        // Calculate additional bet
+        $additional_bet = 0;
+        foreach($diff_stock as $color => $token_diff) {
+            $additional_bet -= $this->token_values[$color] * $token_diff;
+        }
+
+        // Notify other player of the bet placed
+        self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} raises by ${additional_bet}' ), array(
+            'player_id' => $player_id,
+            'player_name' => self::getActivePlayerName(),
+            'additional_bet' => $additional_bet,
+            'diff_stock' => $diff_stock
+        ) );
+
+        $this->gamestate->nextState('placeBet');
     }
 
     function fold() {
         self::checkAction("fold");
-        $player_id = self::getCurrentPlayerId();
+        $player_id = self::getActivePlayerId();
     }
 
     function makeChange($tokens) {
         self::checkAction("makeChange");
-        $player_id = self::getCurrentPlayerId();
+        $player_id = self::getActivePlayerId();
     }
 
     
@@ -378,6 +426,8 @@ class texasholdem extends Table
     }
 
     function stNextPlayer() {
+        $player_id = self::activeNextPlayer();
+        self::giveExtraTime($player_id);
         $this->gamestate->nextState("nextPlayer");
     }
 

@@ -63,6 +63,28 @@
     
     */
 
+    public function placeBet() {
+      self::setAjaxMode();     
+
+        // Retrieve arguments
+        // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+        $tokens_raw = self::getArg("tokens", AT_numberlist, true);
+
+        // Removing last ';' if exists
+        if (substr($tokens_raw, -1) == ';') {
+          $tokens_raw = substr($tokens_raw, 0, -1 );
+        }
+        if ($tokens_raw == '') {
+          $tokens = array();
+        } else {
+          $tokens = explode( ';', $tokens_raw);
+        }
+
+        $this->game->placeBet($tokens);
+
+        self::ajaxResponse();
+    }
+
   }
   
 

@@ -60,3 +60,10 @@ $this->values_label = array(
   14 => clienttranslate('A')
 );
 
+$this->token_values = array(
+  "white" => 1,
+  "blue" => 2,
+  "red" => 5,
+  "green" => 10,
+  "black" => 20
+);
