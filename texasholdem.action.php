@@ -68,6 +68,8 @@
 
         // Retrieve arguments
         // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+        // Expects a number list with the following format
+        // "<num tokens white in stock>;<num tokens white in betting area>;<num tokens blue in stock>;<num tokens blue in betting area>;..."
         $tokens_raw = self::getArg("tokens", AT_numberlist, true);
 
         // Removing last ';' if exists

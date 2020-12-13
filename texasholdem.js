@@ -287,6 +287,7 @@ function (dojo, declare) {
 
                     case 'playerTurn':
                         this.addActionButton('place_bet', _('Place bet'), 'onPlaceBet'); 
+                        this.addActionButton('all_in', _('All in'), 'onAllIn'); 
                         this.addActionButton('fold', _('Fold'), 'onFold');
                         break;
 
@@ -468,6 +469,37 @@ function (dojo, declare) {
             if(!this.checkAction('fold')) return;
         },
 
+        onAllIn: function() {
+            // Check that this action is possible (see "possibleactions" in states.inc.php)
+            if(!this.checkAction('placeBet')) return;
+
+            var colors = ["white", "blue", "red", "green", "black"];
+            
+            var valuesString = "";
+            colors.forEach(color => {
+                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
+                var stockToken = $("token" + color + "_" + this.player_id);
+                var betToken = $("bettoken" + color + "_" + this.player_id);
+                // Extract number of token from HTML element and build a string to pass to the server
+                var currentStock = parseInt(stockToken.firstElementChild.textContent);
+                var currentBet = parseInt(betToken.firstElementChild.textContent);
+
+                // After the All In, all token are placed in the betting area
+                valuesString += 0 + ";"; // No token left in stock
+                valuesString += (currentStock + currentBet).toString() + ";"; // All in betting area
+
+                // Simulate clicks on stock token
+                for (var i = 0; i < currentStock; i++) {
+                    stockToken.click();
+                }
+            });
+
+            this.ajaxcall("/texasholdem/texasholdem/placeBet.html", { 
+                lock: true, 
+                tokens: valuesString
+            }, this, function(result) {}, function(is_error) {});
+        },
+
         
         ///////////////////////////////////////////////////
         //// Reaction to cometD notifications
@@ -519,14 +551,13 @@ function (dojo, declare) {
 
         notif_betPlaced: function(notif) {
             console.log('notif_betPlaced');
-            console.log(notif);
 
-            // Avoid animating again player's own bet
+            // Avoid animating again player's own bet unless it is an All in action
             if (notif.args.player_id != this.player_id) {
                 var diffStock = notif.args.diff_stock;
+                var playerTable = $("playertablecards_" + notif.args.player_id).parentElement;
 
                 Object.keys(diffStock).forEach(color => {
-                    console.log(color);
                     var tokenDiff = diffStock[color];
 
                     var stockToken = $("token" + color + "_" + notif.args.player_id);
@@ -550,14 +581,31 @@ function (dojo, declare) {
                             // 2) Place the visual of a token on top of the token stock pile
                             dojo.place('<div class = "token token' + color + ' behind" id = "slidingstocktoken_' + color + '_' + currentStock + '"></div>', "playertabletokens_" + notif.args.player_id);
                             // 3) Slide the token from the stock to the betting area
+                                // 3.1) Identify target and source absolute position in the DOM
                             var sourcePos = dojo.position(stockToken.id);
                             var targetPos = dojo.position(betToken.id);
+                                // 3.2) Compute the value of the left and top properties based on the translation to do
+                            var targetTopValue, targetLeftValue;
+                            if (dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
+                                targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(stockToken.id, "top");
+                                targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(stockToken.id, "left");
+                            } else if (dojo.hasClass(playerTable, "playertable_W")) {
+                                targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(stockToken.id, "top");
+                                targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(stockToken.id, "left");
+                            } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
+                                targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(stockToken.id, "top");
+                                targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(stockToken.id, "left");
+                            } else if (dojo.hasClass(playerTable, "playertable_E")) {
+                                targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(stockToken.id, "top");
+                                targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(stockToken.id, "left");
+                            }
+
                             var anim = dojo.fx.slideTo({
                                     node: 'slidingstocktoken_' + color + '_' + currentStock,
-                                    top: (sourcePos.y + dojo.getStyle(stockToken.id, "top") - targetPos.y).toString(),
-                                    left: (sourcePos.x + dojo.getStyle(stockToken.id, "left") - targetPos.x).toString(),
+                                    top: targetTopValue.toString(),
+                                    left: targetLeftValue.toString(),
                                     units: "px",
-                                    duration: 500 - i * 50
+                                    duration: 500 - i * 70
                             });
                             dojo.connect(anim, 'onEnd', function(node) {
                                 // 4) Destroy token visual used for the animation
@@ -585,12 +633,28 @@ function (dojo, declare) {
                             // 2) Place the visual of a token on top of the token stock pile
                             dojo.place('<div class = "token token' + color + ' bettoken behind" id = "slidingbettoken_' + color + '_' + currentBet + '"></div>', "bettingarea_" + notif.args.player_id);
                             // 3) Slide the token from the stock to the betting area
+                                // 3.1) Identify target and source absolute position in the DOM
                             var sourcePos = dojo.position(betToken.id);
                             var targetPos = dojo.position(stockToken.id);
+                                // 3.2) Compute the value of the left and top properties based on the translation to do
+                            var targetTopValue, targetLeftValue;
+                            if (dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
+                                targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(betToken.id, "top");
+                                targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(betToken.id, "left");
+                            } else if (dojo.hasClass(playerTable, "playertable_W")) {
+                                targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(betToken.id, "top");
+                                targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(betToken.id, "left");
+                            } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
+                                targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(betToken.id, "top");
+                                targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(betToken.id, "left");
+                            } else if (dojo.hasClass(playerTable, "playertable_E")) {
+                                targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(betToken.id, "top");
+                                targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(betToken.id, "left");
+                            }
                             var anim = dojo.fx.slideTo({
                                     node: 'slidingbettoken_' + color + '_' + currentBet,
-                                    top: (sourcePos.y + dojo.getStyle(betToken.id, "top") - targetPos.y).toString(),
-                                    left: (sourcePos.x + dojo.getStyle(betToken.id, "left") - targetPos.x).toString(),
+                                    top: targetTopValue.toString(),
+                                    left: targetLeftValue.toString(),
                                     units: "px",
                                     duration: 500 + i * 70
                             });
