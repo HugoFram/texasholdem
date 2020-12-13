@@ -87,6 +87,13 @@
         self::ajaxResponse();
     }
 
+    public function fold() {
+      self::setAjaxMode();
+      $player_id = self::getArg( "player_id", AT_posint, true );
+      $this->game->fold($player_id);
+      self::ajaxResponse();
+    }
+
   }
   
 

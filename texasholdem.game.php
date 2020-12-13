@@ -152,7 +152,7 @@ class texasholdem extends Table
     
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $sql = "SELECT player_id id, player_score score, player_stock_token_white stock_white, 
+        $sql = "SELECT player_id id, player_score score, is_fold, player_stock_token_white stock_white, 
             player_stock_token_blue stock_blue, player_stock_token_red stock_red, player_stock_token_green stock_green,
             player_stock_token_black stock_black, player_bet_token_white bet_white, player_bet_token_blue bet_blue,
             player_bet_token_red bet_red, player_bet_token_green bet_green, player_bet_token_black bet_black FROM player ";
@@ -347,9 +347,21 @@ class texasholdem extends Table
         $this->gamestate->nextState('placeBet');
     }
 
-    function fold() {
+    function fold($player_id) {
         self::checkAction("fold");
         $player_id = self::getActivePlayerId();
+
+        $sql = "UPDATE player SET is_fold = true WHERE player_id = '" . $player_id . "'";
+        self::DbQuery($sql);
+
+        $this->cards->moveAllCardsInLocation("hand", "discarded", $player_id, $player_id);
+
+        self::notifyAllPlayers("fold", clienttranslate('${player_name} folds'), array(
+            'player_id' => $player_id,
+            'player_name' => self::getActivePlayerName()
+        ));
+
+        $this->gamestate->nextState('fold');
     }
 
     function makeChange($tokens) {
@@ -427,8 +439,26 @@ class texasholdem extends Table
 
     function stNextPlayer() {
         $player_id = self::activeNextPlayer();
-        self::giveExtraTime($player_id);
-        $this->gamestate->nextState("nextPlayer");
+
+        // Check which players are folded
+        $sql = "SELECT player_id, is_fold FROM player";
+        $folded_players = self::getCollectionFromDb($sql, true);
+        //throw new BgaUserException(implode(" - ", array_keys($folded_players)) . implode(" - ", $folded_players));
+        $num_folded_players = 0;
+
+        // Skip player if he has folded 
+        while ($folded_players[$player_id] && $num_folded_players < (count($folded_players) - 1)) {
+            $num_folded_players++;
+            $player_id = self::activeNextPlayer();
+        }
+
+        // Check if all players except one have folded
+        if ($num_folded_players == (count($folded_players) - 1)) {
+            $this->gamestate->nextState("endBetRound");
+        } else {
+            self::giveExtraTime($player_id);
+            $this->gamestate->nextState("nextPlayer");
+        }
     }
 
     function stEndBet() {

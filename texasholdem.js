@@ -147,10 +147,15 @@ function (dojo, declare) {
             var hands = gamedatas.hands;
             var playerToIsLeftCard = [];
             for (var i in gamedatas.players) {
-                playerToIsLeftCard.push({
-                    id: gamedatas.players[i].id,
-                    isLeftCard: true
-                });
+                // Display folded message if player is folded
+                if (parseInt(gamedatas.players[i].is_fold)) {
+                    dojo.place('<div class = "folded"><span>Folded</span></div>', 'playertablecards_' + gamedatas.players[i].id);
+                } else {
+                    playerToIsLeftCard.push({
+                        id: gamedatas.players[i].id,
+                        isLeftCard: true
+                    });
+                }
             }
             for (var cardId in hands) {
                 var card = hands[cardId];
@@ -467,6 +472,11 @@ function (dojo, declare) {
         onFold: function() {
             // Check that this action is possible (see "possibleactions" in states.inc.php)
             if(!this.checkAction('fold')) return;
+
+            this.ajaxcall("/texasholdem/texasholdem/fold.html", { 
+                lock: true, 
+                player_id: this.player_id,
+             }, this, function(result) {}, function(is_error) {});
         },
 
         onAllIn: function() {
@@ -530,6 +540,7 @@ function (dojo, declare) {
             // 
 
             dojo.subscribe('betPlaced', this, "notif_betPlaced");
+            dojo.subscribe('fold', this, "notif_fold");
         },  
         
         // TODO: from this point and below, you can write your game notifications handling methods
@@ -552,7 +563,7 @@ function (dojo, declare) {
         notif_betPlaced: function(notif) {
             console.log('notif_betPlaced');
 
-            // Avoid animating again player's own bet unless it is an All in action
+            // Avoid animating again player's own bet
             if (notif.args.player_id != this.player_id) {
                 var diffStock = notif.args.diff_stock;
                 var playerTable = $("playertablecards_" + notif.args.player_id).parentElement;
@@ -674,5 +685,45 @@ function (dojo, declare) {
                 });
             }
         },
+
+        notif_fold: function(notif) {
+            console.log('notif_fold');
+
+            var playerCards = $("playertablecards_" + notif.args.player_id);
+
+            var anim1 = dojo.fx.slideTo({
+                node: playerCards,
+                top: dojo.getStyle(playerCards.id, "top") - 200,
+                left: dojo.getStyle(playerCards.id, "left"),
+                units: "px",
+                duration: 1500
+            });
+            anim2 = dojo.fadeOut({
+                node: playerCards,
+                duration: 1500
+            });
+
+            dojo.connect(anim2, 'onEnd', function(node) {
+                for (var i = 0; i < 2; i++) {
+                    var cardNode = node.children[0];
+                    dojo.destroy(cardNode);
+                }
+                // Slide back the empty playertablecards div
+                dojo.fx.slideTo({
+                    node: playerCards,
+                    top: dojo.getStyle(playerCards.id, "top") + 200,
+                    left: dojo.getStyle(playerCards.id, "left"),
+                    units: "px",
+                    duration: 5
+                }).play();
+                dojo.fadeIn({
+                    node: playerCards,
+                    duration: 5
+                }).play();
+                dojo.place('<div class = "folded"><span>Folded</span></div>', 'playertablecards_' + notif.args.player_id);
+            });
+            anim1.play();
+            anim2.play();
+        } 
    });             
 });
