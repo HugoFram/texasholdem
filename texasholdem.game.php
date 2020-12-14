@@ -106,6 +106,10 @@ class texasholdem extends Table
 
         // TODO: setup the initial game situation here
 
+        // Set values of state variables
+        self::setGameStateInitialValue("roundNumber", 1);
+        self::setGameStateInitialValue("roundStage", 1);
+
         // Initialize tokens bet in previous round stages to 0
         $sql = "INSERT INTO token (token_color, token_number) VALUES ('white', 0), ('blue', 0), ('red', 0), ('green', 0), ('black', 0)";
         self::DbQuery( $sql );
@@ -462,7 +466,83 @@ class texasholdem extends Table
     }
 
     function stEndBet() {
-        $this->gamestate->nextState("nextBetRound");
+        $round_stage = self::getGameStateValue("roundStage");
+
+        // Place all tokens in the betting area to the pot
+        $sql = "SELECT player_id, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
+            player_bet_token_green, player_bet_token_black FROM player";
+        $current_players_bet = self::getCollectionFromDb($sql);
+
+        $sql = "SELECT token_color, token_number FROM token";
+        $current_pot = self::getCollectionFromDb($sql, true);
+        $end_pot = array();
+
+        $sql_pot = "";
+        $sql_bet = "UPDATE player SET ";
+        $num_colors_checked = 0;
+        $additional_pot = 0;
+        foreach($current_pot as $color => $token_number) {
+            $added_tokens = 0;
+            foreach($current_players_bet as $player_id => $bet_tokens) {
+                $added_tokens += $bet_tokens["player_bet_token_".$color];
+            }
+            $end_pot[$color] = $added_tokens + $token_number; // Number of tokens in the pot after movement
+            $additional_pot += $this->token_values[$color] * $added_tokens;
+            $sql_pot = "UPDATE token SET token_number = " . $end_pot[$color] . " WHERE token_color = '" . $color . "'";
+            self::DbQuery($sql_pot);
+            $sql_bet .= "player_bet_token_" . $color . " = 0";
+            // Don't add a comma for the last item
+            if ($num_colors_checked < (count($current_pot) - 1)) {
+                $sql_bet .= ", ";
+            }
+            $num_colors_checked++;
+        }
+        self::DbQuery($sql_bet);
+
+        // Only move bets to pot if there are any bet (otherwise it would pause during 3 seconds for nothing)
+        if ($additional_pot > 0) {
+            self::notifyAllPlayers("moveBetToPot", clienttranslate('${additional_pot} is added to the pot'), array(
+                'additional_pot' => $additional_pot,
+                'end_pot' => $end_pot
+            ));
+        }
+
+        // All cards already shown
+        if ($round_stage >= 4) {
+            $this->gamestate->nextState("endHand");
+            self::notifyAllPlayers("revealHands", clienttranslate('The non-folded players reveal their hands'), array());
+        } else {
+            $round_stage++;
+            switch($round_stage) {
+                case 2:
+                    // Burn a card before drawing the flop cards
+                    $revealed_card = "flop";
+                    $this->cards->pickCardForLocation("deck", "discard");
+                    $this->cards->pickCardsForLocation(3, "deck", "flop");
+                    $new_cards = $this->cards->getCardsInLocation("flop");
+                    break;
+                case 3:
+                    // Burn a card before drawing the turn card
+                    $revealed_card = "turn";
+                    $this->cards->pickCardForLocation("deck", "discard");
+                    $this->cards->pickCardForLocation("deck", "turn");
+                    $new_cards = $this->cards->getCardsInLocation("turn");
+                    break;
+                case 4:
+                    // Burn a card before drawing the river card
+                    $revealed_card = "river";
+                    $this->cards->pickCardForLocation("deck", "discard");
+                    $this->cards->pickCardForLocation("deck", "river");
+                    $new_cards = $this->cards->getCardsInLocation("river");
+                    break;
+            }
+            self::setGameStateValue("roundStage", $round_stage);
+            self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed'), array(
+                'revealed_card' => $revealed_card,
+                'cards' => $new_cards
+            ));
+            $this->gamestate->nextState("nextBetRound");
+        }
     }
 
     function stEndHand() {

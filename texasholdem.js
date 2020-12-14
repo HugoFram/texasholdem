@@ -178,29 +178,28 @@ function (dojo, declare) {
             // Flop
             var isFlopShown = Object.keys(gamedatas.cardsflop).length > 0;
             for (var cardId in [0, 1, 2]) {
-
                 dojo.place(this.format_block('jstpl_card', {
                     CARD_LOCATION_CLASS: "cardflop",
                     CARD_VISIBILITY_CLASS: isFlopShown ? "cardvisible" : "cardhidden",
                     BACKGROUND_POSITION_LEFT_PERCENTAGE: isFlopShown ? -100 * (gamedatas.cardsflop[Object.keys(gamedatas.cardsflop)[cardId]].type_arg - 2) : 0,
                     BACKGROUND_POSITION_TOP_PERCENTAGE: isFlopShown ? -100 * (gamedatas.cardsflop[Object.keys(gamedatas.cardsflop)[cardId]].type - 1) : 0
-                }), 'river');
+                }), 'flop'+(parseInt(cardId)+1));
             }
             // Turn
             var isTurnShown = Object.keys(gamedatas.cardturn).length > 0;
             dojo.place(this.format_block('jstpl_card', {
                 CARD_LOCATION_CLASS: "cardturn",
                 CARD_VISIBILITY_CLASS: isTurnShown ? "cardvisible" : "cardhidden",
-                BACKGROUND_POSITION_LEFT_PERCENTAGE: isTurnShown ? -100 * (gamedatas.cardturn.type_arg - 2) : 0,
-                BACKGROUND_POSITION_TOP_PERCENTAGE: isTurnShown ? -100 * (gamedatas.cardturn.type - 1) : 0
-            }), 'river');
+                BACKGROUND_POSITION_LEFT_PERCENTAGE: isTurnShown ? -100 * (gamedatas.cardturn[Object.keys(gamedatas.cardturn)[0]].type_arg - 2) : 0,
+                BACKGROUND_POSITION_TOP_PERCENTAGE: isTurnShown ? -100 * (gamedatas.cardturn[Object.keys(gamedatas.cardturn)[0]].type - 1) : 0
+            }), 'turn');
             // River
             var isRiverShown = Object.keys(gamedatas.cardriver).length > 0;
             dojo.place(this.format_block('jstpl_card', {
-                CARD_LOCATION_CLASS: "cardturn",
+                CARD_LOCATION_CLASS: "cardriver",
                 CARD_VISIBILITY_CLASS: isRiverShown ? "cardvisible" : "cardhidden",
-                BACKGROUND_POSITION_LEFT_PERCENTAGE: isRiverShown ? -100 * (gamedatas.cardriver.type_arg - 2) : 0,
-                BACKGROUND_POSITION_TOP_PERCENTAGE: isRiverShown ? -100 * (gamedatas.cardriver.type - 1) : 0
+                BACKGROUND_POSITION_LEFT_PERCENTAGE: isRiverShown ? -100 * (gamedatas.cardriver[Object.keys(gamedatas.cardriver)[0]].type_arg - 2) : 0,
+                BACKGROUND_POSITION_TOP_PERCENTAGE: isRiverShown ? -100 * (gamedatas.cardriver[Object.keys(gamedatas.cardriver)[0]].type - 1) : 0
             }), 'river');
 
             // Setup game notifications to handle (see "setupNotifications" method below)
@@ -540,7 +539,12 @@ function (dojo, declare) {
             // 
 
             dojo.subscribe('betPlaced', this, "notif_betPlaced");
+            this.notifqueue.setSynchronous('betPlaced', 2000);
             dojo.subscribe('fold', this, "notif_fold");
+            dojo.subscribe('moveBetToPot', this, "notif_moveBetToPot");
+            this.notifqueue.setSynchronous('moveBetToPot', 3000);
+            dojo.subscribe('revealHands', this, "notif_revealHands");
+            dojo.subscribe('revealNextCard', this, "notif_revealNextCard");
         },  
         
         // TODO: from this point and below, you can write your game notifications handling methods
@@ -724,6 +728,160 @@ function (dojo, declare) {
             });
             anim1.play();
             anim2.play();
-        } 
+        },
+
+        notif_moveBetToPot: function(notif) {
+            console.log('notif_moveBetToPot');
+
+            // Loop over each player's betting area
+            dojo.query(".bettokens").forEach(bettingArea => {
+                var playerId =  bettingArea.id.replace(/bettingarea_/, "");
+
+                var playerTable = $("playertablecards_" + playerId).parentElement;
+                var colors = ["white", "blue", "red", "green", "black"];
+            
+                colors.forEach(color => {
+                    // Retrieve HTML elements corresponding to tokens in the player's betting area
+                    var betToken = $("bettoken" + color + "_" + playerId);
+                    var tableToken = $("token" + color + "_table");
+                    // Extract number of token from HTML element
+                    var numLoops = parseInt(betToken.firstElementChild.textContent);
+                    numLoops = Math.min(10, numLoops); // Cap the number of token animated to 10
+
+                    // Animate tokens slide from betting area to table tokens
+                    for (var i = 0; i < numLoops; i++) {
+                        // 1) Place the visual of a token on top of the token bet pile
+                        dojo.place('<div class = "token token' + color + ' bettoken behind" id = "slidingbettoken_' + color + '_' + playerId + '_' + i + '"></div>', "bettingarea_" + playerId);
+                        // 2) Slide the token from the stock to the betting area
+                            // 2.1) Identify target and source absolute position in the DOM
+                        var sourcePos = dojo.position(betToken.id);
+                        var targetPos = dojo.position(tableToken.id);
+                            // 2.2) Compute the value of the left and top properties based on the translation to do
+                        var targetTopValue, targetLeftValue;
+                        if (dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
+                            targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(betToken.id, "top");
+                            targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(betToken.id, "left");
+                        } else if (dojo.hasClass(playerTable, "playertable_W")) {
+                            targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(betToken.id, "top");
+                            targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(betToken.id, "left");
+                        } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
+                            targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(betToken.id, "top");
+                            targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(betToken.id, "left");
+                        } else if (dojo.hasClass(playerTable, "playertable_E")) {
+                            targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(betToken.id, "top");
+                            targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(betToken.id, "left");
+                        }
+
+                        var anim = dojo.fx.slideTo({
+                                node: 'slidingbettoken_' + color + '_' + playerId + '_' + i,
+                                top: targetTopValue.toString(),
+                                left: targetLeftValue.toString(),
+                                units: "px",
+                                duration: 500 + i * 70
+                        });
+                        dojo.connect(anim, 'onEnd', function(node) {
+                            // 3) Destroy token visual used for the animation
+                            dojo.destroy(node);
+                            // 4) Set the number of table tokens expected for this color at the end of all token animations
+                            dojo.html.set(tableToken.firstElementChild, notif.args.end_pot[color]);
+                            // 5) Unhide the betting area token if it the first token of that color
+                            if (dojo.hasClass(tableToken.id, "tokenhidden")) {
+                                dojo.removeClass(tableToken.id, "tokenhidden");
+                            }
+                            // 6) Hide betting area token and set its number to 0 (value expected at the end of all token animations)
+                            dojo.html.set(betToken.firstElementChild, 0);
+                            dojo.addClass(betToken.id, "tokenhidden");
+                        });
+                        anim.play();
+                    }
+                });
+            });
+        },
+
+        notif_revealHands: function(notif) {
+            console.log('notif_revealHands');
+        },
+
+        notif_revealNextCard: function(notif) {
+            console.log('notif_revealNextCard');
+
+            var roundStage = notif.args.revealed_card;
+            var cards = notif.args.cards;
+
+            switch(roundStage) {
+                case "flop":
+                    for (var cardId in [0, 1, 2]) {
+                        // Place visible card behind the facedown card
+                        dojo.place(this.format_block('jstpl_card', {
+                            CARD_LOCATION_CLASS: "cardflop",
+                            CARD_VISIBILITY_CLASS: "cardvisible flipped-card",
+                            BACKGROUND_POSITION_LEFT_PERCENTAGE: -100 * (parseInt(cards[Object.keys(cards)[cardId]].type_arg) - 2),
+                            BACKGROUND_POSITION_TOP_PERCENTAGE: -100 * (parseInt(cards[Object.keys(cards)[cardId]].type) - 1)
+                        }), 'flop'+(parseInt(cardId)+1));
+                        // Add the flip-card class to flip both the face down and visble cards
+                        dojo.addClass('flop'+(parseInt(cardId)+1), "flip-card");
+                    }
+                    // Remove the facedown card
+                    dojo.query(".cardflop.cardhidden").forEach(node => {
+                        var anim = dojo.fadeOut({
+                            node: node,
+                            delay: 1000,
+                            duration: 10
+                        });
+                        dojo.connect(anim, "onEnd", function(node2) {
+                            dojo.destroy(node);
+                        });
+                        anim.play();
+                    });
+                    break;
+                case "turn":
+                    // Place visible card behind the facedown card
+                    dojo.place(this.format_block('jstpl_card', {
+                        CARD_LOCATION_CLASS: "cardturn",
+                        CARD_VISIBILITY_CLASS: "cardvisible flipped-card",
+                        BACKGROUND_POSITION_LEFT_PERCENTAGE: -100 * (parseInt(cards[Object.keys(cards)[0]].type_arg) - 2),
+                        BACKGROUND_POSITION_TOP_PERCENTAGE: -100 * (parseInt(cards[Object.keys(cards)[0]].type) - 1)
+                    }), 'turn');
+                    // Add the flip-card class to flip both the face down and visble cards
+                    dojo.addClass('turn', "flip-card");
+                    // Remove the facedown card
+                    dojo.query(".cardturn.cardhidden").forEach(node => {
+                        var anim = dojo.fadeOut({
+                            node: node,
+                            delay: 1000,
+                            duration: 10
+                        });
+                        dojo.connect(anim, "onEnd", function(node2) {
+                            dojo.destroy(node);
+                        });
+                        anim.play();
+                    });
+                    break;
+                case "river":
+                    // Place visible card behind the facedown card
+                    dojo.place(this.format_block('jstpl_card', {
+                        CARD_LOCATION_CLASS: "cardriver",
+                        CARD_VISIBILITY_CLASS: "cardvisible flipped-card",
+                        BACKGROUND_POSITION_LEFT_PERCENTAGE: -100 * (parseInt(cards[Object.keys(cards)[0]].type_arg) - 2),
+                        BACKGROUND_POSITION_TOP_PERCENTAGE: -100 * (parseInt(cards[Object.keys(cards)[0]].type) - 1)
+                    }), 'river');
+                    // Add the flip-card class to flip both the face down and visble cards
+                    dojo.addClass('river', "flip-card");
+                    // Remove the facedown card
+                    dojo.query(".cardriver.cardhidden").forEach(node => {
+                        var anim = dojo.fadeOut({
+                            node: node,
+                            delay: 1000,
+                            duration: 10
+                        });
+                        dojo.connect(anim, "onEnd", function(node2) {
+                            dojo.destroy(node);
+                        });
+                        anim.play();
+                    });
+                    break;
+            }
+
+        }
    });             
 });

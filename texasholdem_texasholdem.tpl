@@ -89,8 +89,22 @@
 
             </div>
         </div>
-        <div class = "tablecards" id = "river">
+        <div class = "tablecards">
+            <div id = "flop1">
             
+            </div>
+            <div id = "flop2">
+            
+            </div>
+            <div id = "flop3">
+            
+            </div>
+            <div id = "turn">
+            
+            </div>
+            <div id = "river">
+            
+            </div>
         </div>
     </div>
 </div>

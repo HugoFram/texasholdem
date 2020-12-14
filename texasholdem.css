@@ -277,7 +277,9 @@
     width: 102.67px;
     height: 157.25px;
     border-radius: 7px;
-    box-shadow:rgba(0, 0, 0, 0.4) 3px 1px 1px 1px, rgba(0, 0, 0, 0.38) 2px 0px 0px 2.5px
+    box-shadow:rgba(0, 0, 0, 0.4) 3px 1px 1px 1px, rgba(0, 0, 0, 0.38) 2px 0px 0px 2.5px;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 .cardinhand {
@@ -321,12 +323,26 @@
     position: absolute;
 }
 
-.cardflop {
+#flop1, #flop2, #flop3 {
+    width: 102.67px;
+    height: 157.25px;
+    position: relative;
     margin-left: 10px;
+    transition: transform 1s;
+    transform-style: preserve-3d;
 }
 
-.cardturn, .cardriver {
+#turn, #river {
+    width: 102.67px;
+    height: 157.25px;
+    position: relative;
     margin-left: 30px;
+    transition: transform 1s;
+    transform-style: preserve-3d;
+}
+
+.cardflop, .cardturn, .cardriver {
+    position: absolute;
 }
 
 .cardvisible {
@@ -336,4 +352,12 @@
 .cardhidden {
     background-image: url("img/cardback.png");
     background-position: 0px 0px;
+}
+
+.flip-card {
+    transform: rotateY(180deg);
+}
+
+.flipped-card {
+    transform: rotateY(180deg);
 }
