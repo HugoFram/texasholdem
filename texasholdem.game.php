@@ -742,6 +742,27 @@ class texasholdem extends Table
     */
 
     function stNewHand() {
+        self::incGameStateValue("roundNumber", 1);
+        self::setGameStateValue("roundStage", 1);
+        self::setGameStateValue("numFoldedPlayers", 0);
+
+        // Unfold all players
+        $sql = "UPDATE player SET is_fold = 0";
+        self::DbQuery($sql);
+
+        // Deal two cards to each player
+        $players = self::loadPlayersBasicInfos();
+        foreach ($players as $player_id => $player) {
+            $cards = $this->cards->pickCards(2, 'deck', $player_id);
+        }
+
+        $hands = $this->cards->getCardsInLocation('hand');
+
+        self::notifyAllPlayers("dealCards", clienttranslate('New hand. Two cards are dealt to each player'), array(
+            'players' => $players,
+            'hands' => $hands
+        ));
+
         $this->gamestate->nextState();
     }
 

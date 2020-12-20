@@ -538,6 +538,8 @@ function (dojo, declare) {
             // this.notifqueue.setSynchronous( 'cardPlayed', 3000 );
             // 
 
+            dojo.subscribe('dealCards', this, "notif_dealCards");
+
             dojo.subscribe('betPlaced', this, "notif_betPlaced");
             this.notifqueue.setSynchronous('betPlaced', 2000);
             dojo.subscribe('fold', this, "notif_fold");
@@ -577,6 +579,62 @@ function (dojo, declare) {
         },    
         
         */
+
+        notif_dealCards: function(notif) {
+            console.log('notif_dealCards');
+
+            // Display cards in hand
+            var hands = notif.args.hands;
+            var playerToIsLeftCard = [];
+            for (var i in notif.args.players) {
+                playerToIsLeftCard.push({
+                    id: notif.args.players[i].player_id,
+                    isLeftCard: true
+                });
+            }
+
+            for (var cardId in hands) {
+                var card = hands[cardId];
+                var player = playerToIsLeftCard.filter(player => player.id == card.location_arg)[0];
+
+                dojo.place(this.format_block('jstpl_card', {
+                    CARD_LOCATION_CLASS: player.isLeftCard == true ? "cardinhand cardinhandleft" : "cardinhand cardinhandright",
+                    CARD_VISIBILITY_CLASS: card.location_arg == this.player_id ? "cardvisible" : "cardhidden",
+                    // For cards in another player's hand, set background position to 0, otherwise one could know the card by inspecting the HTML element style
+                    BACKGROUND_POSITION_LEFT_PERCENTAGE: card.location_arg == this.player_id ? -100 * (card.type_arg - 2) : 0,
+                    BACKGROUND_POSITION_TOP_PERCENTAGE: card.location_arg == this.player_id ? -100 * (card.type - 1) : 0
+                }), 'playertablecards_' + card.location_arg);
+
+                if (player.isLeftCard) {
+                    player.isLeftCard = false;
+                }
+            }
+
+            // Display cards on table
+            // Flop
+            for (var cardId in [0, 1, 2]) {
+                dojo.place(this.format_block('jstpl_card', {
+                    CARD_LOCATION_CLASS: "cardflop",
+                    CARD_VISIBILITY_CLASS: "cardhidden",
+                    BACKGROUND_POSITION_LEFT_PERCENTAGE: 0,
+                    BACKGROUND_POSITION_TOP_PERCENTAGE: 0
+                }), 'flop'+(parseInt(cardId)+1));
+            }
+            // Turn
+            dojo.place(this.format_block('jstpl_card', {
+                CARD_LOCATION_CLASS: "cardturn",
+                CARD_VISIBILITY_CLASS: "cardhidden",
+                BACKGROUND_POSITION_LEFT_PERCENTAGE: 0,
+                BACKGROUND_POSITION_TOP_PERCENTAGE: 0
+            }), 'turn');
+            // River
+            dojo.place(this.format_block('jstpl_card', {
+                CARD_LOCATION_CLASS: "cardriver",
+                CARD_VISIBILITY_CLASS: "cardhidden",
+                BACKGROUND_POSITION_LEFT_PERCENTAGE: 0,
+                BACKGROUND_POSITION_TOP_PERCENTAGE: 0
+            }), 'river');
+        },
 
         notif_betPlaced: function(notif) {
             console.log('notif_betPlaced');
