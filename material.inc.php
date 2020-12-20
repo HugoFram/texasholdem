@@ -54,10 +54,10 @@ $this->values_label = array(
   8 => '8',
   9 => '9',
   10 => '10',
-  11 => clienttranslate('J'),
-  12 => clienttranslate('Q'),
-  13 => clienttranslate('K'),
-  14 => clienttranslate('A')
+  11 => clienttranslate('Jack'),
+  12 => clienttranslate('Queen'),
+  13 => clienttranslate('King'),
+  14 => clienttranslate('Ace')
 );
 
 $this->token_values = array(

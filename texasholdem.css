@@ -147,6 +147,8 @@
     position: absolute;
     width: 160px;
     height: 170px;
+    transition: transform 1s;
+    transform-style: preserve-3d;
 }
 
 .folded {
@@ -360,4 +362,32 @@
 
 .flipped-card {
     transform: rotateY(180deg);
+}
+
+.flipped-card.cardinhandleft {
+    transform: rotateZ(-15deg) rotateY(180deg);
+    left: 15px;
+}
+
+.flipped-card.cardinhandright {
+    transform: rotateZ(15deg) rotateY(180deg);
+    left: 45px;
+}
+
+.combotext {
+    position: absolute;
+    width: 250px;
+    height: 15px;
+    top: 50%;
+    left: 50%;
+    margin-left: -125px;
+    margin-top: -7px;
+    font-weight: bold;
+    font-size: 15px;
+
+    background-color: #302115;
+    border-radius: 30px;
+    border: solid 3px;
+    border-color: #666666;
+    color: #DDDDDD;
 }

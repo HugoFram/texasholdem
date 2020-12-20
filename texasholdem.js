@@ -541,10 +541,24 @@ function (dojo, declare) {
             dojo.subscribe('betPlaced', this, "notif_betPlaced");
             this.notifqueue.setSynchronous('betPlaced', 2000);
             dojo.subscribe('fold', this, "notif_fold");
+            this.notifqueue.setSynchronous('fold', 1000);
+
+            dojo.subscribe('revealNextCard', this, "notif_revealNextCard");
+
             dojo.subscribe('moveBetToPot', this, "notif_moveBetToPot");
             this.notifqueue.setSynchronous('moveBetToPot', 3000);
             dojo.subscribe('revealHands', this, "notif_revealHands");
-            dojo.subscribe('revealNextCard', this, "notif_revealNextCard");
+            this.notifqueue.setSynchronous('revealHands', 3000);
+            dojo.subscribe('announceCombo', this, "notif_announceCombo");
+            this.notifqueue.setSynchronous('announceCombo', 3000);
+
+            dojo.subscribe('announceWinner', this, "notif_announceWinner");
+            this.notifqueue.setSynchronous('announceWinner', 6000);
+            dojo.subscribe('movePotToStock', this, "notif_movePotToStock");
+            this.notifqueue.setSynchronous('movePotToStock', 3000);
+
+            dojo.subscribe('discardAllCards', this, "notif_discardAllCards");
+            this.notifqueue.setSynchronous('discardAllCards', 1000);
         },  
         
         // TODO: from this point and below, you can write your game notifications handling methods
@@ -620,7 +634,7 @@ function (dojo, declare) {
                                     top: targetTopValue.toString(),
                                     left: targetLeftValue.toString(),
                                     units: "px",
-                                    duration: 500 - i * 70
+                                    duration: 500 - i * 70 * (20 / (20 - tokenDiff))
                             });
                             dojo.connect(anim, 'onEnd', function(node) {
                                 // 4) Destroy token visual used for the animation
@@ -671,7 +685,7 @@ function (dojo, declare) {
                                     top: targetTopValue.toString(),
                                     left: targetLeftValue.toString(),
                                     units: "px",
-                                    duration: 500 + i * 70
+                                    duration: 500 + i * 70 * (20 / (20 + tokenDiff))
                             });
                             dojo.connect(anim, 'onEnd', function(node) {
                                 // 4) Destroy token visual used for the animation
@@ -752,7 +766,7 @@ function (dojo, declare) {
                     for (var i = 0; i < numLoops; i++) {
                         // 1) Place the visual of a token on top of the token bet pile
                         dojo.place('<div class = "token token' + color + ' bettoken behind" id = "slidingbettoken_' + color + '_' + playerId + '_' + i + '"></div>', "bettingarea_" + playerId);
-                        // 2) Slide the token from the stock to the betting area
+                        // 2) Slide the token from the betting area to the pot
                             // 2.1) Identify target and source absolute position in the DOM
                         var sourcePos = dojo.position(betToken.id);
                         var targetPos = dojo.position(tableToken.id);
@@ -784,7 +798,7 @@ function (dojo, declare) {
                             dojo.destroy(node);
                             // 4) Set the number of table tokens expected for this color at the end of all token animations
                             dojo.html.set(tableToken.firstElementChild, notif.args.end_pot[color]);
-                            // 5) Unhide the betting area token if it the first token of that color
+                            // 5) Unhide the table token if it the first token of that color
                             if (dojo.hasClass(tableToken.id, "tokenhidden")) {
                                 dojo.removeClass(tableToken.id, "tokenhidden");
                             }
@@ -796,10 +810,6 @@ function (dojo, declare) {
                     }
                 });
             });
-        },
-
-        notif_revealHands: function(notif) {
-            console.log('notif_revealHands');
         },
 
         notif_revealNextCard: function(notif) {
@@ -882,6 +892,210 @@ function (dojo, declare) {
                     break;
             }
 
+        },
+
+        notif_revealHands: function(notif) {
+            console.log('notif_revealHands');
+
+            var players = notif.args.players;
+            var players_combo = notif.args.players_best_combo;
+            var hands = notif.args.hands;
+
+            players.forEach(player => {
+                // Reveal player's cards
+                if (player.player_id != this.player_id) {
+                    var playerHand = hands.filter(card => card.location_arg == player.player_id);
+                    var cardLeft = playerHand[0];
+                    var cardRight = playerHand[1];
+
+                    // Place visible cards behind the facedown cards
+                    dojo.place(this.format_block('jstpl_card', {
+                        CARD_LOCATION_CLASS: "cardinhand cardinhandleft",
+                        CARD_VISIBILITY_CLASS: "cardvisible flipped-card behind",
+                        BACKGROUND_POSITION_LEFT_PERCENTAGE: -100 * (cardLeft.type_arg - 2),
+                        BACKGROUND_POSITION_TOP_PERCENTAGE: -100 * (cardLeft.type - 1)
+                    }), 'playertablecards_' + player.player_id);
+                    dojo.place(this.format_block('jstpl_card', {
+                        CARD_LOCATION_CLASS: "cardinhand cardinhandright",
+                        CARD_VISIBILITY_CLASS: "cardvisible flipped-card",
+                        BACKGROUND_POSITION_LEFT_PERCENTAGE: -100 * (cardRight.type_arg - 2),
+                        BACKGROUND_POSITION_TOP_PERCENTAGE: -100 * (cardRight.type - 1)
+                    }), 'playertablecards_' + player.player_id);
+
+                    // Add the flip-card class to flip both the face down and visble cards
+                    dojo.addClass('playertablecards_' + player.player_id, "flip-card");
+                }
+            });
+            // Remove the facedown cards
+            dojo.query(".cardinhand.cardhidden").forEach(node => {
+                var anim = dojo.fadeOut({
+                    node: node,
+                    delay: 1000,
+                    duration: 10
+                });
+                dojo.connect(anim, "onEnd", function(node2) {
+                    dojo.destroy(node);
+                });
+                anim.play();
+            });
+        },
+
+        notif_announceCombo: function(notif) {
+            console.log('notif_announceCombo');
+
+            var playerId = notif.args.player_id;
+            var playerColor = notif.args.player_color;
+            var comboCards = notif.args.player_best_combo.hand;
+            var comboName = notif.args.combo_name;
+
+            // Highlight cards constituting the combo
+            dojo.query(".card.cardvisible").forEach(card => {
+                var cardValue = (-parseInt(getComputedStyle(card).backgroundPositionX.slice(0, -1)) / 100) + 2;
+                var cardSuit = (-parseInt(getComputedStyle(card).backgroundPositionY.slice(0, -1)) / 100) + 1;
+                if (comboCards.filter(card => (card.type_arg == cardValue && card.type == cardSuit)).length > 0) {
+                    dojo.style(card, {
+                        "border": "3px solid",
+                        "border-color": "#" + playerColor,
+                        "opacity": "1"
+                    });
+                } else if ((card.parentElement.id.replace(/playertablecards_/, "") == playerId) || !dojo.hasClass(card, "cardinhand")) {
+                    dojo.style(card, {
+                        "border": "none",
+                        "opacity": "0.2"
+                    });
+                } else {
+                    dojo.style(card, {
+                        "border": "none",
+                        "opacity": "1"
+                    });
+                }
+            });
+
+            // Display text indicating the combo
+            dojo.place('<span class = "combotext" id = "combotext_' + playerId + '">' + comboName + '</span>', "bettingarea_" + playerId);
+
+        },
+
+        notif_announceWinner: function(notif) {
+            console.log('notif_announceWinner');
+
+            var playerId = notif.args.winner_id;
+            var playerColor = notif.args.winner_color;
+            var comboCards = notif.args.winner_best_combo.hand;
+            var comboName = notif.args.combo_name;
+
+            // Highlight cards constituting the combo
+            dojo.query(".card.cardvisible").forEach(card => {
+                var cardValue = (-parseInt(getComputedStyle(card).backgroundPositionX.slice(0, -1)) / 100) + 2;
+                var cardSuit = (-parseInt(getComputedStyle(card).backgroundPositionY.slice(0, -1)) / 100) + 1;
+                if (comboCards.filter(card => (card.type_arg == cardValue && card.type == cardSuit)).length > 0) {
+                    dojo.style(card, {
+                        "border": "3px solid",
+                        "border-color": "#" + playerColor,
+                        "opacity": "1"
+                    });
+                } else if ((card.parentElement.id.replace(/playertablecards_/, "") == playerId) || !dojo.hasClass(card, "cardinhand")) {
+                    dojo.style(card, {
+                        "border": "none",
+                        "opacity": "0.2"
+                    });
+                } else {
+                    dojo.style(card, {
+                        "border": "none",
+                        "opacity": "1"
+                    });
+                }
+            });
+
+            // Make the winner playertable blink
+            var playerTable = $("bettingarea_" + playerId).parentElement;
+
+            dojo.fx.chain([
+                dojo.fadeOut({node: playerTable, delay: 3000}),
+                dojo.fadeIn({node: playerTable}),
+                dojo.fadeOut({node: playerTable}),
+                dojo.fadeIn({node: playerTable})
+            ]).play();
+        },
+
+        notif_movePotToStock: function(notif) {
+            console.log('notif_movePotToStock');
+
+            var playerId = notif.args.winner_id;
+
+            var playerTable = $("playertablecards_" + playerId).parentElement;
+            var colors = ["white", "blue", "red", "green", "black"];
+        
+            colors.forEach(color => {
+                // Retrieve HTML elements corresponding to tokens in the player's stock
+                var stockToken = $("token" + color + "_" + playerId);
+                var tableToken = $("token" + color + "_table");
+                // Extract number of token from HTML element
+                var numLoops = parseInt(tableToken.firstElementChild.textContent);
+                numLoops = Math.min(10, numLoops); // Cap the number of token animated to 10
+
+                // Animate tokens slide from table tokens to player's stock
+                for (var i = 0; i < numLoops; i++) {
+                    // 1) Place the visual of a token on top of the token bet pile
+                    dojo.place('<div class = "token token' + color + ' token behind" id = "slidingtabletoken_' + color + '_' + playerId + '_' + i + '"></div>', "previousroundtokens");
+                    // 2) Slide the token from the pot to the player's stock
+                        // 2.1) Identify target and source absolute position in the DOM
+                    var sourcePos = dojo.position(tableToken.id);
+                    var targetPos = dojo.position(stockToken.id);
+                        // 2.2) Compute the value of the left and top properties based on the translation to do
+                    var targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(tableToken.id, "top");
+                    var targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(tableToken.id, "left");
+
+                    var anim = dojo.fx.slideTo({
+                            node: 'slidingtabletoken_' + color + '_' + playerId + '_' + i,
+                            top: targetTopValue.toString(),
+                            left: targetLeftValue.toString(),
+                            units: "px",
+                            duration: 500 + i * 70
+                    });
+                    dojo.connect(anim, 'onEnd', function(node) {
+                        // 3) Destroy token visual used for the animation
+                        dojo.destroy(node);
+                        // 4) Set the number of table tokens expected for this color at the end of all token animations
+                        dojo.html.set(stockToken.firstElementChild, notif.args.end_player_stock[color]);
+                        // 5) Unhide the player's stock token if it the first token of that color
+                        if (dojo.hasClass(stockToken.id, "tokenhidden")) {
+                            dojo.removeClass(stockToken.id, "tokenhidden");
+                        }
+                        // 6) Hide table token and set its number to 0 (value expected at the end of all token animations)
+                        dojo.html.set(tableToken.firstElementChild, 0);
+                        dojo.addClass(tableToken.id, "tokenhidden");
+                    });
+                    anim.play();
+                }
+            });
+        },
+
+        notif_discardAllCards: function(notif) {
+            console.log('notif_discardAllCards');
+
+            dojo.query(".card").forEach(node => {
+                this.fadeOutAndDestroy(node);
+            });
+
+            dojo.query(".combotext").forEach(node => {
+                this.fadeOutAndDestroy(node);
+            });
+
+            dojo.query(".folded").forEach(node => {
+                this.fadeOutAndDestroy(node);
+            });
+
+            // Remove the flip-card class to "unflip" all cards containers
+            dojo.removeClass('flop1', "flip-card");
+            dojo.removeClass('flop2', "flip-card");
+            dojo.removeClass('flop3', "flip-card");
+            dojo.removeClass('turn', "flip-card");
+            dojo.removeClass('river', "flip-card");
+
+            dojo.query(".playertablecards").forEach(node => {
+                dojo.removeClass(node, "flip-card");
+            });
         }
    });             
 });

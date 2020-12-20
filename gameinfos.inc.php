@@ -16,7 +16,7 @@ $gameinfos = array(
 'game_name' => "Poker Texas Holdem",
 
 // Game designer (or game designers, separated by commas)
-'designer' => 'Hugo Frammery',       
+'designer' => 'Hugo Frammery, Mickael Avanthay',       
 
 // Game artist (or game artists, separated by commas)
 'artist' => 'Hugo Frammery',         

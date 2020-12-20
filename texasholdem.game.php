@@ -41,6 +41,7 @@ class texasholdem extends Table
             //      ...
             "roundNumber" => 10,
             "roundStage" => 11, // 1 = pre-flop, 2 = flop, 3 = turn, 4 = river
+            "numFoldedPlayers" => 12
         ) );
 
         $this->cards = self::getNew("module.common.deck");
@@ -73,7 +74,7 @@ class texasholdem extends Table
         $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar, player_score,
             player_stock_token_white, player_stock_token_blue, player_stock_token_red, player_stock_token_green,
             player_stock_token_black, player_bet_token_white, player_bet_token_blue,
-            player_bet_token_red, player_bet_token_green, player_bet_token_black) VALUES ";
+            player_bet_token_red, player_bet_token_green, player_bet_token_black, is_fold) VALUES ";
         $values = array();
         $initial_score = 100;
         $initial_white_tokens = 10;
@@ -82,12 +83,13 @@ class texasholdem extends Table
         $initial_green_tokens = 2;
         $initial_black_tokens = 2;
         $initial_bet_tokens = 0;
+        $initial_is_fold = 0;
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
             $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."',".
                 $initial_score.",".$initial_white_tokens.",".$initial_blue_tokens.",".$initial_red_tokens.",".$initial_green_tokens.",".$initial_black_tokens.",".
-                $initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.")";
+                $initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_is_fold.")";
         }
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
@@ -109,6 +111,7 @@ class texasholdem extends Table
         // Set values of state variables
         self::setGameStateInitialValue("roundNumber", 1);
         self::setGameStateInitialValue("roundStage", 1);
+        self::setGameStateInitialValue("numFoldedPlayers", 0);
 
         // Initialize tokens bet in previous round stages to 0
         $sql = "INSERT INTO token (token_color, token_number) VALUES ('white', 0), ('blue', 0), ('red', 0), ('green', 0), ('black', 0)";
@@ -126,12 +129,6 @@ class texasholdem extends Table
 
         // Shuffle deck
         $this->cards->shuffle('deck');
-
-        // Deal two cards to each player
-        $players = self::loadPlayersBasicInfos();
-        foreach ($players as $player_id => $player) {
-            $cards = $this->cards->pickCards(2, 'deck', $player_id);
-        }       
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
@@ -263,6 +260,315 @@ class texasholdem extends Table
         return $result;
     }
 
+    function findComboIn7CardsHand($hand) {
+        // Flatten the hand in to get an array of strings of the format "<value><suit>" (e.g. "9C")
+        $cards_flat = array_map(function($card) {return ($card["type_arg"] - 2) * 4 + ($card["type"] - 1);}, $hand);
+
+        self::dump( "Cards flat: ", $cards_flat );
+        rsort($cards_flat);
+        self::dump( "Sorted Cards flat: ", $cards_flat );
+
+        $values_occurrences = array();
+        $suits_occurrences = array();
+        $is_straight = FALSE;
+
+        foreach($cards_flat as $card_id => $card) {
+            $card_value = (int)(floor($card / 4) + 2);
+            $card_suit = $card % 4 + 1;
+
+            // Increase the number of occurrences of this value
+            if (!array_key_exists($card_value, $values_occurrences)) {
+                $values_occurrences[$card_value] = 1;
+            } else {
+                $values_occurrences[$card_value] = $values_occurrences[$card_value] + 1;
+            }
+
+            // Increase the number of occurrences of this suit
+            if (!array_key_exists($card_suit, $suits_occurrences)) {
+                $suits_occurrences[$card_suit] = 1;
+            } else {
+                $suits_occurrences[$card_suit] = $suits_occurrences[$card_suit] + 1;
+            }
+
+            if (!$card_id) {
+                // First card of hand
+                $num_consecutive = 1;
+            } else {
+                // Not first card of hand
+                $diff_value = $card_value - (int)(floor($cards_flat[$card_id - 1] / 4) + 2);
+                if ($diff_value == -1) {
+                    $num_consecutive++;
+                    if ($num_consecutive >= 5 && !$is_straight) {
+                        $is_straight = TRUE;
+                        $straight_lowest_value = $card_value;
+                    }
+                } else if ($diff_value < -1) {
+                    $num_consecutive = 1;
+                }
+            }
+        }
+
+        self::dump( "Suits occurrences: ", $suits_occurrences );
+        self::dump( "Values occurrences: ", $values_occurrences );
+
+        $is_flush = count(array_filter($suits_occurrences, function($suit) {return $suit >= 5;})) > 0;
+        $num_diff_values = count($values_occurrences);
+        $max_num_occurrences = max($values_occurrences);
+        $best_combo_hand = array();
+
+        // Check combos in increasing order (decreasing probabilities)
+        if ($max_num_occurrences == 2 && $num_diff_values == 6 && !$is_straight && !$is_flush) {
+            // One pair (probability: 43.8%) --> comboId = 1
+            self::trace("One pair");
+            $combo_id = 1;
+
+            $pair_value = array_keys($values_occurrences, 2)[0];
+            $kickers = array_slice(array_keys($values_occurrences, 1), 0, 3);
+
+            $best_combo_hand = array_filter($hand, function($card) use($pair_value, $kickers) {
+                return $card["type_arg"] == $pair_value || in_array($card["type_arg"], $kickers);
+            });
+
+            $combo_value = ($pair_value - 2);
+            $kicker_value = ($kickers[0] - 2) * 10000 + ($kickers[1] - 2) * 100 + ($kickers[2] - 2);
+
+        } else if ($max_num_occurrences == 2 && $num_diff_values <= 5 && !$is_straight && !$is_flush) {
+            // Two pairs (probability: 23.5%) --> comboId = 2
+            self::trace("Two pairs");
+            $combo_id = 2;
+
+            $pair_values = array_slice(array_keys($values_occurrences, 2), 0, 2);
+            $kicker = array_keys($values_occurrences, 1)[0];
+
+            $best_combo_hand = array_filter($hand, function($card) use($pair_values, $kicker) {
+                return in_array($card["type_arg"], $pair_values) || $card["type_arg"] == $kicker;
+            });
+
+            $combo_value = ($pair_values[0] - 2) * 100 + ($pair_values[1] - 2);
+            $kicker_value = $kicker - 2;
+
+        } else if ($max_num_occurrences == 1 && !$is_straight && !$is_flush) {
+            // High card (probability: 17.4%) --> comboId = 0
+            self::trace("High card");
+            $combo_id = 0;
+
+            $kickers = array_slice(array_keys($values_occurrences, 1), 0, 5);
+
+            $best_combo_hand = array_filter($hand, function($card) use($kickers) {
+                return in_array($card["type_arg"], $kickers);
+            });
+
+            $combo_value = $kickers[0] - 2;
+            $kicker_value = ($kickers[1] - 2) * 1000000 + ($kickers[2] - 2) * 10000 + ($kickers[3] - 2) * 100 + ($kickers[4] - 2);
+
+        } else if ($max_num_occurrences == 3 && $num_diff_values == 5 && !$is_straight && !$is_flush) {
+            // Three of a kind (probability: 4.83%) --> comboId = 3
+            self::trace("Three of a kind");
+            $combo_id = 3;
+
+            $three_of_a_kind_value = array_keys($values_occurrences, 3)[0];
+            $kickers = array_slice(array_keys($values_occurrences, 1), 0, 2);
+
+            $best_combo_hand = array_filter($hand, function($card) use($three_of_a_kind_value, $kickers) {
+                return $card["type_arg"] == $three_of_a_kind_value || in_array($card["type_arg"], $kickers);
+            });
+
+            $combo_value = ($three_of_a_kind_value - 2);
+            $kicker_value = ($kickers[0] - 2) * 100 + ($kickers[1] - 2);
+
+        } else if ($is_straight && !$is_flush) {
+            // Straight (probability: 4.62%) --> comboId = 4
+            self::trace("Straight");
+            $combo_id = 4;
+
+            foreach ($hand as $card) {
+                // Check if card is between lowest straight value and (4 + lowest straigh value)
+                if ($card["type_arg"] <= ($straight_lowest_value + 4) && $card["type_arg"] >= $straight_lowest_value) {
+                    // Check if a card with the same value is already in the selected cards
+                    if (!in_array($card["type_arg"], array_map(function($card) {return $card["type_arg"];}, $best_combo_hand))) {
+                        $best_combo_hand[] = $card;
+                    }
+                }
+            }
+
+            $combo_value = ($straight_lowest_value + 4) - 2;
+            $kicker_value = 0;
+
+        } else if (!$is_straight && $is_flush) {
+            // Flush (probability: 3.03%) --> comboId = 5
+            self::trace("Flush");
+            $combo_id = 5;
+
+            // Identify suit of the flush
+            $flush_suit = array_keys(array_filter($suits_occurrences, function($suit) {return $suit >= 5;}))[0];
+
+            // Iterate over values in decreasing order and add to the best combo hand the card of this value if it has the flush suit
+            array_walk($values_occurrences, function($occurrences, $value) use(&$best_combo_hand, $flush_suit, $hand) {
+                // Check if best combo hand is already full
+                if (count($best_combo_hand) < 5) {
+                    $new_card = array_filter($hand, function($card) use($value, $flush_suit) {
+                        return $card["type_arg"] == $value && $card["type"] == $flush_suit;
+                    });
+                    if (count($new_card) > 0) {
+                        $best_combo_hand[] = array_values($new_card)[0];
+                    }
+                }
+            });
+
+            $flush_values = array_map(function($card) {return $card["type_arg"];}, $best_combo_hand);
+            rsort($flush_values);
+
+            $combo_value = $flush_values[0] - 2;
+            $kicker_value = ($flush_values[1] - 2) * 1000000 + ($flush_values[2] - 2) * 10000 + ($flush_values[3] - 2) * 100 + ($flush_values[4] - 2);
+
+        } else if ($max_num_occurrences == 3 && $num_diff_values <= 4 && !$is_straight && !$is_flush) {
+            // Full house (probability: 2.60%) --> comboId = 6
+            self::trace("Full house");
+            $combo_id = 6;
+
+            $three_of_a_kind_value = array_keys($values_occurrences, 3)[0];
+
+            // Add best three of a kind to the best combo hand
+            $best_combo_hand = array_filter($hand, function($card) use($three_of_a_kind_value) {
+                return $card["type_arg"] == $three_of_a_kind_value;
+            });
+
+            // Add best pair to the best combo hand
+            array_walk($values_occurrences, function($occurrences, $value) use(&$best_combo_hand, $hand, $three_of_a_kind_value) {
+                if ($value != $three_of_a_kind_value && $occurrences >= 2 && count($best_combo_hand) < 5) {
+                    $pair = array_values(array_filter($hand, function($card) use($value) {return $card["type_arg"] == $value;}));
+                    $best_combo_hand[] = $pair[0];
+                    $best_combo_hand[] = $pair[1];
+                }
+            });
+
+            $pair_value = array_values($best_combo_hand)[3]["type_arg"];
+            $combo_value = ($three_of_a_kind_value - 2) * 100 + ($pair_value - 2);
+            $kicker_value = 0;
+
+        } else if ($max_num_occurrences == 4) {
+            // Four of a kind (probability: 0.168%) --> comboId = 7
+            self::trace("Four of a kind");
+            $combo_id = 7;
+
+            $four_of_a_kind_value = array_keys($values_occurrences, 4)[0];
+
+            $best_combo_hand = array_filter($hand, function($card) use($four_of_a_kind_value) {
+                return $card["type_arg"] == $four_of_a_kind_value;
+            });
+
+            array_walk($values_occurrences, function($occurrences, $value) use(&$best_combo_hand, $hand, $four_of_a_kind_value) {
+                if ($value != $four_of_a_kind_value && count($best_combo_hand) < 5) {
+                    $best_combo_hand[] = array_values(array_filter($hand, function($card) use($value) {return $card["type_arg"] == $value;}))[0];
+                }
+            });
+
+            $combo_value = $four_of_a_kind_value - 2;
+            $kicker_value = array_values($best_combo_hand)[4]["type_arg"] - 2; // Kicker value
+        } else if ($is_straight && $is_flush) {
+            // Straight flush OR Flush
+
+            // Check if the straight cards and the flush cards are the same
+            $flush_suit = array_keys(array_filter($suits_occurrences, function($suit) {return $suit >= 5;}))[0];
+            $best_combo_hand = array_filter($hand, function($card) use($flush_suit) {
+                return $card["type"] == $flush_suit;
+            });
+
+            usort($best_combo_hand, function($card_a, $card_b) {
+                return $card_a["type_arg"] < $card_b["type_arg"];
+            });
+
+            // Check each possible sub-hand to identify the best one with a straigh
+            $num_cards_of_flush_suit = count($best_combo_hand);
+            $is_straight_flush = FALSE;
+            for ($start_idx = 0; $start_idx <= ($num_cards_of_flush_suit - 5); $start_idx++) {
+                // Extract values of cards of the sub-hand
+                $values = array_map(function($card) {return $card["type_arg"];}, array_slice($best_combo_hand, $start_idx, 5));
+                $is_straight_sub_hand = TRUE;
+                foreach ($values as $value_id => $value) {
+                    if ($value_id < 4) {
+                        // Check if the value between the card value and the next card value is 1. If not, it is not a straight
+                        if (($values[$value_id + 1] - $value) != -1) {
+                            $is_straight_sub_hand = FALSE;
+                            break;
+                        }
+                    }
+                }
+                // If it is a straight, it is the best possible one because cards were sorted in descending order
+                // => This sub hand is the best combo
+                if ($is_straight_sub_hand) {
+                    // Straight flush (probability: 0.0279%) --> comboId = 8
+                    self::trace("Straight flush");
+                    $combo_id = 8;
+                    $is_straight_flush = TRUE;
+                    $best_combo_hand = array_slice($best_combo_hand, $start_idx, 5);
+
+                    $combo_value = array_values($best_combo_hand)[0]["type_arg"] - 2;
+                    $kicker_value = 0;
+                    break;
+                }
+            }
+            if (!$is_straight_flush) {
+                // Flush (probability: 3.03%) --> comboId = 5
+                self::trace("Flush");
+                $combo_id = 5;
+                $best_combo_hand = array_slice($best_combo_hand, $start_idx, 5);
+
+                $flush_values = array_map(function($card) {return $card["type_arg"];}, $best_combo_hand);
+                rsort($flush_values);
+
+                $combo_value = $flush_values[0] - 2;
+                $kicker_value = ($flush_values[1] - 2) * 1000000 + ($flush_values[2] - 2) * 10000 + ($flush_values[3] - 2) * 100 + ($flush_values[4] - 2);
+            }
+        } else {
+            // Wtf? it shouldn't reach this code chunk
+            throw new BgaUserException("Unrecognized combo");
+        }
+
+        usort($best_combo_hand, function($card_a, $card_b) {
+            return $card_a["type_arg"] < $card_b["type_arg"];
+        });
+
+        self::dump("Best combo hand: ", array_map(function($card) {
+            return $this->values_label[$card["type_arg"]] . " of " . $this->suits[$card["type"]]["name"];
+        }, $best_combo_hand));
+        self::dump("Combo Id: ", $combo_id);
+        self::dump("Combo Value: ", $combo_value);
+        self::dump("Kicker Value: ", $kicker_value);
+        self::dump("Best combo hand: ", array_map(function($card) {
+            return $this->values_label[$card["type_arg"]] . " of " . $this->suits[$card["type"]]["name"];
+        }, $best_combo_hand));
+
+        return array("hand" => $best_combo_hand, "comboId" => $combo_id, "comboValue" => $combo_value, "kickerValue" => $kicker_value);
+    }
+
+    // Display the content of a variable as a string (For debugging purposes)
+    function varDumpToString($var) {
+        ob_start();
+        var_dump($var);
+        $result = ob_get_clean();
+        throw new BgaUserException($result);
+     }
+
+    function compareHands($combo_a, $combo_b) {
+        // Compare combo ranks
+        if ($combo_a["comboId"] != $combo_b["comboId"]) {
+            return ($combo_a["comboId"] > $combo_b["comboId"]) ? -1 : 1;
+        } else {
+            // Compare combo values
+            if ($combo_a["comboValue"] != $combo_b["comboValue"]) {
+                return ($combo_a["comboValue"] > $combo_b["comboValue"]) ? -1 : 1;
+            } else {
+                // Compare kicker values
+                if ($combo_a["kickerValue"] != $combo_b["kickerValue"]) {
+                    return ($combo_a["kickerValue"] > $combo_b["kickerValue"]) ? -1 : 1;
+                } else {
+                    return 0;
+                }
+            }
+        }
+    }
+
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
 //////////// 
@@ -358,7 +664,9 @@ class texasholdem extends Table
         $sql = "UPDATE player SET is_fold = true WHERE player_id = '" . $player_id . "'";
         self::DbQuery($sql);
 
-        $this->cards->moveAllCardsInLocation("hand", "discarded", $player_id, $player_id);
+        $this->cards->moveAllCardsInLocation("hand", "discard", $player_id, $player_id);
+
+        self::incGameStateValue("numFoldedPlayers", 1);
 
         self::notifyAllPlayers("fold", clienttranslate('${player_name} folds'), array(
             'player_id' => $player_id,
@@ -448,21 +756,26 @@ class texasholdem extends Table
         $sql = "SELECT player_id, is_fold FROM player";
         $folded_players = self::getCollectionFromDb($sql, true);
         //throw new BgaUserException(implode(" - ", array_keys($folded_players)) . implode(" - ", $folded_players));
-        $num_folded_players = 0;
+        $num_folded_players = self::getGameStateValue("numFoldedPlayers");
 
         // Skip player if he has folded 
         while ($folded_players[$player_id] && $num_folded_players < (count($folded_players) - 1)) {
-            $num_folded_players++;
             $player_id = self::activeNextPlayer();
         }
 
         // Check if all players except one have folded
-        if ($num_folded_players == (count($folded_players) - 1)) {
+        if (true) {
             $this->gamestate->nextState("endBetRound");
         } else {
             self::giveExtraTime($player_id);
             $this->gamestate->nextState("nextPlayer");
         }
+        // if ($num_folded_players == (count($folded_players) - 1)) {
+        //     $this->gamestate->nextState("endBetRound");
+        // } else {
+        //     self::giveExtraTime($player_id);
+        //     $this->gamestate->nextState("nextPlayer");
+        // }
     }
 
     function stEndBet() {
@@ -470,7 +783,7 @@ class texasholdem extends Table
 
         // Place all tokens in the betting area to the pot
         $sql = "SELECT player_id, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
-            player_bet_token_green, player_bet_token_black FROM player";
+            player_bet_token_green, player_bet_token_black, is_fold FROM player";
         $current_players_bet = self::getCollectionFromDb($sql);
 
         $sql = "SELECT token_color, token_number FROM token";
@@ -508,10 +821,39 @@ class texasholdem extends Table
         }
 
         // All cards already shown
+        // FOR TESTING 
+        if ($round_stage == 1) {
+            $revealed_card = "flop";
+            $this->cards->pickCardForLocation("deck", "discard");
+            $this->cards->pickCardsForLocation(3, "deck", "flop");
+            $new_cards = $this->cards->getCardsInLocation("flop");
+            self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed'), array(
+                'revealed_card' => $revealed_card,
+                'cards' => $new_cards
+            ));
+    
+            $revealed_card = "turn";
+            $this->cards->pickCardForLocation("deck", "discard");
+            $this->cards->pickCardForLocation("deck", "turn");
+            $new_cards = $this->cards->getCardsInLocation("turn");
+            self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed'), array(
+                'revealed_card' => $revealed_card,
+                'cards' => $new_cards
+            ));
+    
+            $round_stage = 3;
+            self::setGameStateValue("roundStage", 3);
+        }
+        // END TESTING 
+
         if ($round_stage >= 4) {
             $this->gamestate->nextState("endHand");
-            self::notifyAllPlayers("revealHands", clienttranslate('The non-folded players reveal their hands'), array());
         } else {
+            // Check if there are more than one player still not folded
+            $num_folded_players = self::getGameStateValue("numFoldedPlayers");
+            if ($num_folded_players >= (count($current_players_bet) - 1)) {
+                $this->gamestate->nextState("endHand");
+            }
             $round_stage++;
             switch($round_stage) {
                 case 2:
@@ -546,6 +888,152 @@ class texasholdem extends Table
     }
 
     function stEndHand() {
+
+        $sql = "SELECT player_id, player_name, player_color, is_fold FROM player";
+        $players = self::getCollectionFromDb($sql);
+        $non_folded_players = array_filter($players, function($player) {return !$player["is_fold"];});
+        $num_folded_players = self::getGameStateValue("numFoldedPlayers");
+        $cards_in_hand = $this->cards->getCardsInLocation("hand");
+        $sql = "SELECT card_id id, card_type type, card_type_arg type_arg, card_location location, card_location_arg location_arg FROM card WHERE card_location IN ('flop', 'turn', 'river')";
+        $cards_on_table = self::getCollectionFromDb($sql);
+
+        if (count($non_folded_players) > 1) {
+            $hand_values = array();
+            foreach($non_folded_players as $player_id => $player) {
+                $player_hand = array_filter($cards_in_hand, function($card) use ($player_id) {return $card["location_arg"] == $player_id;});
+                $player_hand = array_merge($player_hand, $cards_on_table);
+                $players_best_combo[$player_id] = $this->findComboIn7CardsHand($player_hand);
+            }
+
+            // Sort hands descending
+            uasort($players_best_combo, array($this,'compareHands'));
+
+            // Check if there are several winners
+            $sorted_player_ids = array_keys($players_best_combo);
+            $i = 1;
+            $winners = array($sorted_player_ids[0]);
+            while ($i < count($players_best_combo) && $this->compareHands($players_best_combo[$sorted_player_ids[0]], $players_best_combo[$sorted_player_ids[$i]]) == 0) {
+                $winners[] = $sorted_player_ids[$i];
+                $i++;
+            }
+
+            // Reveal players hands
+            self::notifyAllPlayers("revealHands", clienttranslate('The non-folded players reveal their hands'), array(
+                'players' => array_values($non_folded_players),
+                'hands' => array_values($cards_in_hand)
+            ));
+
+            // Announce the combo of each player
+            foreach($non_folded_players as $player_id => $player) {
+                $combo_value = $players_best_combo[$player_id]["comboValue"];
+                switch($players_best_combo[$player_id]["comboId"]) {
+                    case 0:
+                        $combo_name = "nothing (Top card: " . $this->values_label[$combo_value + 2] . ")";
+                        break;
+                    case 1:
+                        $combo_name = "a pair of " . $this->values_label[$combo_value + 2] . "s";
+                        break;
+                    case 2:
+                        $combo_name = "two pairs (" . $this->values_label[(int)floor($combo_value / 100) + 2] . " and " . $this->values_label[$combo_value % 100 + 2] . ")";
+                        break;
+                    case 3:
+                        $combo_name = "a three of a kind of " . $this->values_label[$combo_value + 2] . "s";
+                        break;
+                    case 4:
+                        $combo_name = "a straight (Top card: " . $this->values_label[$combo_value + 2] . ")";
+                        break;
+                    case 5:
+                        $combo_name = "a flush (Top value: " . $this->values_label[$combo_value + 2] . ")";
+                        break;
+                    case 6:
+                        $combo_name = "a full house (" . $this->values_label[(int)floor($combo_value / 100) + 2] . "s" . " over " . $this->values_label[$combo_value % 100 + 2] . "s" . ")";
+                        break;
+                    case 7:
+                        $combo_name = "a four of a kind of " . $this->values_label[$combo_value + 2] . "s";
+                        break;
+                    case 8:
+                        $combo_name = "a straight flush (Top card: " . $this->values_label[$combo_value + 2] . ")";
+                        break;
+                }
+                $players_best_combo[$player_id]["comboName"] = $combo_name;
+                self::notifyAllPlayers("announceCombo", clienttranslate('${player_name} has ${combo_name}'), array(
+                    'player_name' => $player["player_name"],
+                    'combo_name' => $combo_name,
+                    'player_id' => $player_id,
+                    'player_color' => $player["player_color"],
+                    'player_best_combo' => $players_best_combo[$player_id]
+                ));
+            }
+        } else {
+            // The winner is the only non-folded player
+            $winners = array(array_keys($non_folded_players)[0]);
+        }
+
+        if (count($winners) > 1) {
+
+        } else {
+            $winner_id = $winners[0];
+            // Place all tokens in the pot to the winner's stock
+            $sql = "SELECT player_id, player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
+                player_stock_token_green, player_stock_token_black FROM player WHERE player_id = '$winner_id'";
+            $current_player_stock = self::getCollectionFromDb($sql)[$winner_id];
+            $end_player_stock = array();
+
+            $sql = "SELECT token_color, token_number FROM token";
+            $current_pot = self::getCollectionFromDb($sql, true);
+
+            $sql_pot = "UPDATE token SET token_number = 0";
+            $sql_stock = "UPDATE player SET ";
+            $num_colors_checked = 0;
+            $additional_stock = 0;
+            foreach($current_pot as $color => $token_number) {
+                $added_tokens = $current_pot[$color];
+                $end_player_stock[$color] = $added_tokens + $current_player_stock["player_stock_token_".$color]; // Number of tokens in the player's stock after movement
+                $additional_stock += $this->token_values[$color] * $added_tokens;
+                $sql_stock .= "player_stock_token_" . $color . " = " . $end_player_stock[$color];
+                // Don't add a comma for the last item
+                if ($num_colors_checked < (count($current_pot) - 1)) {
+                    $sql_stock .= ", ";
+                }
+                $num_colors_checked++;
+            }
+            $sql_stock .= " WHERE player_id = '$winner_id'";
+            self::DbQuery($sql_stock);
+            self::DbQuery($sql_pot);
+
+            // Announce winner
+            self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} wins the round with ${combo_name}.'), array(
+                'winner_name' => $players[$winner_id]["player_name"],
+                'combo_name' => $players_best_combo[$winner_id]["comboName"],
+                'winner_id' => $winner_id,
+                'winner_color' => $players[$winner_id]["player_color"],
+                'winner_best_combo' => $players_best_combo[$winner_id]
+            ));
+            
+            // Only move bets to pot if there are any bet (otherwise it would pause during 3 seconds for nothing)
+            if ($additional_stock > 0) {
+                self::notifyAllPlayers("movePotToStock", clienttranslate('${additional_stock} is added to her/his stock'), array(
+                    'additional_stock' => $additional_stock,
+                    'winner_id' => $winners[0],
+                    'end_player_stock' => $end_player_stock
+                ));
+            }
+        }
+
+        // Put all cards back to the deck
+        $this->cards->moveAllCardsInLocation("hand", "deck");
+        $this->cards->moveAllCardsInLocation("discard", "deck");
+        $this->cards->moveAllCardsInLocation("flop", "deck");
+        $this->cards->moveAllCardsInLocation("turn", "deck");
+        $this->cards->moveAllCardsInLocation("river", "deck");
+
+        // Shuffle deck
+        $this->cards->shuffle('deck');
+
+        self::notifyAllPlayers("discardAllCards", clienttranslate('All cards are discarded. Deck is reshuffled.'), array(
+            'players' => $non_folded_players
+        ));
+
         $this->gamestate->nextState("nextHand");
     }
 
