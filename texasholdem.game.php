@@ -512,7 +512,7 @@ class texasholdem extends Table
                 // Flush (probability: 3.03%) --> comboId = 5
                 self::trace("Flush");
                 $combo_id = 5;
-                $best_combo_hand = array_slice($best_combo_hand, $start_idx, 5);
+                $best_combo_hand = array_slice($best_combo_hand, 0, 5);
 
                 $flush_values = array_map(function($card) {return $card["type_arg"];}, $best_combo_hand);
                 rsort($flush_values);
