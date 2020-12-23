@@ -41,7 +41,8 @@ class texasholdem extends Table
             //      ...
             "roundNumber" => 10,
             "roundStage" => 11, // 1 = pre-flop, 2 = flop, 3 = turn, 4 = river
-            "numFoldedPlayers" => 12
+            "numFoldedPlayers" => 12,
+            "currentBetLevel" => 13
         ) );
 
         $this->cards = self::getNew("module.common.deck");
@@ -112,6 +113,7 @@ class texasholdem extends Table
         self::setGameStateInitialValue("roundNumber", 1);
         self::setGameStateInitialValue("roundStage", 1);
         self::setGameStateInitialValue("numFoldedPlayers", 0);
+        self::setGameStateInitialValue("currentBetLevel", 0);
 
         // Initialize tokens bet in previous round stages to 0
         $sql = "INSERT INTO token (token_color, token_number) VALUES ('white', 0), ('blue', 0), ('red', 0), ('green', 0), ('black', 0)";
@@ -607,11 +609,16 @@ class texasholdem extends Table
     function placeBet($tokens) {
         self::checkAction("placeBet");
         $player_id = self::getActivePlayerId();
+        $player_name = self::getActivePlayerName();
+
+        // Get current level of bet
+        $current_bet_level = self::getGameStateValue("currentBetLevel");
 
         // Query current player's tokens stock
         $sql = "SELECT player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
-            player_stock_token_green, player_stock_token_black FROM player WHERE player_id = '" . $player_id . "'";
-        $current_stock = self::getObjectFromDB($sql);
+            player_stock_token_green, player_stock_token_black, player_bet_token_white, player_bet_token_blue, 
+            player_bet_token_red, player_bet_token_green, player_bet_token_black FROM player WHERE player_id = '" . $player_id . "'";
+        $current_tokens = self::getObjectFromDB($sql);
         $diff_stock = array();
 
         // Update player table with new number of tokens in stock and betting area
@@ -634,25 +641,53 @@ class texasholdem extends Table
             // Compute stock difference
             if (strpos($keys[$token_id], "stock")) {
                 $color = str_replace("player_stock_token_", "", $keys[$token_id]);
-                $diff_stock[$color] = $token_number - $current_stock[$keys[$token_id]];
+                $diff_stock[$color] = $token_number - $current_tokens[$keys[$token_id]];
             }
         }
         $sql .= " WHERE player_id = '" . $player_id. "'";
         self::DbQuery($sql);
 
         // Calculate additional bet
-        $additional_bet = 0;
+        $additional_bet = 0; // Value of tokens added to the betting area in the current place bet action
+        $current_player_bet = 0; // Value of the tokens already present in the betting area before the current place bet action
         foreach($diff_stock as $color => $token_diff) {
             $additional_bet -= $this->token_values[$color] * $token_diff;
+            $current_player_bet += $this->token_values[$color] * $current_tokens["player_bet_token_".$color];
         }
+        $total_player_bet = $current_player_bet + $additional_bet; // Value of tokens that will be in the betting area after the current place bet action
 
-        // Notify other player of the bet placed
-        self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} raises by ${additional_bet}' ), array(
-            'player_id' => $player_id,
-            'player_name' => self::getActivePlayerName(),
-            'additional_bet' => $additional_bet,
-            'diff_stock' => $diff_stock
-        ) );
+        if ($total_player_bet < $current_bet_level) {
+            throw new BgaUserException(_("You need to bet at least ${current_bet_level}. You currently bet ${total_player_bet}."));
+        } else if ($total_player_bet == 0) {
+            // Notify other player that the player checked
+            self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} checks' ), array(
+                'player_id' => $player_id,
+                'player_name' => $player_name,
+                'additional_bet' => $additional_bet,
+                'diff_stock' => $diff_stock
+            ));
+        } else if ($total_player_bet == $current_bet_level) {
+            // Notify other player that the player followed
+            self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} follows' ), array(
+                'player_id' => $player_id,
+                'player_name' => $player_name,
+                'additional_bet' => $additional_bet,
+                'diff_stock' => $diff_stock
+            ));
+        } else {
+            // Notify other player that the player raised
+            $raise_amount = $total_player_bet - $current_bet_level;
+            self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} raises by ${raise_amount}' ), array(
+                'player_id' => $player_id,
+                'player_name' => $player_name,
+                'additional_bet' => $additional_bet,
+                'diff_stock' => $diff_stock,
+                'raise_amount' => $raise_amount
+            ));
+
+            // Update current bet level
+            self::setGameStateValue("currentBetLevel", $total_player_bet);
+        }
 
         $this->gamestate->nextState('placeBet');
     }
@@ -768,35 +803,58 @@ class texasholdem extends Table
 
     function stNewBet() {
         $this->gamestate->nextState();
+        self::setGameStateValue("currentBetLevel", 0);
+
     }
 
     function stNextPlayer() {
-        $player_id = self::activeNextPlayer();
-
         // Check which players are folded
-        $sql = "SELECT player_id, is_fold FROM player";
-        $folded_players = self::getCollectionFromDb($sql, true);
-        //throw new BgaUserException(implode(" - ", array_keys($folded_players)) . implode(" - ", $folded_players));
+        $sql = "SELECT player_id, is_fold, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
+            player_bet_token_green, player_bet_token_black FROM player";
+        $players = self::getCollectionFromDb($sql);
         $num_folded_players = self::getGameStateValue("numFoldedPlayers");
-
-        // Skip player if he has folded 
-        while ($folded_players[$player_id] && $num_folded_players < (count($folded_players) - 1)) {
-            $player_id = self::activeNextPlayer();
-        }
+        
 
         // Check if all players except one have folded
-        if (true) {
+        if ($num_folded_players == (count($players) - 1)) {
             $this->gamestate->nextState("endBetRound");
         } else {
-            self::giveExtraTime($player_id);
-            $this->gamestate->nextState("nextPlayer");
-        }
-        // if ($num_folded_players == (count($folded_players) - 1)) {
-        //     $this->gamestate->nextState("endBetRound");
-        // } else {
-        //     self::giveExtraTime($player_id);
-        //     $this->gamestate->nextState("nextPlayer");
-        // }
+            // Check if all players have bet the same amount
+            $colors = ["white", "blue", "red", "green", "black"];
+
+            $is_same_bet = TRUE;
+            $current_amount = NULL;
+            foreach ($players as $player_id => $player) {
+                if (!$player["is_fold"]) {
+                    $player_bet = 0;
+                    foreach($colors as $color) {
+                        $player_bet += $this->token_values[$color] * $player["player_bet_token_".$color];
+                    }
+                    self::trace($player_id . " has " . $player_bet . " in his betting area.");
+                    $players[$player_id]["amount_bet"] = $player_bet;
+                    if (!isset($current_amount)) {
+                        $current_amount = $player_bet;
+                    } else {
+                        if ($current_amount != $player_bet) {
+                            $is_same_bet = FALSE;
+                            break;
+                        }
+                    }
+                }
+            }
+            if ($is_same_bet) {
+                self::notifyAllPlayers("nextBetRound", clienttranslate('Every non-folded player has bet the same amount. This ends the betting round.'), array());
+                $this->gamestate->nextState("endBetRound");
+            } else {
+                // Skip player if he has folded
+                $player_id = self::activeNextPlayer();
+                while ($players[$player_id]["is_fold"] && $num_folded_players < (count($players) - 1)) {
+                    $player_id = self::activeNextPlayer();
+                }
+                self::giveExtraTime($player_id);
+                $this->gamestate->nextState("nextPlayer");
+            }
+        }        
     }
 
     function stEndBet() {
@@ -842,37 +900,13 @@ class texasholdem extends Table
         }
 
         // All cards already shown
-        // FOR TESTING 
-        if ($round_stage == 1) {
-            $revealed_card = "flop";
-            $this->cards->pickCardForLocation("deck", "discard");
-            $this->cards->pickCardsForLocation(3, "deck", "flop");
-            $new_cards = $this->cards->getCardsInLocation("flop");
-            self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed'), array(
-                'revealed_card' => $revealed_card,
-                'cards' => $new_cards
-            ));
-    
-            $revealed_card = "turn";
-            $this->cards->pickCardForLocation("deck", "discard");
-            $this->cards->pickCardForLocation("deck", "turn");
-            $new_cards = $this->cards->getCardsInLocation("turn");
-            self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed'), array(
-                'revealed_card' => $revealed_card,
-                'cards' => $new_cards
-            ));
-    
-            $round_stage = 3;
-            self::setGameStateValue("roundStage", 3);
-        }
-        // END TESTING 
-
         if ($round_stage >= 4) {
             $this->gamestate->nextState("endHand");
         } else {
             // Check if there are more than one player still not folded
             $num_folded_players = self::getGameStateValue("numFoldedPlayers");
             if ($num_folded_players >= (count($current_players_bet) - 1)) {
+                self::notifyAllPlayers("allFolded", clienttranslate('There is only one player that has not folded. This ends the hand.'), array());
                 $this->gamestate->nextState("endHand");
             }
             $round_stage++;
