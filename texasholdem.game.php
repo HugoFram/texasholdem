@@ -576,6 +576,29 @@ class texasholdem extends Table
             }
         }
     }
+    
+    // Calculate the value of tokens in each player's stock and betting area
+    function getPlayersTokens() {
+        $sql = "SELECT player_id, player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
+            player_stock_token_green, player_stock_token_black, player_bet_token_white, player_bet_token_blue, 
+            player_bet_token_red, player_bet_token_green, player_bet_token_black FROM player";
+
+        $players_tokens = self::getCollectionFromDb($sql);
+        $players_tokens_value = array();
+
+        $colors = ["white", "blue", "red", "green", "black"];
+
+        foreach ($players_tokens as $player_id => $player) {
+            $players_tokens_value[$player_id]["bet"] = 0;
+            $players_tokens_value[$player_id]["stock"] = 0;
+            foreach($colors as $color) {
+                $players_tokens_value[$player_id]["stock"] += $this->token_values[$color] * $player["player_stock_token_".$color];
+                $players_tokens_value[$player_id]["bet"] += $this->token_values[$color] * $player["player_bet_token_".$color];
+            }
+        }
+
+        return $players_tokens_value;
+    }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
@@ -1136,6 +1159,17 @@ class texasholdem extends Table
                 ));
             }
         }
+
+        // Update players scores
+        $players_tokens_value = self::getPlayersTokens();
+        foreach ($players_tokens_value as $player_id => $player) {
+            $sql = "UPDATE player SET player_score = " . $player["stock"] . " WHERE player_id = " . $player_id;
+            self::DbQuery($sql);
+        }
+        self::notifyAllPlayers("updateScores", clienttranslate('Scores are updated with the new player token stocks'), array(
+            'players_tokens_value' => $players_tokens_value
+        ));
+
 
         // Put all cards back to the deck
         $this->cards->moveAllCardsInLocation("hand", "deck");

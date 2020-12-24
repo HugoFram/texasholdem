@@ -567,6 +567,7 @@ function (dojo, declare) {
             dojo.subscribe('movePotToStock', this, "notif_movePotToStock");
             this.notifqueue.setSynchronous('movePotToStock', 3000);
 
+            dojo.subscribe('updateScores', this, "notif_updateScores");
             dojo.subscribe('discardAllCards', this, "notif_discardAllCards");
             this.notifqueue.setSynchronous('discardAllCards', 1000);
         },  
@@ -1135,6 +1136,17 @@ function (dojo, declare) {
                     anim.play();
                 }
             });
+        },
+
+        notif_updateScores: function(notif) {
+            console.log('notif_updateScores');
+
+            console.log(notif);
+
+            // Update players' scores
+            for (var player_id in notif.args.players_tokens_value) {
+                this.scoreCtrl[player_id].toValue(notif.args.players_tokens_value[player_id].stock);
+            }
         },
 
         notif_discardAllCards: function(notif) {
