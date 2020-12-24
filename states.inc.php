@@ -68,8 +68,48 @@ $machinestates = array(
         "type" => "game",
         "action" => "stNewHand",
         "updateGameProgression" => true,   
-        "transitions" => array( "" => 30 )
+        "transitions" => array( "" => 21 )
     ),
+
+    // Small blind player's turn
+    21 => array(
+        "name" => "smallBlind",
+        "description" => clienttranslate('${actplayer} must bet ${smallblind} for the small blind.'),
+        "descriptionmyturn" => clienttranslate('${you} must bet ${smallblind} for the small blind.'),
+        "type" => "activeplayer",
+        "args" => "argSmallBlind",
+        "possibleactions" => array("placeBet", "makeChange"),
+        "transitions" => array("placeBet" => 22)
+    ),
+
+    // Transition to the big blind player
+    22 => array(
+        "name" => "toBigBlind",
+        "description" => "",
+        "type" => "game",
+        "action" => "stToBigBlind",
+        "transitions" => array( "bigBlind" => 23)
+    ), 
+
+    // Big blind player's turn
+    23 => array(
+        "name" => "bigBlind",
+        "description" => clienttranslate('${actplayer} must bet ${bigblind} for the big blind.'),
+        "descriptionmyturn" => clienttranslate('${you} must bet ${bigblind} for the big blind.'),
+        "type" => "activeplayer",
+        "args" => "argBigBlind",
+        "possibleactions" => array("placeBet", "makeChange"),
+        "transitions" => array("placeBet" => 24)
+    ),
+
+    // Transition to start of the betting round
+    24 => array(
+        "name" => "toBetRound",
+        "description" => "",
+        "type" => "game",
+        "action" => "stToBetRound",
+        "transitions" => array("startRound" => 30)
+    ), 
 
     // New betting round
     30 => array(
@@ -87,7 +127,6 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} must choose a bet or fold'),
         "descriptionmyturn" => clienttranslate('${you} must choose a bet or fold'),
         "type" => "activeplayer",
-        "args" => "argPlaceBet",
         "possibleactions" => array( "placeBet", "fold", "makeChange" ),
         "transitions" => array( "placeBet" => 41, "fold" => 41 )
     ),
@@ -106,10 +145,10 @@ $machinestates = array(
         "description" => "",
         "type" => "game",
         "action" => "stEndBet",
-        "transitions" => array( "nextBetRound" => 30, "endHand" => 21 )
+        "transitions" => array( "nextBetRound" => 30, "endHand" => 25 )
     ),
 
-    21 => array(
+    25 => array(
         "name" => "endHand",
         "description" => "",
         "type" => "game",

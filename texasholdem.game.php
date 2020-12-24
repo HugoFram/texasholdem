@@ -40,9 +40,12 @@ class texasholdem extends Table
             //    "my_second_game_variant" => 101,
             //      ...
             "roundNumber" => 10,
-            "roundStage" => 11, // 1 = pre-flop, 2 = flop, 3 = turn, 4 = river
+            "roundStage" => 11, // 0 = blinds, 1 = pre-flop, 2 = flop, 3 = turn, 4 = river
             "numFoldedPlayers" => 12,
-            "currentBetLevel" => 13
+            "currentBetLevel" => 13,
+            "smallBlindPlayer" => 14,
+            "smallBlindValue" => 15,
+            "numBettingPlayers" => 16 // Number of players who have bet, checked or folded during this betting round
         ) );
 
         $this->cards = self::getNew("module.common.deck");
@@ -111,9 +114,11 @@ class texasholdem extends Table
 
         // Set values of state variables
         self::setGameStateInitialValue("roundNumber", 1);
-        self::setGameStateInitialValue("roundStage", 1);
+        self::setGameStateInitialValue("roundStage", 0);
         self::setGameStateInitialValue("numFoldedPlayers", 0);
         self::setGameStateInitialValue("currentBetLevel", 0);
+        self::setGameStateInitialValue("smallBlindValue", 1);
+        self::setGameStateInitialValue("numBettingPlayers", 0);
 
         // Initialize tokens bet in previous round stages to 0
         $sql = "INSERT INTO token (token_color, token_number) VALUES ('white', 0), ('blue', 0), ('red', 0), ('green', 0), ('black', 0)";
@@ -134,6 +139,7 @@ class texasholdem extends Table
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
+        self::setGameStateInitialValue("smallBlindPlayer", self::getActivePlayerId());
 
         /************ End of the game initialization *****/
     }
@@ -610,6 +616,9 @@ class texasholdem extends Table
         self::checkAction("placeBet");
         $player_id = self::getActivePlayerId();
         $player_name = self::getActivePlayerName();
+        $small_blind_player = self::getGameStateValue("smallBlindPlayer");
+        $current_round_stage = self::getGameStateValue("roundStage");
+        $blind_value = self::getGameStateValue("smallBlindValue");
 
         // Get current level of bet
         $current_bet_level = self::getGameStateValue("currentBetLevel");
@@ -656,7 +665,34 @@ class texasholdem extends Table
         }
         $total_player_bet = $current_player_bet + $additional_bet; // Value of tokens that will be in the betting area after the current place bet action
 
-        if ($total_player_bet < $current_bet_level) {
+        if ($current_round_stage == 0 && $player_id == $small_blind_player) {
+            // Small blind
+            if ($total_player_bet != $blind_value) {
+                throw new BgaUserException(_("You are the small blind and must bet ${blind_value}. You currently bet ${total_player_bet}."));
+            } else {
+                // Notify other player that the player placed the small blind
+                self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} bets ${additional_bet} for the small blind.' ), array(
+                    'player_id' => $player_id,
+                    'player_name' => $player_name,
+                    'additional_bet' => $additional_bet,
+                    'diff_stock' => $diff_stock
+                ));
+            }
+        } else if ($current_round_stage == 0 && self::getPlayerBefore($player_id) == $small_blind_player) {
+            // Big blind
+            $big_blind = 2 * $blind_value;
+            if ($total_player_bet != $big_blind) {
+                throw new BgaUserException(_("You are the big blind and must bet ${big_blind}. You currently bet ${total_player_bet}."));
+            } else {
+                // Notify other player that the player placed the small blind
+                self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${additional_bet} for the big blind.'), array(
+                    'player_id' => $player_id,
+                    'player_name' => $player_name,
+                    'additional_bet' => $additional_bet,
+                    'diff_stock' => $diff_stock
+                ));
+            }
+        } else if ($total_player_bet < $current_bet_level) {
             throw new BgaUserException(_("You need to bet at least ${current_bet_level}. You currently bet ${total_player_bet}."));
         } else if ($total_player_bet == 0) {
             // Notify other player that the player checked
@@ -689,6 +725,7 @@ class texasholdem extends Table
             self::setGameStateValue("currentBetLevel", $total_player_bet);
         }
 
+        self::incGameStateValue("numBettingPlayers", 1); // An additional player has played for this betting round
         $this->gamestate->nextState('placeBet');
     }
 
@@ -744,14 +781,12 @@ class texasholdem extends Table
     }    
     */
 
-    function argPlaceBet() {
-        return array(
-            "white" =>  0,
-            "blue" => 0,
-            "red" => 0,
-            "green" => 0,
-            "black" => 0
-        );
+    function argSmallBlind() {
+        return array('smallblind' => self::getGameStateValue("smallBlindValue"));
+    }
+
+    function argBigBlind() {
+        return array('bigblind' => 2 * self::getGameStateValue("smallBlindValue"));
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -778,7 +813,7 @@ class texasholdem extends Table
 
     function stNewHand() {
         self::incGameStateValue("roundNumber", 1);
-        self::setGameStateValue("roundStage", 1);
+        self::setGameStateValue("roundStage", 0);
         self::setGameStateValue("numFoldedPlayers", 0);
 
         // Unfold all players
@@ -801,9 +836,26 @@ class texasholdem extends Table
         $this->gamestate->nextState();
     }
 
+    function stToBigBlind() {
+        self::activeNextPlayer();
+        $this->gamestate->nextState("bigBlind");
+    }
+
+    function stToBetRound() {
+        self::setGameStateValue("roundStage", 1);
+        self::activeNextPlayer();
+        $this->gamestate->nextState("startRound");
+    }
+
     function stNewBet() {
+        if (self::getGameStateValue("roundStage") == 1) {
+            // For pre-flop, set the current bet level to the level of the big blind.
+            self::setGameStateValue("currentBetLevel", 2 * self::getGameStateValue("smallBlindValue"));
+        } else {
+            self::setGameStateValue("currentBetLevel", 0);
+        }
+        self::setGameStateValue("numBettingPlayers", 0);
         $this->gamestate->nextState();
-        self::setGameStateValue("currentBetLevel", 0);
 
     }
 
@@ -813,7 +865,7 @@ class texasholdem extends Table
             player_bet_token_green, player_bet_token_black FROM player";
         $players = self::getCollectionFromDb($sql);
         $num_folded_players = self::getGameStateValue("numFoldedPlayers");
-        
+        $num_betting_players = self::getGameStateValue("numBettingPlayers");        
 
         // Check if all players except one have folded
         if ($num_folded_players == (count($players) - 1)) {
@@ -842,7 +894,7 @@ class texasholdem extends Table
                     }
                 }
             }
-            if ($is_same_bet) {
+            if ($is_same_bet && $num_betting_players >= (count($players) - $num_folded_players)) { // Ensure all players have had the possibility to bet, fold or check for this betting round
                 self::notifyAllPlayers("nextBetRound", clienttranslate('Every non-folded player has bet the same amount. This ends the betting round.'), array());
                 $this->gamestate->nextState("endBetRound");
             } else {
@@ -859,6 +911,7 @@ class texasholdem extends Table
 
     function stEndBet() {
         $round_stage = self::getGameStateValue("roundStage");
+        $num_folded_players = self::getGameStateValue("numFoldedPlayers");
 
         // Place all tokens in the betting area to the pot
         $sql = "SELECT player_id, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
@@ -900,7 +953,7 @@ class texasholdem extends Table
         }
 
         // All cards already shown
-        if ($round_stage >= 4) {
+        if ($round_stage >= 4 || ($num_folded_players >= count($current_players_bet) - 1)) {
             $this->gamestate->nextState("endHand");
         } else {
             // Check if there are more than one player still not folded
@@ -938,6 +991,9 @@ class texasholdem extends Table
                 'revealed_card' => $revealed_card,
                 'cards' => $new_cards
             ));
+
+            // Set the small blind player active at the start of each betting round
+            $this->gamestate->changeActivePlayer(self::getGameStateValue("smallBlindPlayer"));
             $this->gamestate->nextState("nextBetRound");
         }
     }
@@ -1057,13 +1113,19 @@ class texasholdem extends Table
             self::DbQuery($sql_pot);
 
             // Announce winner
-            self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} wins the round with ${combo_name}.'), array(
-                'winner_name' => $players[$winner_id]["player_name"],
-                'combo_name' => $players_best_combo[$winner_id]["comboName"],
-                'winner_id' => $winner_id,
-                'winner_color' => $players[$winner_id]["player_color"],
-                'winner_best_combo' => $players_best_combo[$winner_id]
-            ));
+            if (count($non_folded_players) > 1) {
+                self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} wins the round with ${combo_name}.'), array(
+                    'winner_name' => $players[$winner_id]["player_name"],
+                    'combo_name' => $players_best_combo[$winner_id]["comboName"],
+                    'winner_id' => $winner_id,
+                    'winner_color' => $players[$winner_id]["player_color"],
+                    'winner_best_combo' => $players_best_combo[$winner_id]
+                ));
+            } else {
+                self::notifyAllPlayers("allFolded", clienttranslate('${winner_name} wins the round because all other players have folded.'), array(
+                    'winner_name' => $players[$winner_id]["player_name"]
+                ));
+            }
             
             // Only move bets to pot if there are any bet (otherwise it would pause during 3 seconds for nothing)
             if ($additional_stock > 0) {
@@ -1089,6 +1151,10 @@ class texasholdem extends Table
             'players' => $non_folded_players
         ));
 
+        // Update the small blind player and make him the active player
+        $new_small_blind_player = self::getPlayerAfter(self::getGameStateValue("smallBlindPlayer"));
+        self::setGameStateValue("smallBlindPlayer", $new_small_blind_player);
+        $this->gamestate->changeActivePlayer($new_small_blind_player);
         $this->gamestate->nextState("nextHand");
     }
 

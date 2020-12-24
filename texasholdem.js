@@ -289,6 +289,14 @@ function (dojo, declare) {
 
                 */
 
+                    case 'smallBlind':
+                        this.addActionButton('place_small_blind', _('Place small blind'), 'onPlaceBet'); 
+                        break;
+
+                    case 'bigBlind':
+                        this.addActionButton('place_big_blind', _('Place big blind'), 'onPlaceBet'); 
+                        break;
+
                     case 'playerTurn':
                         this.addActionButton('place_bet', _('Place bet'), 'onPlaceBet'); 
                         this.addActionButton('all_in', _('All in'), 'onAllIn'); 
