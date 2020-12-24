@@ -42,10 +42,11 @@ class texasholdem extends Table
             "roundNumber" => 10,
             "roundStage" => 11, // 0 = blinds, 1 = pre-flop, 2 = flop, 3 = turn, 4 = river
             "numFoldedPlayers" => 12,
-            "currentBetLevel" => 13,
-            "smallBlindPlayer" => 14,
-            "smallBlindValue" => 15,
-            "numBettingPlayers" => 16 // Number of players who have bet, checked or folded during this betting round
+            "numAllInPlayers" => 13,
+            "currentBetLevel" => 14,
+            "smallBlindPlayer" => 15,
+            "smallBlindValue" => 16,
+            "numBettingPlayers" => 17 // Number of players who have bet, checked or folded during this betting round
         ) );
 
         $this->cards = self::getNew("module.common.deck");
@@ -78,7 +79,7 @@ class texasholdem extends Table
         $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar, player_score,
             player_stock_token_white, player_stock_token_blue, player_stock_token_red, player_stock_token_green,
             player_stock_token_black, player_bet_token_white, player_bet_token_blue,
-            player_bet_token_red, player_bet_token_green, player_bet_token_black, is_fold) VALUES ";
+            player_bet_token_red, player_bet_token_green, player_bet_token_black, is_fold, is_all_in) VALUES ";
         $values = array();
         $initial_score = 100;
         $initial_white_tokens = 10;
@@ -88,12 +89,13 @@ class texasholdem extends Table
         $initial_black_tokens = 2;
         $initial_bet_tokens = 0;
         $initial_is_fold = 0;
+        $initial_is_all_in = 0;
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
             $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."',".
                 $initial_score.",".$initial_white_tokens.",".$initial_blue_tokens.",".$initial_red_tokens.",".$initial_green_tokens.",".$initial_black_tokens.",".
-                $initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_is_fold.")";
+                $initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_is_fold.",".$initial_is_all_in.")";
         }
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
@@ -116,6 +118,7 @@ class texasholdem extends Table
         self::setGameStateInitialValue("roundNumber", 1);
         self::setGameStateInitialValue("roundStage", 0);
         self::setGameStateInitialValue("numFoldedPlayers", 0);
+        self::setGameStateInitialValue("numAllInPlayers", 0);
         self::setGameStateInitialValue("currentBetLevel", 0);
         self::setGameStateInitialValue("smallBlindValue", 1);
         self::setGameStateInitialValue("numBettingPlayers", 0);
@@ -649,7 +652,7 @@ class texasholdem extends Table
         // Query current player's tokens stock
         $sql = "SELECT player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
             player_stock_token_green, player_stock_token_black, player_bet_token_white, player_bet_token_blue, 
-            player_bet_token_red, player_bet_token_green, player_bet_token_black FROM player WHERE player_id = '" . $player_id . "'";
+            player_bet_token_red, player_bet_token_green, player_bet_token_black, player_score FROM player WHERE player_id = '" . $player_id . "'";
         $current_tokens = self::getObjectFromDB($sql);
         $diff_stock = array();
 
@@ -688,10 +691,17 @@ class texasholdem extends Table
         }
         $total_player_bet = $current_player_bet + $additional_bet; // Value of tokens that will be in the betting area after the current place bet action
 
+        $players_score = self::getCollectionFromDb("SELECT player_id, player_score FROM player");
+        $is_forced_all_in = FALSE; // Flag for if the player does not have enough to stock to follow the current bet level
+
         if ($current_round_stage == 0 && $player_id == $small_blind_player) {
             // Small blind
             if ($total_player_bet != $blind_value) {
-                throw new BgaUserException(_("You are the small blind and must bet ${blind_value}. You currently bet ${total_player_bet}."));
+                if ($total_player_bet < $blind_value && $total_player_bet == $players_score[$player_id]["player_score"]) {
+                    $is_forced_all_in = TRUE; // Player must be all in for the small blind.
+                } else {
+                    throw new BgaUserException(_("You are the small blind and must bet ${blind_value}. You currently bet ${total_player_bet}."));
+                }
             } else {
                 // Notify other player that the player placed the small blind
                 self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} bets ${additional_bet} for the small blind.' ), array(
@@ -701,11 +711,16 @@ class texasholdem extends Table
                     'diff_stock' => $diff_stock
                 ));
             }
+            self::setGameStateValue("currentBetLevel", $total_player_bet);
         } else if ($current_round_stage == 0 && self::getPlayerBefore($player_id) == $small_blind_player) {
             // Big blind
             $big_blind = 2 * $blind_value;
             if ($total_player_bet != $big_blind) {
-                throw new BgaUserException(_("You are the big blind and must bet ${big_blind}. You currently bet ${total_player_bet}."));
+                if ($total_player_bet < $big_blind && $total_player_bet == $players_score[$player_id]["player_score"]) {
+                    $is_forced_all_in = TRUE; // Player must be all in for the big blind.
+                } else {
+                    throw new BgaUserException(_("You are the big blind and must bet ${big_blind}. You currently bet ${total_player_bet}."));
+                }
             } else {
                 // Notify other player that the player placed the small blind
                 self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${additional_bet} for the big blind.'), array(
@@ -715,8 +730,13 @@ class texasholdem extends Table
                     'diff_stock' => $diff_stock
                 ));
             }
+            self::setGameStateValue("currentBetLevel", $total_player_bet);
         } else if ($total_player_bet < $current_bet_level) {
-            throw new BgaUserException(_("You need to bet at least ${current_bet_level}. You currently bet ${total_player_bet}."));
+            if ($total_player_bet == $players_score[$player_id]["player_score"]) {
+                $is_forced_all_in = TRUE; // Player must be all in to follow the current bet level.
+            } else {
+                throw new BgaUserException(_("You need to bet at least ${current_bet_level}. You currently bet ${total_player_bet}."));
+            }
         } else if ($total_player_bet == 0) {
             // Notify other player that the player checked
             self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} checks' ), array(
@@ -746,6 +766,25 @@ class texasholdem extends Table
 
             // Update current bet level
             self::setGameStateValue("currentBetLevel", $total_player_bet);
+        }
+
+        // Specific case where the player is forced to be all in to follow the current bet level
+        if ($is_forced_all_in) {
+            self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} does not have enough stock to match the bet. She/he is all in with ${all_in_value}' ), array(
+                'player_id' => $player_id,
+                'player_name' => $player_name,
+                'additional_bet' => $additional_bet,
+                'diff_stock' => $diff_stock,
+                'all_in_value' => $players_score[$player_id]["player_score"]
+            ));
+        }
+
+        // Increment the number of all in players if the player bet all his stock
+        if ($total_player_bet > 0 && $total_player_bet == $players_score[$player_id]["player_score"]) {
+            $sql = "UPDATE player SET is_all_in = 1 WHERE player_id = " . $player_id;
+            self::DbQuery($sql);
+
+            self::incGameStateValue("numAllInPlayers", 1);
         }
 
         self::incGameStateValue("numBettingPlayers", 1); // An additional player has played for this betting round
@@ -838,9 +877,10 @@ class texasholdem extends Table
         self::incGameStateValue("roundNumber", 1);
         self::setGameStateValue("roundStage", 0);
         self::setGameStateValue("numFoldedPlayers", 0);
+        self::setGameStateValue("numAllInPlayers", 0);
 
-        // Unfold all players
-        $sql = "UPDATE player SET is_fold = 0";
+        // Unfold all players and reset all in flag
+        $sql = "UPDATE player SET is_fold = 0, is_all_in = 0";
         self::DbQuery($sql);
 
         // Deal two cards to each player
@@ -871,23 +911,31 @@ class texasholdem extends Table
     }
 
     function stNewBet() {
-        if (self::getGameStateValue("roundStage") == 1) {
-            // For pre-flop, set the current bet level to the level of the big blind.
-            self::setGameStateValue("currentBetLevel", 2 * self::getGameStateValue("smallBlindValue"));
-        } else {
+        // Only set the current bet level to 0 if it is not the pre-flop stage. 
+        // In this case the current bet level is the big blind value (or all in value of the blind player)
+        if (self::getGameStateValue("roundStage") != 1) {
             self::setGameStateValue("currentBetLevel", 0);
         }
         self::setGameStateValue("numBettingPlayers", 0);
-        $this->gamestate->nextState();
 
+        // Check if all players but one are all in or folded => Immediately end bet round
+        $num_players = self::getUniqueValueFromDB("SELECT COUNT(player_id) FROM player");
+        $num_folded_players = self::getGameStateValue("numFoldedPlayers");
+        $num_all_in_players = self::getGameStateValue("numAllInPlayers");
+        if (($num_folded_players + $num_all_in_players) >= ($num_players - 1)) {
+            $this->gamestate->nextState("allAllIn");
+        } else {
+            $this->gamestate->nextState("startRound");
+        }
     }
 
     function stNextPlayer() {
         // Check which players are folded
-        $sql = "SELECT player_id, is_fold, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
+        $sql = "SELECT player_id, is_fold, is_all_in, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
             player_bet_token_green, player_bet_token_black FROM player";
         $players = self::getCollectionFromDb($sql);
         $num_folded_players = self::getGameStateValue("numFoldedPlayers");
+        $num_all_in_players = self::getGameStateValue("numAllInPlayers");
         $num_betting_players = self::getGameStateValue("numBettingPlayers");        
 
         // Check if all players except one have folded
@@ -911,19 +959,23 @@ class texasholdem extends Table
                         $current_amount = $player_bet;
                     } else {
                         if ($current_amount != $player_bet) {
-                            $is_same_bet = FALSE;
+                            if ($player["is_all_in"] && $player_bet < $current_amount) {
+                                continue;
+                            } else {
+                                $is_same_bet = FALSE;
+                            }
                             break;
                         }
                     }
                 }
             }
             if ($is_same_bet && $num_betting_players >= (count($players) - $num_folded_players)) { // Ensure all players have had the possibility to bet, fold or check for this betting round
-                self::notifyAllPlayers("nextBetRound", clienttranslate('Every non-folded player has bet the same amount. This ends the betting round.'), array());
+                self::notifyAllPlayers("nextBetRound", clienttranslate('Every non-folded player have bet the same amount or are all in. This ends the betting round.'), array());
                 $this->gamestate->nextState("endBetRound");
             } else {
-                // Skip player if he has folded
+                // Skip player if he has folded or is already all in
                 $player_id = self::activeNextPlayer();
-                while ($players[$player_id]["is_fold"] && $num_folded_players < (count($players) - 1)) {
+                while (($players[$player_id]["is_fold"] || $players[$player_id]["is_all_in"]) && ($num_folded_players + $num_all_in_players) < (count($players) - 1)) {
                     $player_id = self::activeNextPlayer();
                 }
                 self::giveExtraTime($player_id);
