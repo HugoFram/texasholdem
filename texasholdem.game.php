@@ -1258,39 +1258,45 @@ class texasholdem extends Table
                 self::incGameStateValue("numEliminatedPlayers", 1);
             }
         }
+
         self::notifyAllPlayers("updateScores", clienttranslate('Scores are updated with the new player token stocks'), array(
             'players_tokens_value' => $players_tokens_value
         ));
 
-
-        // Put all cards back to the deck
-        $this->cards->moveAllCardsInLocation("hand", "deck");
-        $this->cards->moveAllCardsInLocation("discard", "deck");
-        $this->cards->moveAllCardsInLocation("flop", "deck");
-        $this->cards->moveAllCardsInLocation("turn", "deck");
-        $this->cards->moveAllCardsInLocation("river", "deck");
-
-        // Shuffle deck
-        $this->cards->shuffle('deck');
-
-        self::notifyAllPlayers("discardAllCards", clienttranslate('All cards are discarded. Deck is reshuffled.'), array(
-            'players' => $non_folded_players
-        ));
-
-        // Update the small blind player and make him the active player
-        $players = self::getCollectionFromDb("SELECT player_id, is_fold, is_all_in, player_eliminated FROM player");
-        $new_small_blind_player = self::getPlayerAfter(self::getGameStateValue("smallBlindPlayer"));
-        self::trace("Next small blind player is ${new_small_blind_player}");
-        while ($players[$new_small_blind_player]["player_eliminated"]) {
-            // Skip player if he is eliminated
-            self::trace("${new_small_blind_player} was eliminated.");
-            $new_small_blind_player = self::getPlayerAfter($new_small_blind_player);
+        // If there is only one player left, the game ends
+        $num_remaining_players = count(array_filter($players_tokens_value, function($player) {return $player["stock"] > 0;}));
+        if ($num_remaining_players <= 1) {
+            $this->gamestate->nextState("endGame");
+        } else {   
+            // Put all cards back to the deck
+            $this->cards->moveAllCardsInLocation("hand", "deck");
+            $this->cards->moveAllCardsInLocation("discard", "deck");
+            $this->cards->moveAllCardsInLocation("flop", "deck");
+            $this->cards->moveAllCardsInLocation("turn", "deck");
+            $this->cards->moveAllCardsInLocation("river", "deck");
+    
+            // Shuffle deck
+            $this->cards->shuffle('deck');
+    
+            self::notifyAllPlayers("discardAllCards", clienttranslate('All cards are discarded. Deck is reshuffled.'), array(
+                'players' => $non_folded_players
+            ));
+    
+            // Update the small blind player and make him the active player
+            $players = self::getCollectionFromDb("SELECT player_id, is_fold, is_all_in, player_eliminated FROM player");
+            $new_small_blind_player = self::getPlayerAfter(self::getGameStateValue("smallBlindPlayer"));
             self::trace("Next small blind player is ${new_small_blind_player}");
+            while ($players[$new_small_blind_player]["player_eliminated"]) {
+                // Skip player if he is eliminated
+                self::trace("${new_small_blind_player} was eliminated.");
+                $new_small_blind_player = self::getPlayerAfter($new_small_blind_player);
+                self::trace("Next small blind player is ${new_small_blind_player}");
+            }
+            self::setGameStateValue("smallBlindPlayer", $new_small_blind_player);
+            $this->gamestate->changeActivePlayer($new_small_blind_player);
+            self::giveExtraTime($new_small_blind_player);
+            $this->gamestate->nextState("nextHand");
         }
-        self::setGameStateValue("smallBlindPlayer", $new_small_blind_player);
-        $this->gamestate->changeActivePlayer($new_small_blind_player);
-        self::giveExtraTime($new_small_blind_player);
-        $this->gamestate->nextState("nextHand");
     }
 
     function stZombiePass() {
