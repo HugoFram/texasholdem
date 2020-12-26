@@ -1014,11 +1014,12 @@ class texasholdem extends Table
     function stEndBet() {
         $round_stage = self::getGameStateValue("roundStage");
         $num_folded_players = self::getGameStateValue("numFoldedPlayers");
+        $num_all_in_players = self::getGameStateValue("numAllInPlayers");
         $num_eliminated_players = self::getGameStateValue("numEliminatedPlayers");
 
         // Place all tokens in the betting area to the pot
         $sql = "SELECT player_id, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
-            player_bet_token_green, player_bet_token_black, is_fold FROM player";
+            player_bet_token_green, player_bet_token_black, is_fold, is_all_in FROM player";
         $current_players_bet = self::getCollectionFromDb($sql);
 
         $sql = "SELECT token_color, token_number FROM token";
@@ -1095,7 +1096,15 @@ class texasholdem extends Table
             ));
 
             // Set the small blind player active at the start of each betting round
-            $this->gamestate->changeActivePlayer(self::getGameStateValue("smallBlindPlayer"));
+            $player_id = self::getGameStateValue("smallBlindPlayer");
+            if (($num_folded_players + $num_all_in_players + $num_eliminated_players) <= (count($current_players_bet) - 1)) {
+                while (($current_players_bet[$player_id]["is_fold"] || $current_players_bet[$player_id]["is_all_in"])) {
+                    // Skip player if he has folded or is already all in
+                    $player_id = self::getPlayerAfter($player_id);
+                }
+            }
+            $this->gamestate->changeActivePlayer($player_id);
+            self::giveExtraTime($player_id);
             $this->gamestate->nextState("nextBetRound");
         }
     }
@@ -1269,9 +1278,18 @@ class texasholdem extends Table
         ));
 
         // Update the small blind player and make him the active player
+        $players = self::getCollectionFromDb("SELECT player_id, is_fold, is_all_in, player_eliminated FROM player");
         $new_small_blind_player = self::getPlayerAfter(self::getGameStateValue("smallBlindPlayer"));
+        self::trace("Next small blind player is ${new_small_blind_player}");
+        while ($players[$new_small_blind_player]["player_eliminated"]) {
+            // Skip player if he is eliminated
+            self::trace("${new_small_blind_player} was eliminated.");
+            $new_small_blind_player = self::getPlayerAfter($new_small_blind_player);
+            self::trace("Next small blind player is ${new_small_blind_player}");
+        }
         self::setGameStateValue("smallBlindPlayer", $new_small_blind_player);
         $this->gamestate->changeActivePlayer($new_small_blind_player);
+        self::giveExtraTime($new_small_blind_player);
         $this->gamestate->nextState("nextHand");
     }
 

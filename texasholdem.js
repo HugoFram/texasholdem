@@ -554,6 +554,7 @@ function (dojo, declare) {
             this.notifqueue.setSynchronous('fold', 1000);
 
             dojo.subscribe('revealNextCard', this, "notif_revealNextCard");
+            this.notifqueue.setSynchronous('revealNextCard', 3000);
 
             dojo.subscribe('moveBetToPot', this, "notif_moveBetToPot");
             this.notifqueue.setSynchronous('moveBetToPot', 3000);
