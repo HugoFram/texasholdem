@@ -79,7 +79,7 @@ $machinestates = array(
         "type" => "activeplayer",
         "args" => "argSmallBlind",
         "possibleactions" => array("placeBet", "makeChange"),
-        "transitions" => array("placeBet" => 22)
+        "transitions" => array("placeBet" => 22, "zombiePass" => 98)
     ),
 
     // Transition to the big blind player
@@ -99,7 +99,7 @@ $machinestates = array(
         "type" => "activeplayer",
         "args" => "argBigBlind",
         "possibleactions" => array("placeBet", "makeChange"),
-        "transitions" => array("placeBet" => 24)
+        "transitions" => array("placeBet" => 24, "zombiePass" => 98)
     ),
 
     // Transition to start of the betting round
@@ -128,7 +128,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose a bet or fold'),
         "type" => "activeplayer",
         "possibleactions" => array( "placeBet", "fold", "makeChange" ),
-        "transitions" => array( "placeBet" => 41, "fold" => 41 )
+        "transitions" => array( "placeBet" => 41, "fold" => 41, "zombiePass" => 98)
     ),
 
     // Transition to next player or end of betting round
@@ -154,6 +154,14 @@ $machinestates = array(
         "type" => "game",
         "action" => "stEndHand",
         "transitions" => array( "nextHand" => 20, "endGame" => 99 )
+    ),
+
+    98 => array(
+        "name" => "zombiePass",
+        "description" => "",
+        "type" => "game",
+        "action" => "stZombiePass",
+        "transitions" => array("nextPlayer" => 40)
     ),
     
 /*
