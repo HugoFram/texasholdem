@@ -548,6 +548,9 @@ function (dojo, declare) {
 
             dojo.subscribe('dealCards', this, "notif_dealCards");
 
+            dojo.subscribe('moveTokens', this, "notif_moveTokens");
+            this.notifqueue.setSynchronous('moveTokens', 2000);
+
             dojo.subscribe('betPlaced', this, "notif_betPlaced");
             this.notifqueue.setSynchronous('betPlaced', 2000);
             dojo.subscribe('fold', this, "notif_fold");
@@ -644,6 +647,105 @@ function (dojo, declare) {
                 BACKGROUND_POSITION_LEFT_PERCENTAGE: 0,
                 BACKGROUND_POSITION_TOP_PERCENTAGE: 0
             }), 'river');
+        },
+
+        notif_moveTokens: function(notif) {
+            console.log('notif_moveTokens');
+
+            console.log(notif.args);
+
+            var from = notif.args.from;
+            var to = notif.args.to;
+            
+            var colors = ["white", "blue", "red", "green", "black"];
+        
+            colors.forEach(color => {
+                var sourceToken, destinationToken;
+                var playerTable;
+                var fromPlayerId, toPlayerId;
+                var slidingTokenClass;
+
+                // Retrieve HTML elements corresponding to tokens in the source
+                if (from == "pot") {
+                    sourceToken = $("token" + color + "_table");
+                    slidingTokenClass = "token token" + color + " behind";
+                } else if (from.includes("stock")) {
+                    fromPlayerId = from.replace("stock_", "");
+                    sourceToken = $("token" + color + "_" + fromPlayerId);
+                    playerTable = $("playertablecards_" + fromPlayerId).parentElement;
+                    slidingTokenClass = "token token" + color + " behind";
+                } else if (from.includes("bet")) {
+                    fromPlayerId = from.replace("bet_", "");
+                    sourceToken = $("bettoken" + color + "_" + fromPlayerId);
+                    playerTable = $("playertablecards_" + fromPlayerId).parentElement;
+                    slidingTokenClass = "token token" + color + " bettoken behind";
+                }
+                // Retrieve HTML elements corresponding to tokens in the destination
+                if (to == "pot") {
+                    destinationToken = $("token" + color + "_table");
+                } else if (to.includes("stock")) {
+                    toPlayerId = to.replace("stock_", "");
+                    destinationToken = $("token" + color + "_" + toPlayerId);
+                } else if (to.includes("bet")) {
+                    toPlayerId = to.replace("bet_", "");
+                    destinationToken = $("bettoken" + color + "_" + toPlayerId);
+                }
+
+                // Extract number of token from HTML element
+                var numLoops = parseInt(notif.args.token_diff[color]);
+                numLoops = Math.min(10, numLoops); // Cap the number of token animated to 10
+
+                console.log(sourceToken.parentElement.id);
+                // Animate tokens slide from table tokens to player's stock
+                for (var i = 0; i < numLoops; i++) {
+                    // 1) Place the visual of a token on top of the source token pile
+                    dojo.place('<div class = "' + slidingTokenClass + '" id = "slidingtoken_' + color + '_' + from + '_' + to + '_' + i + '"></div>', sourceToken.parentElement.id);
+                    // 2) Slide the token from the pot to the player's stock
+                        // 2.1) Identify target and source absolute position in the DOM
+                    var sourcePos = dojo.position(sourceToken.id);
+                    var targetPos = dojo.position(destinationToken.id);
+                        // 2.2) Compute the value of the left and top properties based on the translation to do
+                    var targetTopValue, targetLeftValue;
+                    if (playerTable == null || dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
+                        targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(sourceToken.id, "top");
+                        targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(sourceToken.id, "left");
+                    } else if (dojo.hasClass(playerTable, "playertable_W")) {
+                        targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(sourceToken.id, "top");
+                        targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(sourceToken.id, "left");
+                    } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
+                        targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(sourceToken.id, "top");
+                        targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(sourceToken.id, "left");
+                    } else if (dojo.hasClass(playerTable, "playertable_E")) {
+                        targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(sourceToken.id, "top");
+                        targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(sourceToken.id, "left");
+                    }
+
+                    var anim = dojo.fx.slideTo({
+                            node: 'slidingtoken_' + color + '_' + from + '_' + to + '_' + i,
+                            top: targetTopValue.toString(),
+                            left: targetLeftValue.toString(),
+                            units: "px",
+                            duration: 500 + i * 70
+                    });
+                    dojo.connect(anim, 'onEnd', function(node) {
+                        // 3) Destroy token visual used for the animation
+                        dojo.destroy(node);
+                        // 4) Set the number of destination tokens expected for this color at the end of all token animations
+                        dojo.html.set(destinationToken.firstElementChild, notif.args.to_tokens[color]);
+                        // 5) Unhide the player's stock token if it is the first token of that color
+                        if (dojo.hasClass(destinationToken.id, "tokenhidden") && notif.args.to_tokens[color] > 0) {
+                            dojo.removeClass(destinationToken.id, "tokenhidden");
+                        }
+                        // 6)  Set the number of source tokens expected for this color at the end of all token animations
+                        dojo.html.set(sourceToken.firstElementChild, notif.args.from_tokens[color]);
+                        // 7) Hide source token if it was the last token of that color
+                        if (!dojo.hasClass(sourceToken.id, "tokenhidden") && notif.args.from_tokens[color] == 0) {
+                            dojo.addClass(sourceToken.id, "tokenhidden");
+                        }
+                    });
+                    anim.play();
+                }
+            });
         },
 
         notif_betPlaced: function(notif) {
@@ -1105,7 +1207,7 @@ function (dojo, declare) {
                 // Animate tokens slide from table tokens to player's stock
                 for (var i = 0; i < numLoops; i++) {
                     // 1) Place the visual of a token on top of the token bet pile
-                    dojo.place('<div class = "token token' + color + ' token behind" id = "slidingtabletoken_' + color + '_' + playerId + '_' + i + '"></div>', "previousroundtokens");
+                    dojo.place('<div class = "token token' + color + ' behind" id = "slidingtabletoken_' + color + '_' + playerId + '_' + i + '"></div>', "previousroundtokens");
                     // 2) Slide the token from the pot to the player's stock
                         // 2.1) Identify target and source absolute position in the DOM
                     var sourcePos = dojo.position(tableToken.id);
