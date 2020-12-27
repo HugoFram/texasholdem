@@ -61,7 +61,7 @@ $this->values_label = array(
 );
 
 $this->token_values = array(
-  "white" => 1,
+  "white" => 1, // Must be a common denominator of all other token values
   "blue" => 2,
   "red" => 5,
   "green" => 10,

@@ -896,16 +896,44 @@ class texasholdem extends Table
         );
 
         $remaining_value = $value;
-        foreach (array_reverse($colors) as $color) {
-            if ($remaining_value >= $this->token_values[$color]) {
-                $token_diff[$color] = (int)min(floor($remaining_value/$this->token_values[$color]), $from_tokens[$color]);
-                self::trace("Remaining value: ${remaining_value}, " . $from_tokens[$color] . " ${color} tokens remaining in source. Moving " . $token_diff[$color] . " from ${from} to ${to}");
-                $remaining_value -= $this->token_values[$color] * $token_diff[$color];
+        $token_added = TRUE;
+        while ($remaining_value > 0 && $token_added) {
+            $token_added = FALSE;
+            foreach (array_reverse($colors) as $color) {
+                if ($remaining_value >= $this->token_values[$color] && $token_diff[$color] < $from_tokens[$color]) {
+                    self::trace("Remaining value: ${remaining_value}, " . ($from_tokens[$color] - $token_diff[$color]) . " ${color} tokens remaining in source. Moving " . $token_diff[$color] . " from ${from} to ${to}");
+                    $token_diff[$color]++;
+                    $remaining_value -= $this->token_values[$color];
+                    $token_added = TRUE;
+                }
             }
         }
 
         if ($remaining_value > 0) {
-            throw new feException("Remaining value (${remaining_value}) is larger than 0.");
+            // Try to make change in the source tokens
+            $change_done = FALSE;
+            foreach ($colors as $color_id => $color) {
+                if ($from_tokens[$color] - $token_diff[$color] > 0 && $remaining_value < $this->token_values[$color]) {
+                    // Exchange a token from source with the corresponding value in tokens of the lowest value
+                    $from_tokens[$color]--;
+                    $num_small_tokens = (int)floor($this->token_values[$color] / $this->token_values[$colors[0]]);
+                    self::notifyAllPlayers("changeRequired", clienttranslate('The current tokens in ${from} cannot make ${value}. A ${color} token is exchanged against ${num_small_tokens} ${small_color} tokens.'), array(
+                        'from' => $from,
+                        'value' => $value,
+                        'color' => $color,
+                        'small_color' => $colors[0],
+                        'num_small_tokens' => (int)floor($remaining_value / $this->token_values[$colors[0]]),
+                    ));
+                    $from_tokens[$colors[0]] += $num_small_tokens;
+                    $token_diff[$colors[0]] += (int)floor($remaining_value / $this->token_values[$colors[0]]);
+                    $remaining_value -= (int)floor($remaining_value / $this->token_values[$colors[0]]) * $this->token_values[$colors[0]];
+                    $change_done = TRUE;
+                    break;
+                }
+            }
+            if (!$change_done) {
+                throw new feException("Remaining value (${remaining_value}) is larger than 0.");
+            }
         }
 
         // Update source tokens
@@ -1363,13 +1391,6 @@ class texasholdem extends Table
 
         $winner_id = array_keys($players_rank)[0];
 
-        // Announce winner
-        if (count($non_folded_players) <= 1) {
-            self::notifyAllPlayers("allFolded", clienttranslate('${winner_name} wins the round because all other players have folded.'), array(
-                'winner_name' => $players[$winner_id]["player_name"]
-            ));
-        }
-
         $winner_order = 0;
         $winner_id = array_keys($players_rank)[$winner_order];
         $players_tokens_value = self::getPlayersTokens();
@@ -1385,17 +1406,8 @@ class texasholdem extends Table
             } else if ($winner_order == 1) {
                 $pot_name = "secondary pot";
             } else {
-                $pot_name = "next sub-pot";
+                $pot_name = "next side pot";
             }
-
-            self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} wins the ${pot_name} with ${combo_name}.'), array(
-                'winner_name' => $players[$winner_id]["player_name"],
-                'pot_name' => $pot_name,
-                'combo_name' => $players_best_combo[$winner_id]["comboName"],
-                'winner_id' => $winner_id,
-                'winner_color' => $players[$winner_id]["player_color"],
-                'winner_best_combo' => $players_best_combo[$winner_id]
-            ));
 
             if ($winner_bet < max($players_bet)) {
                 // The winner cannot get the whole pot
@@ -1410,7 +1422,80 @@ class texasholdem extends Table
                 array_fill_keys(array_keys($players_bet), 0);
                 $total_pot = 0;
             }
-            self::moveTokens("pot", "stock_${winner_id}", $winner_gain);
+
+            // Deal with split pot cases
+            $same_rank_players = array_filter($players_rank, function($player_rank) use($players_rank, $winner_id) {return $player_rank == $players_rank[$winner_id];});
+            if (count($same_rank_players) > 1) {
+                $split_gain = (int)floor($winner_gain / count($same_rank_players));
+
+                $split_player_names = "";
+                $i = 0;
+                foreach ($same_rank_players as $player_id => $player) {
+                    $split_player_names .= $players[$player_id]["player_name"];
+                    if ($i < count($same_rank_players) - 2) {
+                        $split_player_names .= ", ";
+                    } else if ($i == count($same_rank_players) - 2) {
+                        $split_player_names .= " and ";
+                    }
+                    $i++;
+                }
+
+                self::notifyAllPlayers("splitPot", clienttranslate('${split_player_names} have exactly the same winning hand. They share the ${pot_name} and get ${split_gain} each.'), array(
+                    'split_player_names' => $split_player_names,
+                    'pot_name' => $pot_name,
+                    'split_gain' => $split_gain
+                ));
+
+                foreach ($same_rank_players as $player_id => $player) {
+                    self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} share the ${pot_name} with ${combo_name}.'), array(
+                        'winner_name' => $players[$player_id]["player_name"],
+                        'pot_name' => $pot_name,
+                        'combo_name' => $players_best_combo[$player_id]["comboName"],
+                        'winner_id' => $player_id,
+                        'winner_color' => $players[$player_id]["player_color"],
+                        'winner_best_combo' => $players_best_combo[$player_id]
+                    ));
+
+                    self::moveTokens("pot", "stock_${player_id}", $split_gain);
+                }
+
+                // If the pot cannot be evenly split, the remainder goes to the player in the earliest position from the Dealer
+                $gain_remainder = $winner_gain - $split_gain * count($same_rank_players);
+                if ($gain_remainder > 0) {
+                    $earliest_player_id = self::getGameStateValue("smallBlindPlayer");
+                    while (!array_key_exists($earliest_player_id, $same_rank_players)) {
+                        $earliest_player_id = self::getPlayerAfter($earliest_player_id);
+                    }
+
+                    self::notifyAllPlayers("splitPot", clienttranslate('The ${pot_name} cannot be split evenly. ${earliest_player_name} gets the remaining ${gain_remainder} as he is in the earliest position.'), array(
+                        'pot_name' => $pot_name,
+                        'earliest_player_name' => $players[$earliest_player_id]["player_name"],
+                        'gain_remainder' => $gain_remainder
+                    ));
+
+                    self::moveTokens("pot", "stock_${earliest_player_id}", $gain_remainder);
+                }
+            } else {
+                // Announce winner
+                if (count($non_folded_players) <= 1) {
+                    // The winner is the only non-folded player
+                    self::notifyAllPlayers("allFolded", clienttranslate('${winner_name} wins the round because all other players have folded.'), array(
+                        'winner_name' => $players[$winner_id]["player_name"]
+                    ));
+                } else {
+                    // The winner is the player with the best combo
+                    self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} wins the ${pot_name} with ${combo_name}.'), array(
+                        'winner_name' => $players[$winner_id]["player_name"],
+                        'pot_name' => $pot_name,
+                        'combo_name' => $players_best_combo[$winner_id]["comboName"],
+                        'winner_id' => $winner_id,
+                        'winner_color' => $players[$winner_id]["player_color"],
+                        'winner_best_combo' => $players_best_combo[$winner_id]
+                    ));
+                }
+
+                self::moveTokens("pot", "stock_${winner_id}", $winner_gain);
+            }
 
             if ($total_pot > 0) {
                 $winner_id = array_keys($players_rank)[++$winner_order];

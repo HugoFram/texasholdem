@@ -695,7 +695,6 @@ function (dojo, declare) {
                 var numLoops = parseInt(notif.args.token_diff[color]);
                 numLoops = Math.min(10, numLoops); // Cap the number of token animated to 10
 
-                console.log(sourceToken.parentElement.id);
                 // Animate tokens slide from table tokens to player's stock
                 for (var i = 0; i < numLoops; i++) {
                     // 1) Place the visual of a token on top of the source token pile
@@ -741,6 +740,10 @@ function (dojo, declare) {
                         // 7) Hide source token if it was the last token of that color
                         if (!dojo.hasClass(sourceToken.id, "tokenhidden") && notif.args.from_tokens[color] == 0) {
                             dojo.addClass(sourceToken.id, "tokenhidden");
+                        }
+                        // 8) Unhide source token if it has at least one token of that color at the end of the animation
+                        if (dojo.hasClass(sourceToken.id, "tokenhidden") && notif.args.from_tokens[color] > 0) {
+                            dojo.removeClass(sourceToken.id, "tokenhidden");
                         }
                     });
                     anim.play();
