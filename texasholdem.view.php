@@ -76,6 +76,12 @@
         
         */
 
+        $this->tpl['TOKEN_VALUE_WHITE'] = " = " . $this->game->token_values["white"];
+        $this->tpl['TOKEN_VALUE_BLUE'] = " = " . $this->game->token_values["blue"];
+        $this->tpl['TOKEN_VALUE_RED'] = " = " . $this->game->token_values["red"];
+        $this->tpl['TOKEN_VALUE_GREEN'] = " = " . $this->game->token_values["green"];
+        $this->tpl['TOKEN_VALUE_BLACK'] = " = " . $this->game->token_values["black"];
+
         $players_dir = $this->game->getPlayerDirections();
 
         $this->page->begin_block("texasholdem_texasholdem", "player");

@@ -25,7 +25,23 @@
     Please REMOVE this comment before publishing your game on BGA
 -->
 
-
+<div class="changetable whiteblock">
+    <div class = "token tokenwhite changetoken" id = "changetokenwhite">
+        <span class = "changetokenvalue">{TOKEN_VALUE_WHITE}</span>
+    </div>
+    <div class = "token tokenblue changetoken" id = "changetokenblue">
+        <span class = "changetokenvalue">{TOKEN_VALUE_BLUE}</span>
+    </div>
+    <div class = "token tokenred changetoken" id = "changetokenred">
+        <span class = "changetokenvalue">{TOKEN_VALUE_RED}</span>
+    </div>
+    <div class = "token tokengreen changetoken" id = "changetokengreen">
+        <span class = "changetokenvalue">{TOKEN_VALUE_GREEN}</span>
+    </div>
+    <div class = "token tokenblack changetoken" id = "changetokenblack">
+        <span class = "changetokenvalue">{TOKEN_VALUE_BLACK}</span>
+    </div>
+</div>
 <div id = "table">
     <!-- BEGIN player -->
     <div class="playertable whiteblock playertable_{DIR}">
