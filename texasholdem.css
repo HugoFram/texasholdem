@@ -298,14 +298,14 @@
 
 .changetokenvalue {
     position: absolute;
-    text-align: center;
+    text-align: left;
     font-weight: bold;
     font-size: 18pt;
     top: 50%;
     left: 105%;
     margin-top: -14px;
     height: 30px;
-    width: 50px;
+    width: 70px;
     /* Prevent text selection when doubleclicking on tokens*/
     -moz-user-select: none;
     -khtml-user-select: none;
