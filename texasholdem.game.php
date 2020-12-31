@@ -186,6 +186,9 @@ class texasholdem extends Table
         $sql = "SELECT token_color, token_number FROM token";
         $result['tokensontable']= self::getCollectionFromDb( $sql );
 
+        // Token values
+        $result['tokenvalues'] = $this->token_values;
+
         return $result;
     }
 
@@ -824,6 +827,64 @@ class texasholdem extends Table
     function makeChange($tokens) {
         self::checkAction("makeChange");
         $player_id = self::getActivePlayerId();
+        $player_name = self::getActivePlayerName();
+
+        // Query current player's tokens stock
+        $sql = "SELECT player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
+            player_stock_token_green, player_stock_token_black FROM player WHERE player_id = '" . $player_id . "'";
+        $current_tokens = self::getObjectFromDB($sql);
+        $diff_stock = array(
+            "white" => 0,
+            "blue" => 0,
+            "red" => 0,
+            "green" => 0,
+            "black" => 0
+        );
+
+        // Update playe's stock with new number of tokens
+        $colors = ["white", "blue", "red", "green", "black"];
+        $valueGiven = 0;
+        $valueReceived = 0;
+
+        $sql = "UPDATE player SET ";
+        foreach($tokens as $token_id => $token_number) {
+            $color = $colors[(int)floor($token_id / 2)];
+            $isGiven = $token_id % 2 == 0;
+            if ($isGiven) {
+                if ($token_number > 0) {
+                    // Given token => decrement stock
+                    if ($token_number > $current_tokens["player_stock_token_${color}"]) {
+                        throw new feException(_("You cannot give ${token_number} ${color} tokens because you only have " . $current_tokens["player_stock_token_${color}"]));
+                    } else {
+                        $sql .= "player_stock_token_${color} = " . ($current_tokens["player_stock_token_${color}"] - $token_number) . ", ";
+                        $diff_stock[$color] = -1 * (int)$token_number;
+                        $valueGiven += $token_number * $this->token_values[$color];
+                    }
+                }
+            } else {
+                if ($token_number > 0) {
+                    // Receive token => increment stock
+                    $sql .= "player_stock_token_${color} = " . ($current_tokens["player_stock_token_${color}"] + $token_number) . ", ";
+                    $diff_stock[$color] = (int)$token_number;
+                    $valueReceived += $token_number * $this->token_values[$color];
+                }
+            }
+        }
+        // Removing last ';' if exists
+        if (substr($sql, -2) == ', ') {
+            $sql = substr($sql, 0, -2);
+        }
+        $sql .= " WHERE player_id = '" . $player_id. "'";
+        if ($valueReceived != $valueGiven) {
+            throw new feException(_("The value of tokens given is different than the value of received tokens."));
+        } else {
+            self::DbQuery($sql);
+            self::notifyAllPlayers("makeChange", clienttranslate('${player_name} makes some change.'), array(
+                'player_name' => $player_name,
+                'player_id' => $player_id,
+                'diff_stock' => $diff_stock
+            ));
+        }
     }
 
     function moveTokens($from, $to, $value) {

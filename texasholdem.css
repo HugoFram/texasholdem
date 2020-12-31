@@ -97,8 +97,13 @@
     padding: 5px;
 }
 
-.playertablename {
+.playertablename, .changemodaltitle {
     font-weight: bold;
+    text-align: center;
+}
+
+.changemodaltitle {
+    margin-top: 5px;
 }
 
 .playertable_S {
@@ -202,11 +207,14 @@
     height: 50px;
     z-index: 100;
 }
-.token:not(.tokenhidden) {
+.token:not(.tokenhidden):not(.tokendisabled) {
     cursor: pointer;
 }
 .tokenhidden {
     opacity: 0;
+}
+.tokendisabled {
+    opacity: 0.1;
 }
 
 .tokenwhite:not(.bettoken):not(.changetoken) {
@@ -233,6 +241,10 @@
     background-image: url("img/token_black50.png");
     left: 45px;
     top: 120px;
+}
+
+.bettoken {
+    top: 5px;
 }
 
 .tokenwhite.bettoken {
@@ -440,4 +452,64 @@
     border: solid 3px;
     border-color: #666666;
     color: #DDDDDD;
+}
+
+.changetokens-horizontal {
+    position: relative;
+    width: 270px;
+    height: 60px;
+    margin: 5px 15px 5px 15px;
+}
+
+.changetokens-vertical {
+    position: relative;
+    width: 60px;
+    height: 270px;
+    margin: 0px 45px 5px 45px;
+}
+
+.changemodal {
+    width: 451px;
+    height: 370px;
+}
+
+.changemodalmain {
+    width: 451px; /* 1 more pixel for the border */ 
+    height: 320px;
+    border: solid 1px;
+    border-radius: 15px;
+}
+
+.changemodalleftpane {
+    float: left;
+    width: 150px;
+    height: 320px;
+    border-right: solid 1px;
+}
+
+.changemodalrightpane {
+    float: left;
+    width: 300px;
+    height: 320px;
+}
+
+.changegivensection {
+    width: 300px;
+    height: 85px;
+    border-bottom: solid 1px;
+}
+
+.changereceivedsection {
+    width: 300px;
+    height: 235px;
+}
+
+.highlighted-border {
+    border: solid 3px #4871b6;
+    border-radius: 15px;
+}
+
+.changemodalfooter {
+    display: flex;
+    justify-content: space-around;
 }

@@ -3,7 +3,7 @@
 <!-- 
 --------
 -- BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
--- texasholdem implementation : © <Your name here> <Your email address here>
+-- texasholdem implementation : © <Hugo Frammery> <hugo@frammery.com>
 -- 
 -- This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
 -- See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -25,7 +25,7 @@
     Please REMOVE this comment before publishing your game on BGA
 -->
 
-<div class="changetable whiteblock">
+<div class="changetable whiteblock" id = "changetable">
     <div class = "token tokenwhite changetoken" id = "changetokenwhite">
         <span class = "changetokenvalue">{TOKEN_VALUE_WHITE}</span>
     </div>
@@ -144,6 +144,45 @@ var jstpl_table_token='<div class = "tokennumber ${TEXT_CLASS}">${TOKEN_NUM}</di
 // CARD_VISIBILITY_CLASS = cardvisible, cardhidden
 // If cardhidden --> background-position must be 0% 0%
 var jstpl_card='<div class = "card ${CARD_LOCATION_CLASS} ${CARD_VISIBILITY_CLASS}" style = "background-position: ${BACKGROUND_POSITION_LEFT_PERCENTAGE}% ${BACKGROUND_POSITION_TOP_PERCENTAGE}%;"></div>';
+
+// Change board dialog template
+var jstpl_change_board=' \
+    <div class = "changemodal"> \
+        <div class = "changemodalmain"> \
+            <div class = "changemodalleftpane"> \
+                <div class = "changemodaltitle">${STOCK_TITLE}</div> \
+                <div class="changetokens-vertical" id="changeyourstock"> \
+                    ${CHANGE_STOCK} \
+                </div> \
+            </div> \
+            <div class = "changemodalrightpane"> \
+                <div class="changegivensection"> \
+                    <div class = "changemodaltitle">${GIVEN_TITLE}</div> \
+                    <div class = "changetokens-horizontal" id="changegiventokens"> \
+                        ${CHANGE_GIVEN} \
+                    </div> \
+                </div> \
+                <div class="changereceivedsection" id="changereceivedtokens"> \
+                    <div class = "changemodaltitle">${RECEIVED_TITLE}</div> \
+                    ${CHANGE_RECEIVED} \
+                </div> \
+            </div> \
+        </div> \
+        <div class = "changemodalfooter"> \
+            <a type="button" class = "action-button bgabutton bgabutton_blue" id = "changebutton">${CHANGE_BUTTON_LABEL}</a> \
+            <a type="button" class = "action-button bgabutton bgabutton_blue" id = "cancelbutton">${CANCEL_BUTTON_LABEL}</a> \
+        </div> \
+    </div> \
+';
+
+var jstpl_change_token = ' \
+    <div class = "token token${TOKEN_COLOR} ${TOKEN_CLASS}" id = "${TOKEN_ID}"> \
+        <div class = "tokennumber ${TEXT_CLASS}">${TOKEN_NUM}</div> \
+    </div> \
+';
+
+var jstpl_change_proposed_change = '<div class = "changetokens-horizontal changereceivedproposition" id = "proposed_change_${PROPOSED_CHANGE_ID}">${TOKENS}</div>';
+
 </script>  
 
 {OVERALL_GAME_FOOTER}
