@@ -295,10 +295,12 @@ function (dojo, declare) {
 
                     case 'smallBlind':
                         this.addActionButton('place_small_blind', _('Place small blind'), 'onPlaceBet'); 
+                        this.addActionButton('change', _('Make change'), 'onMakeChange');
                         break;
 
                     case 'bigBlind':
                         this.addActionButton('place_big_blind', _('Place big blind'), 'onPlaceBet'); 
+                        this.addActionButton('change', _('Make change'), 'onMakeChange');
                         break;
 
                     case 'playerTurn':
