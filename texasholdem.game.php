@@ -47,7 +47,8 @@ class texasholdem extends Table
             "currentBetLevel" => 15,
             "smallBlindPlayer" => 16,
             "smallBlindValue" => 17,
-            "numBettingPlayers" => 18 // Number of players who have bet, checked or folded during this betting round
+            "numBettingPlayers" => 18, // Number of players who have bet, checked or folded during this betting round
+            "minimumRaise" => 19
         ) );
 
         $this->cards = self::getNew("module.common.deck");
@@ -124,6 +125,7 @@ class texasholdem extends Table
         self::setGameStateInitialValue("currentBetLevel", 0);
         self::setGameStateInitialValue("smallBlindValue", 1);
         self::setGameStateInitialValue("numBettingPlayers", 0);
+        self::setGameStateInitialValue("minimumRaise", 2);
 
         // Initialize tokens bet in previous round stages to 0
         $sql = "INSERT INTO token (token_color, token_number) VALUES ('white', 0), ('blue', 0), ('red', 0), ('green', 0), ('black', 0)";
@@ -650,6 +652,7 @@ class texasholdem extends Table
         $small_blind_player = self::getGameStateValue("smallBlindPlayer");
         $current_round_stage = self::getGameStateValue("roundStage");
         $blind_value = self::getGameStateValue("smallBlindValue");
+        $minimum_raise = self::getGameStateValue("minimumRaise");
 
         // Get current level of bet
         $current_bet_level = self::getGameStateValue("currentBetLevel");
@@ -760,7 +763,7 @@ class texasholdem extends Table
             ));
         } else if ($total_player_bet == $current_bet_level) {
             // Notify other player that the player followed
-            self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} follows' ), array(
+            self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} calls' ), array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'additional_bet' => $additional_bet,
@@ -769,16 +772,23 @@ class texasholdem extends Table
         } else {
             // Notify other player that the player raised
             $raise_amount = $total_player_bet - $current_bet_level;
-            self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} raises by ${raise_amount}' ), array(
-                'player_id' => $player_id,
-                'player_name' => $player_name,
-                'additional_bet' => $additional_bet,
-                'diff_stock' => $diff_stock,
-                'raise_amount' => $raise_amount
-            ));
 
-            // Update current bet level
-            self::setGameStateValue("currentBetLevel", $total_player_bet);
+            // Check that the player raises by a sufficient amount
+            if ($raise_amount >= $minimum_raise) {
+                self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} raises by ${raise_amount}' ), array(
+                    'player_id' => $player_id,
+                    'player_name' => $player_name,
+                    'additional_bet' => $additional_bet,
+                    'diff_stock' => $diff_stock,
+                    'raise_amount' => $raise_amount
+                ));
+    
+                // Update current bet level
+                self::setGameStateValue("currentBetLevel", $total_player_bet);
+                self::setGameStateValue("minimumRaise", $raise_amount);
+            } else {
+                throw new BgaUserException(_("You need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
+            }
         }
 
         // Specific case where the player is forced to be all in to follow the current bet level
@@ -1194,6 +1204,7 @@ class texasholdem extends Table
             self::setGameStateValue("currentBetLevel", 0);
         }
         self::setGameStateValue("numBettingPlayers", 0);
+        self::setGameStateValue("minimumRaise", 2 * self::getGameStateValue("smallBlindValue"));
 
         // Check if all players but one are all in or folded => Immediately end bet round
         $num_players = self::getUniqueValueFromDB("SELECT COUNT(player_id) FROM player");
