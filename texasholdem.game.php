@@ -645,18 +645,7 @@ class texasholdem extends Table
     
     */
 
-    function placeBet($tokens) {
-        self::checkAction("placeBet");
-        $player_id = self::getActivePlayerId();
-        $player_name = self::getActivePlayerName();
-        $small_blind_player = self::getGameStateValue("smallBlindPlayer");
-        $current_round_stage = self::getGameStateValue("roundStage");
-        $blind_value = self::getGameStateValue("smallBlindValue");
-        $minimum_raise = self::getGameStateValue("minimumRaise");
-
-        // Get current level of bet
-        $current_bet_level = self::getGameStateValue("currentBetLevel");
-
+    function computeBet($tokens, $player_id) {
         // Query current player's tokens stock
         $sql = "SELECT player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
             player_stock_token_green, player_stock_token_black, player_bet_token_white, player_bet_token_blue, 
@@ -694,7 +683,6 @@ class texasholdem extends Table
             }
         }
         $sql .= " WHERE player_id = '" . $player_id. "'";
-        self::DbQuery($sql);
 
         // Calculate additional bet
         $additional_bet = 0; // Value of tokens added to the betting area in the current place bet action
@@ -705,72 +693,349 @@ class texasholdem extends Table
         }
         $total_player_bet = $current_player_bet + $additional_bet; // Value of tokens that will be in the betting area after the current place bet action
 
-        $players_score = self::getCollectionFromDb("SELECT player_id, player_score FROM player");
-        $is_forced_all_in = FALSE; // Flag for if the player does not have enough to stock to follow the current bet level
 
-        if ($current_round_stage == 0 && $player_id == $small_blind_player) {
-            // Small blind
-            if ($total_player_bet != $blind_value) {
-                if ($total_player_bet < $blind_value && $is_all_in) {
-                    $is_forced_all_in = TRUE; // Player must be all in for the small blind.
-                } else {
-                    throw new BgaUserException(_("You are the small blind and must bet ${blind_value}. You currently bet ${total_player_bet}."));
-                }
-            } else {
-                // Notify other player that the player placed the small blind
-                self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} bets ${additional_bet} for the small blind.' ), array(
+        return array(
+            'additional_bet' => $additional_bet,
+            'current_player_bet' => $current_player_bet,
+            'total_player_bet' => $total_player_bet,
+            'diff_stock' => $diff_stock,
+            'is_all_in' => $is_all_in,
+            'player_score' => $current_tokens["player_score"],
+            'token_update_sql' => $sql
+        );
+    }
+
+    function placeSmallBlind($tokens) {
+        self::checkAction("placeSmallBlind");
+        $player_id = self::getActivePlayerId();
+        $player_name = self::getActivePlayerName();
+        $current_round_stage = self::getGameStateValue("roundStage");
+        $blind_value = self::getGameStateValue("smallBlindValue");
+
+        // Get current level of bet
+        $current_bet_level = self::getGameStateValue("currentBetLevel");
+
+        $bet_computation = self::computeBet($tokens, $player_id);
+        $additional_bet = $bet_computation["additional_bet"];
+        $diff_stock = $bet_computation["diff_stock"];
+        $is_all_in = $bet_computation["is_all_in"];
+        $player_score = $bet_computation["player_score"];
+        $sql = $bet_computation["token_update_sql"];
+
+        if ($additional_bet != $blind_value) {
+            // The player has not placed the correct amount of tokens for the small blind
+            if ($additional_bet < $blind_value && $is_all_in) {
+                // The player has placed all his tokens but that's not sufficient for the small blind
+                self::DbQuery($sql);
+                self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} does not have enough stock to place the small blind. She/he is all in with ${all_in_value} added to the bet.'), array(
                     'player_id' => $player_id,
                     'player_name' => $player_name,
                     'additional_bet' => $additional_bet,
-                    'diff_stock' => $diff_stock
+                    'diff_stock' => $diff_stock,
+                    'all_in_value' => $additional_bet,
+                    'show_all' => FALSE
                 ));
-            }
-            self::setGameStateValue("currentBetLevel", $total_player_bet);
-        } else if ($current_round_stage == 0 && self::getPlayerBefore($player_id) == $small_blind_player) {
-            // Big blind
-            $big_blind = 2 * $blind_value;
-            if ($total_player_bet != $big_blind) {
-                if ($total_player_bet < $big_blind && $is_all_in) {
-                    $is_forced_all_in = TRUE; // Player must be all in for the big blind.
-                } else {
-                    throw new BgaUserException(_("You are the big blind and must bet ${big_blind}. You currently bet ${total_player_bet}."));
+            } else {
+                if ($additional_bet != 0) {
+                    self::notifyPlayer($player_id, "betPlaced", clienttranslate('Incorrect bet placed. Moving back ${additional_bet} to your stock.'), array(
+                        'player_id' => $player_id,
+                        'additional_bet' => $additional_bet,
+                        'diff_stock' => array_map(function($token_num) {return -$token_num;}, $diff_stock),
+                        'show_all' => TRUE
+                    ));
                 }
-            } else {
-                // Notify other player that the player placed the small blind
-                self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${additional_bet} for the big blind.'), array(
-                    'player_id' => $player_id,
-                    'player_name' => $player_name,
-                    'additional_bet' => $additional_bet,
-                    'diff_stock' => $diff_stock
-                ));
+                if ($player_score >= $blind_value) {
+                    // The player has enough in stock for the small blind => place the tokens for him
+                    self::moveTokens("stock_${player_id}", "bet_${player_id}", $blind_value);
+                    self::notifyAllPlayers("smallBlindPlaced", clienttranslate('${player_name} places the small blind.'), array(
+                        'player_name' => $player_name
+                    ));
+                    $additional_bet = $blind_value;
+                    $is_all_in = $player_score == $blind_value;
+                } else {
+                    // The player does not have enough in stock for the small blind => he goes all in
+                    self::notifyAllPlayers("allInSmallBlind", clienttranslate('${player_name} does not have enough stock to place the small blind. She/he is all in with ${all_in_value} added to the bet.'), array(
+                        'player_name' => $player_name,
+                        'all_in_value' => $player_score
+                    ));
+                    self::moveTokens("stock_${player_id}", "bet_${player_id}", $player_score);
+                    self::notifyAllPlayers("smallBlindPlaced", clienttranslate('${player_name} places the small blind.'), array(
+                        'player_name' => $player_name
+                    ));
+                    $additional_bet = $player_score;
+                    $is_all_in = TRUE;
+                }
             }
-            if ($total_player_bet > self::getGameStateValue("currentBetLevel")) {
-                self::setGameStateValue("currentBetLevel", $total_player_bet);
-            }
-        } else if ($total_player_bet < $current_bet_level) {
-            if ($is_all_in) {
-                $is_forced_all_in = TRUE; // Player must be all in to follow the current bet level.
-            } else {
-                throw new BgaUserException(_("You need to bet at least ${current_bet_level}. You currently bet ${total_player_bet}."));
-            }
-        } else if ($total_player_bet == 0) {
-            // Notify other player that the player checked
-            self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} checks' ), array(
+        } else {
+            // Notify other player that the player placed the small blind
+            self::DbQuery($sql);
+            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${additional_bet} for the small blind.'), array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'additional_bet' => $additional_bet,
-                'diff_stock' => $diff_stock
+                'diff_stock' => $diff_stock,
+                'show_all' => FALSE
             ));
-        } else if ($total_player_bet == $current_bet_level) {
-            // Notify other player that the player followed
-            self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} calls' ), array(
+        }
+        self::setGameStateValue("currentBetLevel", $additional_bet);
+
+        // Increment the number of all in players if the player bet all his stock
+        if ($additional_bet > 0 && $is_all_in) {
+            $sql = "UPDATE player SET is_all_in = 1 WHERE player_id = " . $player_id;
+            self::DbQuery($sql);
+
+            self::incGameStateValue("numAllInPlayers", 1);
+        } else {
+            self::incGameStateValue("numBettingPlayers", 1); // An additional player has played for this betting round
+        }
+
+        $this->gamestate->nextState('placeSmallBlind');
+    }
+
+    function placeBigBlind($tokens) {
+        self::checkAction("placeBigBlind");
+        $player_id = self::getActivePlayerId();
+        $player_name = self::getActivePlayerName();
+        $current_round_stage = self::getGameStateValue("roundStage");
+        $blind_value = self::getGameStateValue("smallBlindValue");
+
+        // Get current level of bet
+        $current_bet_level = self::getGameStateValue("currentBetLevel");
+
+        $bet_computation = self::computeBet($tokens, $player_id);
+        $additional_bet = $bet_computation["additional_bet"];
+        $diff_stock = $bet_computation["diff_stock"];
+        $is_all_in = $bet_computation["is_all_in"];
+        $player_score = $bet_computation["player_score"];
+        $sql = $bet_computation["token_update_sql"];
+
+        $big_blind = 2 * $blind_value;
+        if ($additional_bet != $big_blind) {
+            if ($additional_bet < $big_blind && $is_all_in) {
+                // The player has placed all his tokens but that's not sufficient for the small blind
+                self::DbQuery($sql);
+                self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} does not have enough stock to place the big blind. She/he is all in with ${all_in_value} added to the bet.'), array(
+                    'player_id' => $player_id,
+                    'player_name' => $player_name,
+                    'additional_bet' => $additional_bet,
+                    'diff_stock' => $diff_stock,
+                    'all_in_value' => $additional_bet,
+                    'show_all' => FALSE
+                ));
+            } else {
+                if ($additional_bet != 0) {
+                    self::notifyPlayer($player_id, "betPlaced", clienttranslate('Incorrect bet placed. Moving back ${additional_bet} to your stock.'), array(
+                        'player_id' => $player_id,
+                        'additional_bet' => $additional_bet,
+                        'diff_stock' => array_map(function($token_num) {return -$token_num;}, $diff_stock),
+                        'show_all' => TRUE
+                    ));
+                }
+
+                if ($player_score >= $big_blind) {
+                    // The player has enough in stock for the big blind => place the tokens for him
+                    self::moveTokens("stock_${player_id}", "bet_${player_id}", $big_blind);
+                    self::notifyAllPlayers("bigBlindPlaced", clienttranslate('${player_name} places the big blind.'), array(
+                        'player_name' => $player_name
+                    ));
+                    $additional_bet = $big_blind;
+                    $is_all_in = $player_score == $big_blind;
+                } else {
+                    // The player does not have enough in stock for the big blind => he goes all in
+                    self::notifyAllPlayers("allInBigBlind", clienttranslate('${player_name} does not have enough stock to place the big blind. She/he is all in with ${all_in_value} added to the bet.'), array(
+                        'player_name' => $player_name,
+                        'all_in_value' => $player_score
+                    ));
+                    self::moveTokens("stock_${player_id}", "bet_${player_id}", $player_score);
+                    self::notifyAllPlayers("bigBlindPlaced", clienttranslate('${player_name} places the big blind.'), array(
+                        'player_name' => $player_name
+                    ));
+                    $additional_bet = $player_score;
+                    $is_all_in = TRUE;
+                }
+            }
+        } else {
+            // Notify other player that the player placed the small blind
+            self::DbQuery($sql);
+            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${additional_bet} for the big blind.'), array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'additional_bet' => $additional_bet,
-                'diff_stock' => $diff_stock
+                'diff_stock' => $diff_stock,
+                'show_all' => FALSE
+            ));
+        }
+        if ($additional_bet > self::getGameStateValue("currentBetLevel")) {
+            self::setGameStateValue("currentBetLevel", $additional_bet);
+        }
+
+        // Increment the number of all in players if the player bet all his stock
+        if ($additional_bet > 0 && $is_all_in) {
+            $sql = "UPDATE player SET is_all_in = 1 WHERE player_id = " . $player_id;
+            self::DbQuery($sql);
+
+            self::incGameStateValue("numAllInPlayers", 1);
+        } else {
+            self::incGameStateValue("numBettingPlayers", 1); // An additional player has played for this betting round
+        }
+
+        $this->gamestate->nextState('placeBigBlind');
+    }
+
+    function check($tokens) {
+        self::checkAction("placeBet");
+        $player_id = self::getActivePlayerId();
+        $player_name = self::getActivePlayerName();
+        $small_blind_player = self::getGameStateValue("smallBlindPlayer");
+        $current_bet_level = self::getGameStateValue("currentBetLevel");
+        $current_round_stage = self::getGameStateValue("roundStage");
+        $blind_value = self::getGameStateValue("smallBlindValue");
+
+        $bet_computation = self::computeBet($tokens, $player_id);
+        $additional_bet = $bet_computation["additional_bet"];
+        $diff_stock = $bet_computation["diff_stock"];
+
+        if ($current_round_stage == 1) {
+            if (self::getPlayerBefore($player_id) != $small_blind_player || $current_bet_level != 2 * $blind_value) {
+                throw new BgaUserException(_("You cannot check because the current bet is not 0."));
+            }
+        } else {
+            if ($current_bet_level != 0) {
+                throw new BgaUserException(_("You cannot check because the current bet is not 0."));
+            }
+        }
+
+        if ($additional_bet > 0) {
+            self::notifyPlayer($player_id, "betPlaced", clienttranslate('No token should be bet for a check action. Moving back ${additional_bet} to your stock.'), array(
+                'player_id' => $player_id,
+                'additional_bet' => $additional_bet,
+                'diff_stock' => array_map(function($token_num) {return -$token_num;}, $diff_stock),
+                'show_all' => TRUE
+            ));
+        }
+
+        // Notify other player that the player checked
+        self::notifyAllPlayers("check", clienttranslate( '${player_name} checks' ), array(
+            'player_name' => $player_name
+        ));
+
+        self::incGameStateValue("numBettingPlayers", 1); // An additional player has played for this betting round
+
+        $this->gamestate->nextState('placeBet');
+    }
+
+    function call($tokens) {
+        self::checkAction("placeBet");
+        $player_id = self::getActivePlayerId();
+        $player_name = self::getActivePlayerName();   
+
+        // Get current level of bet
+        $current_bet_level = self::getGameStateValue("currentBetLevel");
+
+        $bet_computation = self::computeBet($tokens, $player_id);
+        $additional_bet = $bet_computation["additional_bet"];
+        $diff_stock = $bet_computation["diff_stock"];
+        $current_player_bet = $bet_computation["current_player_bet"];
+        $total_player_bet = $bet_computation["total_player_bet"]; // Value of tokens that will be in the betting area after the current place bet action
+        $is_all_in = $bet_computation["is_all_in"];
+        $player_score = $bet_computation["player_score"];
+        $sql = $bet_computation["token_update_sql"];
+
+        $player_tokens = self::getPlayersTokens()[$player_id];
+
+        if ($total_player_bet == $current_bet_level) {
+            // The player has already put the correct amount of tokens in the betting area
+            self::DbQuery($sql);
+            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} calls by betting ${additional_bet}.'), array(
+                'player_id' => $player_id,
+                'player_name' => $player_name,
+                'additional_bet' => $additional_bet,
+                'diff_stock' => $diff_stock,
+                'show_all' => FALSE
             ));
         } else {
-            // Notify other player that the player raised
+            if ($total_player_bet < $current_bet_level && $is_all_in) {
+                // The player has put all his tokens in the betting area but that is not sufficient to call
+                self::DbQuery($sql);
+                self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} does not have enough stock to call. She/he is all in with ${all_in_value} added to the bet.'), array(
+                    'player_id' => $player_id,
+                    'player_name' => $player_name,
+                    'additional_bet' => $additional_bet,
+                    'diff_stock' => $diff_stock,
+                    'all_in_value' => $total_player_bet,
+                    'show_all' => FALSE
+                ));
+            } else {
+                // The player has not put the correct amount of tokens in the betting area and is not all in
+                // => Move back his newly bet token and bet the correct amount for him
+                if ($additional_bet != 0) {
+                    self::notifyPlayer($player_id, "betPlaced", clienttranslate('Incorrect bet placed. Moving back ${additional_bet} to your stock.'), array(
+                        'player_id' => $player_id,
+                        'additional_bet' => $additional_bet,
+                        'diff_stock' => array_map(function($token_num) {return -$token_num;}, $diff_stock),
+                        'show_all' => TRUE
+                    ));
+                }
+                if ($player_tokens["stock"] >= ($current_bet_level - $player_tokens["bet"])) {
+                    // The player has enough stock to call
+                    self::moveTokens("stock_${player_id}", "bet_${player_id}", $current_bet_level - $player_tokens["bet"]);
+                    self::notifyAllPlayers("callPlaced", clienttranslate('${player_name} calls by betting ${additional_bet}.'), array(
+                        'player_name' => $player_name,
+                        'additional_bet' => $current_bet_level - $player_tokens["bet"]
+                    ));
+                    $additional_bet = $current_bet_level - $player_tokens["bet"];
+                    $is_all_in = $player_tokens["stock"] == ($current_bet_level - $player_tokens["bet"]);
+                } else {
+                    // The player does not have enough stock to call => he goes all in
+                    self::notifyAllPlayers("allInCall", clienttranslate('${player_name} does not have enough stock to call. She/he is all in with ${all_in_value} added to the bet.'), array(
+                        'player_name' => $player_name,
+                        'all_in_value' => $player_tokens["stock"]
+                    ));
+                    self::moveTokens("stock_${player_id}", "bet_${player_id}", $player_tokens["stock"]);
+                    self::notifyAllPlayers("callPlaced", clienttranslate('${player_name} calls.'), array(
+                        'player_name' => $player_name
+                    ));
+                    $additional_bet = $player_tokens["stock"];
+                    $is_all_in = TRUE;
+                }
+            }
+        }
+
+        if ($additional_bet > 0 && $is_all_in) {
+            $sql = "UPDATE player SET is_all_in = 1 WHERE player_id = " . $player_id;
+            self::DbQuery($sql);
+
+            self::incGameStateValue("numAllInPlayers", 1);
+        } else {
+            self::incGameStateValue("numBettingPlayers", 1); // An additional player has played for this betting round
+        }
+
+        $this->gamestate->nextState('placeBet');
+    }
+
+    function raise($tokens) {
+        self::checkAction("placeBet");
+        $player_id = self::getActivePlayerId();
+        $player_name = self::getActivePlayerName();
+        $small_blind_player = self::getGameStateValue("smallBlindPlayer");
+        $current_round_stage = self::getGameStateValue("roundStage");
+        $blind_value = self::getGameStateValue("smallBlindValue");
+        $minimum_raise = self::getGameStateValue("minimumRaise");
+
+        // Get current level of bet
+        $current_bet_level = self::getGameStateValue("currentBetLevel");
+
+        $bet_computation = self::computeBet($tokens, $player_id);
+        $additional_bet = $bet_computation["additional_bet"];
+        $diff_stock = $bet_computation["diff_stock"];
+        $total_player_bet = $bet_computation["total_player_bet"]; // Value of tokens that will be in the betting area after the current place bet action
+        $is_all_in = $bet_computation["is_all_in"];
+        $sql = $bet_computation["token_update_sql"];
+        self::DbQuery($sql);
+
+        if ($current_round_stage == 0) {
+            throw new feException(_("You are not supposed to raise during the blinds phase."));
+        } else if ($total_player_bet > $current_bet_level) {
             $raise_amount = $total_player_bet - $current_bet_level;
 
             // Check that the player raises by a sufficient amount
@@ -780,7 +1045,8 @@ class texasholdem extends Table
                     'player_name' => $player_name,
                     'additional_bet' => $additional_bet,
                     'diff_stock' => $diff_stock,
-                    'raise_amount' => $raise_amount
+                    'raise_amount' => $raise_amount,
+                    'show_all' => FALSE
                 ));
     
                 // Update current bet level
@@ -789,17 +1055,8 @@ class texasholdem extends Table
             } else {
                 throw new BgaUserException(_("You need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
             }
-        }
-
-        // Specific case where the player is forced to be all in to follow the current bet level
-        if ($is_forced_all_in) {
-            self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} does not have enough stock to match the bet. She/he is all in with ${all_in_value}' ), array(
-                'player_id' => $player_id,
-                'player_name' => $player_name,
-                'additional_bet' => $additional_bet,
-                'diff_stock' => $diff_stock,
-                'all_in_value' => $total_player_bet
-            ));
+        } else {
+            throw new BgaUserException(_("To raise you need to bet at least " . ($current_bet_level + $minimum_raise) . ". You currently bet ${total_player_bet}."));
         }
 
         // Increment the number of all in players if the player bet all his stock
@@ -815,9 +1072,22 @@ class texasholdem extends Table
         $this->gamestate->nextState('placeBet');
     }
 
-    function fold($player_id) {
+    function fold($player_id, $tokens) {
         self::checkAction("fold");
         $player_id = self::getActivePlayerId();
+
+        $bet_computation = self::computeBet($tokens, $player_id);
+        $additional_bet = $bet_computation["additional_bet"];
+        $diff_stock = $bet_computation["diff_stock"];
+
+        if ($additional_bet != 0) {
+            self::notifyPlayer($player_id, "betPlaced", clienttranslate('No token should be bet or taken back for a fold action. Moving back ${additional_bet} to your stock.'), array(
+                'player_id' => $player_id,
+                'additional_bet' => $additional_bet,
+                'diff_stock' => array_map(function($token_num) {return -$token_num;}, $diff_stock),
+                'show_all' => TRUE
+            ));
+        }
 
         $sql = "UPDATE player SET is_fold = true WHERE player_id = '" . $player_id . "'";
         self::DbQuery($sql);
@@ -832,6 +1102,67 @@ class texasholdem extends Table
         ));
 
         $this->gamestate->nextState('fold');
+    }
+
+    function allIn($tokens) {
+        self::checkAction("placeBet");
+        $player_id = self::getActivePlayerId();
+        $player_name = self::getActivePlayerName();
+        $small_blind_player = self::getGameStateValue("smallBlindPlayer");
+        $current_round_stage = self::getGameStateValue("roundStage");
+        $blind_value = self::getGameStateValue("smallBlindValue");
+        $minimum_raise = self::getGameStateValue("minimumRaise");
+
+        // Get current level of bet
+        $current_bet_level = self::getGameStateValue("currentBetLevel");
+
+        $bet_computation = self::computeBet($tokens, $player_id);
+        $additional_bet = $bet_computation["additional_bet"];
+        $diff_stock = $bet_computation["diff_stock"];
+        $total_player_bet = $bet_computation["total_player_bet"]; // Value of tokens that will be in the betting area after the current place bet action
+        $sql = $bet_computation["token_update_sql"];
+        self::DbQuery($sql);
+
+        $players_score = self::getCollectionFromDb("SELECT player_id, player_score FROM player");
+
+        if ($total_player_bet > $current_bet_level) {
+            $raise_amount = $total_player_bet - $current_bet_level;
+
+            // Check that the player raises by a sufficient amount
+            if ($raise_amount >= $minimum_raise) {
+                self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} raises by ${raise_amount}' ), array(
+                    'player_id' => $player_id,
+                    'player_name' => $player_name,
+                    'additional_bet' => $additional_bet,
+                    'diff_stock' => $diff_stock,
+                    'raise_amount' => $raise_amount,
+                    'show_all' => FALSE
+                ));
+    
+                // Update current bet level
+                self::setGameStateValue("currentBetLevel", $total_player_bet);
+                self::setGameStateValue("minimumRaise", $raise_amount);
+            } else {
+                throw new BgaUserException(_("You cannot go all in because you need need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
+            }
+        } else {
+            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} does not have enough stock to match the bet. She/he is all in with ${all_in_value} added to the bet.'), array(
+                'player_id' => $player_id,
+                'player_name' => $player_name,
+                'additional_bet' => $additional_bet,
+                'diff_stock' => $diff_stock,
+                'all_in_value' => $additional_bet,
+                'show_all' => FALSE
+            ));
+        }
+
+        // Increment the number of all in players
+        $sql = "UPDATE player SET is_all_in = 1 WHERE player_id = " . $player_id;
+        self::DbQuery($sql);
+
+        self::incGameStateValue("numAllInPlayers", 1);
+
+        $this->gamestate->nextState('placeBet');
     }
 
     function makeChange($tokens) {
@@ -1015,13 +1346,13 @@ class texasholdem extends Table
                 $from_tokens[$color] -= $token_diff[$color];
             }
         } else if (strpos($from, "stock") !== false) {
-            $sql_from = "UPDATE player";
+            $sql_from = "UPDATE player SET";
             foreach ($colors as $id => $color) {
-                $sql_from .= " SET player_stock_token_${$color} = " . ($from_tokens[$color] - $token_diff[$color]);
+                $sql_from .= " player_stock_token_${color} = " . ($from_tokens[$color] - $token_diff[$color]);
                 $from_tokens[$color] -= $token_diff[$color];
-            }
-            if ($id < (count($colors) - 1)) {
-                $sql_from .= ",";
+                if ($id < (count($colors) - 1)) {
+                    $sql_from .= ",";
+                }
             }
             $sql_from .= " WHERE player_id = ${from_player_id}";
             self::DbQuery($sql_from);
@@ -1057,13 +1388,13 @@ class texasholdem extends Table
             $sql_to .= " WHERE player_id = ${to_player_id}";
             self::DbQuery($sql_to);
         } else if (strpos($to, "bet") !== false) {
-            $sql_to = "UPDATE player";
+            $sql_to = "UPDATE player SET";
             foreach ($colors as $id => $color) {
-                $sql_to .= " SET player_bet_token_${$color} = " . ($to_tokens[$color] + $token_diff[$color]);
+                $sql_to .= " player_bet_token_${color} = " . ($to_tokens[$color] + $token_diff[$color]);
                 $to_tokens[$color] += $token_diff[$color];
-            }
-            if ($id < (count($colors) - 1)) {
-                $sql_to .= ",";
+                if ($id < (count($colors) - 1)) {
+                    $sql_to .= ",";
+                }
             }
             $sql_to .= " WHERE player_id = ${to_player_id}";
             self::DbQuery($sql_to);

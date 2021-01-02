@@ -78,8 +78,8 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must bet ${smallblind} for the small blind.'),
         "type" => "activeplayer",
         "args" => "argSmallBlind",
-        "possibleactions" => array("placeBet", "makeChange"),
-        "transitions" => array("placeBet" => 22, "zombiePass" => 98)
+        "possibleactions" => array("placeSmallBlind", "makeChange"),
+        "transitions" => array("placeSmallBlind" => 22, "zombiePass" => 98)
     ),
 
     // Transition to the big blind player
@@ -98,8 +98,8 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must bet ${bigblind} for the big blind.'),
         "type" => "activeplayer",
         "args" => "argBigBlind",
-        "possibleactions" => array("placeBet", "makeChange"),
-        "transitions" => array("placeBet" => 24, "zombiePass" => 98)
+        "possibleactions" => array("placeBigBlind", "makeChange"),
+        "transitions" => array("placeBigBlind" => 24, "zombiePass" => 98)
     ),
 
     // Transition to start of the betting round
@@ -124,8 +124,8 @@ $machinestates = array(
     // Player's turn
     40 => array(
         "name" => "playerTurn",
-        "description" => clienttranslate('${actplayer} must choose a bet or fold'),
-        "descriptionmyturn" => clienttranslate('${you} must choose a bet or fold'),
+        "description" => clienttranslate('${actplayer} must call, raise, or fold'),
+        "descriptionmyturn" => clienttranslate('${you} must call, raise, or fold'),
         "type" => "activeplayer",
         "possibleactions" => array( "placeBet", "fold", "makeChange" ),
         "transitions" => array( "placeBet" => 41, "fold" => 41, "zombiePass" => 98)

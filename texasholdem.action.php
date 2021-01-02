@@ -63,7 +63,7 @@
     
     */
 
-    public function placeBet() {
+    public function smallBlind() {
       self::setAjaxMode();     
 
         // Retrieve arguments
@@ -82,16 +82,153 @@
           $tokens = explode( ';', $tokens_raw);
         }
 
-        $this->game->placeBet($tokens);
+        $this->game->placeSmallBlind($tokens);
 
         self::ajaxResponse();
     }
 
+    public function bigBlind() {
+      self::setAjaxMode();     
+
+        // Retrieve arguments
+        // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+        // Expects a number list with the following format
+        // "<num tokens white in stock>;<num tokens white in betting area>;<num tokens blue in stock>;<num tokens blue in betting area>;..."
+        $tokens_raw = self::getArg("tokens", AT_numberlist, true);
+
+        // Removing last ';' if exists
+        if (substr($tokens_raw, -1) == ';') {
+          $tokens_raw = substr($tokens_raw, 0, -1 );
+        }
+        if ($tokens_raw == '') {
+          $tokens = array();
+        } else {
+          $tokens = explode( ';', $tokens_raw);
+        }
+
+        $this->game->placeBigBlind($tokens);
+
+        self::ajaxResponse();
+    }
+
+    public function check() {
+      self::setAjaxMode();
+      
+      // Retrieve arguments
+      // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+      // Expects a number list with the following format
+      // "<num tokens white in stock>;<num tokens white in betting area>;<num tokens blue in stock>;<num tokens blue in betting area>;..."
+      $tokens_raw = self::getArg("tokens", AT_numberlist, true);
+
+      // Removing last ';' if exists
+      if (substr($tokens_raw, -1) == ';') {
+        $tokens_raw = substr($tokens_raw, 0, -1 );
+      }
+      if ($tokens_raw == '') {
+        $tokens = array();
+      } else {
+        $tokens = explode( ';', $tokens_raw);
+      }
+      
+      $this->game->check($tokens);
+
+      self::ajaxResponse();
+    }
+
+    public function call() {
+      self::setAjaxMode();
+      
+      // Retrieve arguments
+      // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+      // Expects a number list with the following format
+      // "<num tokens white in stock>;<num tokens white in betting area>;<num tokens blue in stock>;<num tokens blue in betting area>;..."
+      $tokens_raw = self::getArg("tokens", AT_numberlist, true);
+
+      // Removing last ';' if exists
+      if (substr($tokens_raw, -1) == ';') {
+        $tokens_raw = substr($tokens_raw, 0, -1 );
+      }
+      if ($tokens_raw == '') {
+        $tokens = array();
+      } else {
+        $tokens = explode( ';', $tokens_raw);
+      }
+
+      $this->game->call($tokens);
+
+      self::ajaxResponse();
+    }
+
+    public function raise() {
+      self::setAjaxMode();     
+
+      // Retrieve arguments
+      // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+      // Expects a number list with the following format
+      // "<num tokens white in stock>;<num tokens white in betting area>;<num tokens blue in stock>;<num tokens blue in betting area>;..."
+      $tokens_raw = self::getArg("tokens", AT_numberlist, true);
+
+      // Removing last ';' if exists
+      if (substr($tokens_raw, -1) == ';') {
+        $tokens_raw = substr($tokens_raw, 0, -1 );
+      }
+      if ($tokens_raw == '') {
+        $tokens = array();
+      } else {
+        $tokens = explode( ';', $tokens_raw);
+      }
+
+      $this->game->raise($tokens);
+
+      self::ajaxResponse();
+    }
+
     public function fold() {
       self::setAjaxMode();
+
+      // Retrieve arguments
+      // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+      // Expects a number list with the following format
+      // "<num tokens white in stock>;<num tokens white in betting area>;<num tokens blue in stock>;<num tokens blue in betting area>;..."
+      $tokens_raw = self::getArg("tokens", AT_numberlist, true);
       $player_id = self::getArg( "player_id", AT_posint, true );
-      $this->game->fold($player_id);
+
+      // Removing last ';' if exists
+      if (substr($tokens_raw, -1) == ';') {
+        $tokens_raw = substr($tokens_raw, 0, -1 );
+      }
+      if ($tokens_raw == '') {
+        $tokens = array();
+      } else {
+        $tokens = explode( ';', $tokens_raw);
+      }
+
+      $this->game->fold($player_id, $tokens);
       self::ajaxResponse();
+    }
+
+    public function allIn() {
+      self::setAjaxMode();     
+
+        // Retrieve arguments
+        // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+        // Expects a number list with the following format
+        // "<num tokens white in stock>;<num tokens white in betting area>;<num tokens blue in stock>;<num tokens blue in betting area>;..."
+        $tokens_raw = self::getArg("tokens", AT_numberlist, true);
+
+        // Removing last ';' if exists
+        if (substr($tokens_raw, -1) == ';') {
+          $tokens_raw = substr($tokens_raw, 0, -1 );
+        }
+        if ($tokens_raw == '') {
+          $tokens = array();
+        } else {
+          $tokens = explode( ';', $tokens_raw);
+        }
+
+        $this->game->allIn($tokens);
+
+        self::ajaxResponse();
     }
 
     public function makeChange() {

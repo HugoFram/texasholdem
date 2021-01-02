@@ -294,19 +294,21 @@ function (dojo, declare) {
                 */
 
                     case 'smallBlind':
-                        this.addActionButton('place_small_blind', _('Place small blind'), 'onPlaceBet'); 
+                        this.addActionButton('place_small_blind', _('Place small blind'), 'onPlaceSmallBlind'); 
                         this.addActionButton('change', _('Make change'), 'onMakeChange');
                         break;
 
                     case 'bigBlind':
-                        this.addActionButton('place_big_blind', _('Place big blind'), 'onPlaceBet'); 
+                        this.addActionButton('place_big_blind', _('Place big blind'), 'onPlaceBigBlind'); 
                         this.addActionButton('change', _('Make change'), 'onMakeChange');
                         break;
 
                     case 'playerTurn':
-                        this.addActionButton('place_bet', _('Place bet'), 'onPlaceBet'); 
-                        this.addActionButton('all_in', _('All in'), 'onAllIn'); 
+                        this.addActionButton('check', _('Check'), 'onCheck'); 
+                        this.addActionButton('call', _('Call'), 'onCall'); 
+                        this.addActionButton('raise', _('Raise'), 'onRaise'); 
                         this.addActionButton('fold', _('Fold'), 'onFold');
+                        this.addActionButton('all_in', _('All in'), 'onAllIn'); 
                         this.addActionButton('change', _('Make change'), 'onMakeChange');
                         break;
 
@@ -380,7 +382,7 @@ function (dojo, declare) {
             dojo.stopEvent(event);
 
             // Check that this action is possible (see "possibleactions" in states.inc.php)
-            if(!this.checkAction('placeBet')) return;
+            if(!this.checkAction('placeBet', false) && !this.checkAction('placeSmallBlind', false) && !this.checkAction('placeBigBlind')) return;
 
             var stockToken = event.currentTarget;
             var betToken = $("bet" + stockToken.id);
@@ -424,7 +426,7 @@ function (dojo, declare) {
             dojo.stopEvent(event);
 
             // Check that this action is possible (see "possibleactions" in states.inc.php)
-            if(!this.checkAction('placeBet')) return;
+            if(!this.checkAction('placeBet', false) && !this.checkAction('placeSmallBlind', false) && !this.checkAction('placeBigBlind')) return;
 
             var betToken = event.currentTarget;
             var stockToken = $(betToken.id.replace(/bet/, ""));
@@ -461,7 +463,51 @@ function (dojo, declare) {
             }
         },
 
-        onPlaceBet: function() {
+        onPlaceSmallBlind: function() {
+            // Check that this action is possible (see "possibleactions" in states.inc.php)
+            if(!this.checkAction('placeSmallBlind')) return;
+
+            var colors = ["white", "blue", "red", "green", "black"];
+            
+            var valuesString = "";
+            colors.forEach(color => {
+                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
+                var stockToken = $("token" + color + "_" + this.player_id);
+                var betToken = $("bettoken" + color + "_" + this.player_id);
+                // Extract number of token from HTML element and build a string to pass to the server
+                valuesString += stockToken.firstElementChild.textContent + ";";
+                valuesString += betToken.firstElementChild.textContent + ";";
+            });
+
+            this.ajaxcall("/texasholdem/texasholdem/smallBlind.html", { 
+                lock: true,
+                tokens: valuesString
+            }, this, function(result) {}, function(is_error) {});
+        },
+
+        onPlaceBigBlind: function() {
+            // Check that this action is possible (see "possibleactions" in states.inc.php)
+            if(!this.checkAction('placeBigBlind')) return;
+
+            var colors = ["white", "blue", "red", "green", "black"];
+            
+            var valuesString = "";
+            colors.forEach(color => {
+                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
+                var stockToken = $("token" + color + "_" + this.player_id);
+                var betToken = $("bettoken" + color + "_" + this.player_id);
+                // Extract number of token from HTML element and build a string to pass to the server
+                valuesString += stockToken.firstElementChild.textContent + ";";
+                valuesString += betToken.firstElementChild.textContent + ";";
+            });
+
+            this.ajaxcall("/texasholdem/texasholdem/bigBlind.html", { 
+                lock: true,
+                tokens: valuesString
+            }, this, function(result) {}, function(is_error) {});
+        },
+
+        onCheck: function() {
             // Check that this action is possible (see "possibleactions" in states.inc.php)
             if(!this.checkAction('placeBet')) return;
 
@@ -477,19 +523,76 @@ function (dojo, declare) {
                 valuesString += betToken.firstElementChild.textContent + ";";
             });
 
-            this.ajaxcall("/texasholdem/texasholdem/placeBet.html", { 
+            this.ajaxcall("/texasholdem/texasholdem/check.html", { 
+                lock: true,
+                tokens: valuesString
+            }, this, function(result) {}, function(is_error) {});
+        },
+
+        onCall: function() {
+            // Check that this action is possible (see "possibleactions" in states.inc.php)
+            if(!this.checkAction('placeBet')) return;
+
+            var colors = ["white", "blue", "red", "green", "black"];
+            
+            var valuesString = "";
+            colors.forEach(color => {
+                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
+                var stockToken = $("token" + color + "_" + this.player_id);
+                var betToken = $("bettoken" + color + "_" + this.player_id);
+                // Extract number of token from HTML element and build a string to pass to the server
+                valuesString += stockToken.firstElementChild.textContent + ";";
+                valuesString += betToken.firstElementChild.textContent + ";";
+            });
+
+            this.ajaxcall("/texasholdem/texasholdem/call.html", { 
+                lock: true,
+                tokens: valuesString
+            }, this, function(result) {}, function(is_error) {});
+        },
+
+        onRaise: function() {
+            // Check that this action is possible (see "possibleactions" in states.inc.php)
+            if(!this.checkAction('placeBet')) return;
+
+            var colors = ["white", "blue", "red", "green", "black"];
+            
+            var valuesString = "";
+            colors.forEach(color => {
+                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
+                var stockToken = $("token" + color + "_" + this.player_id);
+                var betToken = $("bettoken" + color + "_" + this.player_id);
+                // Extract number of token from HTML element and build a string to pass to the server
+                valuesString += stockToken.firstElementChild.textContent + ";";
+                valuesString += betToken.firstElementChild.textContent + ";";
+            });
+
+            this.ajaxcall("/texasholdem/texasholdem/raise.html", { 
                 lock: true, 
                 tokens: valuesString
-             }, this, function(result) {}, function(is_error) {});
+            }, this, function(result) {}, function(is_error) {});
         },
 
         onFold: function() {
             // Check that this action is possible (see "possibleactions" in states.inc.php)
             if(!this.checkAction('fold')) return;
 
+            var colors = ["white", "blue", "red", "green", "black"];
+            
+            var valuesString = "";
+            colors.forEach(color => {
+                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
+                var stockToken = $("token" + color + "_" + this.player_id);
+                var betToken = $("bettoken" + color + "_" + this.player_id);
+                // Extract number of token from HTML element and build a string to pass to the server
+                valuesString += stockToken.firstElementChild.textContent + ";";
+                valuesString += betToken.firstElementChild.textContent + ";";
+            });
+
             this.ajaxcall("/texasholdem/texasholdem/fold.html", { 
                 lock: true, 
-                player_id: this.player_id,
+                player_id: this.player_id, 
+                tokens: valuesString
              }, this, function(result) {}, function(is_error) {});
         },
 
@@ -518,7 +621,7 @@ function (dojo, declare) {
                 }
             });
 
-            this.ajaxcall("/texasholdem/texasholdem/placeBet.html", { 
+            this.ajaxcall("/texasholdem/texasholdem/allIn.html", { 
                 lock: true, 
                 tokens: valuesString
             }, this, function(result) {}, function(is_error) {});
@@ -1158,8 +1261,10 @@ function (dojo, declare) {
         notif_betPlaced: function(notif) {
             console.log('notif_betPlaced');
 
+            console.log(notif.args);
+            console.log(notif.args.player_id != this.player_id);
             // Avoid animating again player's own bet
-            if (notif.args.player_id != this.player_id) {
+            if (notif.args.player_id != this.player_id || notif.args.show_all) {
                 var diffStock = notif.args.diff_stock;
                 var playerTable = $("playertablecards_" + notif.args.player_id).parentElement;
 
@@ -1175,6 +1280,7 @@ function (dojo, declare) {
                     
                     // Token goes from player's stock to the betting area
                     if (tokenDiff < 0) {
+                        console.log("Token goes from player's stock to the betting area");
                         for (var i = 0; i > tokenDiff; i--) {
                             currentStock--;
                             currentBet++;
@@ -1227,6 +1333,7 @@ function (dojo, declare) {
                         }
                     // Token goes from player's betting area to the stock
                     } else if (tokenDiff > 0) {
+                        console.log("Token goes from player's betting area to the stock");
                         for (var i = 0; i < tokenDiff; i++) {
                             currentStock++;
                             currentBet--;
