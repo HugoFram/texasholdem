@@ -73,9 +73,86 @@ $stats_type = array(
     // Statistics existing for each player
     "player" => array(
 
-        "turns_number" => array("id"=> 10,
-                    "name" => totranslate("Number of turns"),
-                    "type" => "int" ),
+        "turns_number" => array(
+            "id"=> 10,
+            "name" => totranslate("Number of turns"),
+            "type" => "int"
+        ),
+        "hands_won" => array(
+            "id"=> 11,
+            "name" => totranslate("Number of hands won"),
+            "type" => "int"
+        ),
+        "times_folded" => array(
+            "id"=> 12,
+            "name" => totranslate("Number of times folded"),
+            "type" => "int"
+        ),
+        "checks" => array(
+            "id"=> 13,
+            "name" => totranslate("Number of checks"),
+            "type" => "int"
+        ),
+        "times_called" => array(
+            "id"=> 14,
+            "name" => totranslate("Number of times called"),
+            "type" => "int"
+        ),
+        "times_raised" => array(
+            "id"=> 15,
+            "name" => totranslate("Number of times raised"),
+            "type" => "int"
+        ),
+        "times_all_in" => array(
+            "id"=> 16,
+            "name" => totranslate("Number of time all in"),
+            "type" => "int"
+        ),
+        "high_cards" => array(
+            "id"=> 17,
+            "name" => totranslate("Number of high cards"),
+            "type" => "int"
+        ),
+        "pairs" => array(
+            "id"=> 18,
+            "name" => totranslate("Number of pairs"),
+            "type" => "int"
+        ),
+        "two_pairs" => array(
+            "id"=> 19,
+            "name" => totranslate("Number of two pairs"),
+            "type" => "int"
+        ),
+        "three_of_a_kinds" => array(
+            "id"=> 20,
+            "name" => totranslate("Number of three of a kinds"),
+            "type" => "int"
+        ),
+        "straights" => array(
+            "id"=> 21,
+            "name" => totranslate("Number of straights"),
+            "type" => "int"
+        ),
+        "flushes" => array(
+            "id"=> 22,
+            "name" => totranslate("Number of flushes"),
+            "type" => "int"
+        ),
+        "full_houses" => array(
+            "id"=> 23,
+            "name" => totranslate("Number of full houses"),
+            "type" => "int"
+        ),
+        "four_of_a_kinds" => array(
+            "id"=> 24,
+            "name" => totranslate("Number of four of a kinds"),
+            "type" => "int"
+        ),
+        "straight_flushes" => array(
+            "id"=> 25,
+            "name" => totranslate("Number of straight flushes"),
+            "type" => "int"
+        )
     
 /*
         Examples:    

@@ -115,6 +115,23 @@ class texasholdem extends Table
         //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
+        self::initStat('player', 'turns_number', 1);
+        self::initStat('player', 'hands_won', 0);
+        self::initStat('player', 'times_folded', 0);
+        self::initStat('player', 'checks', 0);
+        self::initStat('player', 'times_called', 0);
+        self::initStat('player', 'times_raised', 0);
+        self::initStat('player', 'times_all_in', 0);
+        self::initStat('player', 'high_cards', 0);
+        self::initStat('player', 'pairs', 0);
+        self::initStat('player', 'two_pairs', 0);
+        self::initStat('player', 'three_of_a_kinds', 0);
+        self::initStat('player', 'straights', 0);
+        self::initStat('player', 'flushes', 0);
+        self::initStat('player', 'full_houses', 0);
+        self::initStat('player', 'four_of_a_kinds', 0);
+        self::initStat('player', 'straight_flushes', 0);
+
         // TODO: setup the initial game situation here
 
         // Set values of state variables
@@ -908,7 +925,7 @@ class texasholdem extends Table
         $diff_stock = $bet_computation["diff_stock"];
 
         if ($current_round_stage == 1) {
-            if (self::getPlayerBefore($player_id) != $small_blind_player || $current_bet_level != 2 * $blind_value) {
+            if ($current_bet_level != 2 * $blind_value) {
                 throw new BgaUserException(_("You cannot check because the current bet is not 0."));
             }
         } else {
@@ -932,6 +949,9 @@ class texasholdem extends Table
         ));
 
         self::incGameStateValue("numBettingPlayers", 1); // An additional player has played for this betting round
+
+        // Increment stats
+        self::incStat(1, "checks", $player_id);
 
         $this->gamestate->nextState('placeBet');
     }
@@ -1022,6 +1042,9 @@ class texasholdem extends Table
             self::incGameStateValue("numBettingPlayers", 1); // An additional player has played for this betting round
         }
 
+        // Increment stats
+        self::incStat(1, "times_called", $player_id);
+
         $this->gamestate->nextState('placeBet');
     }
 
@@ -1081,6 +1104,9 @@ class texasholdem extends Table
             self::incGameStateValue("numBettingPlayers", 1); // An additional player has played for this betting round
         }
 
+        // Increment stats
+        self::incStat(1, "times_raised", $player_id);
+
         $this->gamestate->nextState('placeBet');
     }
 
@@ -1112,6 +1138,9 @@ class texasholdem extends Table
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName()
         ));
+
+        // Increment stats
+        self::incStat(1, "times_folded", $player_id);
 
         $this->gamestate->nextState('fold');
     }
@@ -1171,6 +1200,9 @@ class texasholdem extends Table
         // Increment the number of all in players
         $sql = "UPDATE player SET is_all_in = 1 WHERE player_id = " . $player_id;
         self::DbQuery($sql);
+
+        // Increment stats
+        self::incStat(1, "times_all_in", $player_id);
 
         self::incGameStateValue("numAllInPlayers", 1);
 
@@ -1736,6 +1768,8 @@ class texasholdem extends Table
         $sql = "SELECT card_id id, card_type type, card_type_arg type_arg, card_location location, card_location_arg location_arg FROM card WHERE card_location IN ('flop', 'turn', 'river')";
         $cards_on_table = self::getCollectionFromDb($sql);
 
+        self::incStat(1, "turns_number");
+
         if (count($non_folded_players) > 1) {
             // At least two players still not folded
             $hand_values = array();
@@ -1780,30 +1814,39 @@ class texasholdem extends Table
                 switch($players_best_combo[$player_id]["comboId"]) {
                     case 0:
                         $combo_name = "nothing (Top card: " . $this->values_label[$combo_value + 2] . ")";
+                        self::incStat(1, "high_cards", $player_id);
                         break;
                     case 1:
                         $combo_name = "a pair of " . $this->values_label[$combo_value + 2] . "s";
+                        self::incStat(1, "pairs", $player_id);
                         break;
                     case 2:
                         $combo_name = "two pairs (" . $this->values_label[(int)floor($combo_value / 100) + 2] . " and " . $this->values_label[$combo_value % 100 + 2] . ")";
+                        self::incStat(1, "two_pairs", $player_id);
                         break;
                     case 3:
                         $combo_name = "a three of a kind of " . $this->values_label[$combo_value + 2] . "s";
+                        self::incStat(1, "three_of_a_kinds", $player_id);
                         break;
                     case 4:
                         $combo_name = "a straight (Top card: " . $this->values_label[$combo_value + 2] . ")";
+                        self::incStat(1, "straights", $player_id);
                         break;
                     case 5:
                         $combo_name = "a flush (Top value: " . $this->values_label[$combo_value + 2] . ")";
+                        self::incStat(1, "flushes", $player_id);
                         break;
                     case 6:
                         $combo_name = "a full house (" . $this->values_label[(int)floor($combo_value / 100) + 2] . "s" . " over " . $this->values_label[$combo_value % 100 + 2] . "s" . ")";
+                        self::incStat(1, "full_houses", $player_id);
                         break;
                     case 7:
                         $combo_name = "a four of a kind of " . $this->values_label[$combo_value + 2] . "s";
+                        self::incStat(1, "four_of_a_kinds", $player_id);
                         break;
                     case 8:
                         $combo_name = "a straight flush (Top card: " . $this->values_label[$combo_value + 2] . ")";
+                        self::incStat(1, "straight_flushes", $player_id);
                         break;
                 }
                 $players_best_combo[$player_id]["comboName"] = $combo_name;
@@ -1887,6 +1930,8 @@ class texasholdem extends Table
                         'winner_best_combo' => $players_best_combo[$player_id]
                     ));
 
+                    self::incStat(1, "hands_won", $player_id);
+
                     self::moveTokens("pot", "stock_${player_id}", $split_gain);
                 }
 
@@ -1942,6 +1987,11 @@ class texasholdem extends Table
             if ($player["stock"] == 0 && !$players[$player_id]["player_eliminated"]) {
                 self::eliminatePlayer($player_id);
                 self::incGameStateValue("numEliminatedPlayers", 1);
+            }
+
+            if ($player["stock"] != 0) {
+                // Increment stats
+                self::incStat(1, "turns_number", $player_id);
             }
         }
 
