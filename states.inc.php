@@ -117,7 +117,6 @@ $machinestates = array(
         "description" => "",
         "type" => "game",
         "action" => "stNewBet",
-        "updateGameProgression" => true,   
         "transitions" => array("startRound" => 40, "allAllIn" => 31)
     ),  
 

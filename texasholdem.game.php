@@ -236,8 +236,9 @@ class texasholdem extends Table
     function getGameProgression()
     {
         // TODO: compute and return the game progression
+        $num_players = self::getUniqueValueFromDB("SELECT COUNT(player_id) FROM player");
 
-        return 0;
+        return (int)(self::getGameStateValue("numEliminatedPlayers") / ($num_players - 1) * 100);
     }
 
 
@@ -639,41 +640,6 @@ class texasholdem extends Table
         return $players_tokens_value;
     }
 
-//////////////////////////////////////////////////////////////////////////////
-//////////// Player actions
-//////////// 
-
-    /*
-        Each time a player is doing some game action, one of the methods below is called.
-        (note: each method below must match an input method in texasholdem.action.php)
-    */
-
-    /*
-    
-    Example:
-
-    function playCard( $card_id )
-    {
-        // Check that this is the player's turn and that it is a "possible action" at this game state (see states.inc.php)
-        self::checkAction( 'playCard' ); 
-        
-        $player_id = self::getActivePlayerId();
-        
-        // Add your game logic to play a card there 
-        ...
-        
-        // Notify all players about the card played
-        self::notifyAllPlayers( "cardPlayed", clienttranslate( '${player_name} plays ${card_name}' ), array(
-            'player_id' => $player_id,
-            'player_name' => self::getActivePlayerName(),
-            'card_name' => $card_name,
-            'card_id' => $card_id
-        ) );
-          
-    }
-    
-    */
-
     function computeBet($tokens, $player_id) {
         // Query current player's tokens stock
         $sql = "SELECT player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
@@ -733,6 +699,42 @@ class texasholdem extends Table
             'token_update_sql' => $sql
         );
     }
+
+
+//////////////////////////////////////////////////////////////////////////////
+//////////// Player actions
+//////////// 
+
+    /*
+        Each time a player is doing some game action, one of the methods below is called.
+        (note: each method below must match an input method in texasholdem.action.php)
+    */
+
+    /*
+    
+    Example:
+
+    function playCard( $card_id )
+    {
+        // Check that this is the player's turn and that it is a "possible action" at this game state (see states.inc.php)
+        self::checkAction( 'playCard' ); 
+        
+        $player_id = self::getActivePlayerId();
+        
+        // Add your game logic to play a card there 
+        ...
+        
+        // Notify all players about the card played
+        self::notifyAllPlayers( "cardPlayed", clienttranslate( '${player_name} plays ${card_name}' ), array(
+            'player_id' => $player_id,
+            'player_name' => self::getActivePlayerName(),
+            'card_name' => $card_name,
+            'card_id' => $card_id
+        ) );
+          
+    }
+    
+    */
 
     function placeSmallBlind($tokens) {
         self::checkAction("placeSmallBlind");
@@ -922,11 +924,12 @@ class texasholdem extends Table
 
         $bet_computation = self::computeBet($tokens, $player_id);
         $additional_bet = $bet_computation["additional_bet"];
+        $total_player_bet = $bet_computation["total_player_bet"];
         $diff_stock = $bet_computation["diff_stock"];
 
         if ($current_round_stage == 1) {
-            if ($current_bet_level != 2 * $blind_value) {
-                throw new BgaUserException(_("You cannot check because the current bet is not 0."));
+            if ($current_bet_level != 2 * $blind_value || $total_player_bet != 2 * $blind_value) {
+                throw new BgaUserException(_("You cannot check at this stage."));
             }
         } else {
             if ($current_bet_level != 0) {

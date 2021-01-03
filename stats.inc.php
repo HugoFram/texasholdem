@@ -105,7 +105,7 @@ $stats_type = array(
         ),
         "times_all_in" => array(
             "id"=> 16,
-            "name" => totranslate("Number of time all in"),
+            "name" => totranslate("Number of times all in"),
             "type" => "int"
         ),
         "high_cards" => array(
