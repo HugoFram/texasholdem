@@ -195,7 +195,7 @@
 .bettokens {
     position: absolute;
     left: 0px;
-    top: -60px;
+    top: -65px;
     width: 250px;
     height: 60px;
     margin: 5px 0px 5px 0px;
@@ -512,4 +512,17 @@
 .changemodalfooter {
     display: flex;
     justify-content: space-around;
+}
+
+.dealer-button {
+    position: absolute;
+    height: 50px;
+    width: 50px;
+    background-image: url("img/dealer_button50.png");
+    top: -105px;
+    left: 110px;
+}
+
+.dealer-button-hidden {
+    opacity: 0;
 }

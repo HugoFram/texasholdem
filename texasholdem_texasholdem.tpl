@@ -45,6 +45,7 @@
 <div id = "table">
     <!-- BEGIN player -->
     <div class="playertable whiteblock playertable_{DIR}">
+        <div class = "dealer-button dealer-button-hidden" id = "dealer_button_{PLAYER_ID}"></div>
         <div class = "bettokens" id = "bettingarea_{PLAYER_ID}">
             <div class = "token tokenwhite bettoken" id = "bettokenwhite_{PLAYER_ID}">
                 

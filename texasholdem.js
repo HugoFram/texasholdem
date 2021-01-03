@@ -125,6 +125,10 @@ function (dojo, declare) {
             // Highlight the table of the currently active player
             var playerTable = $("playertablecards_" + gamedatas.activeplayerid).parentElement;
             dojo.addClass(playerTable, "highlighted-border");
+
+            // Place the dealer button
+            var dealerButton = $("dealer_button_" + gamedatas.dealer);
+            dojo.removeClass(dealerButton, "dealer-button-hidden");
             
             // TODO: Set up your game interface here, according to "gamedatas"
 
@@ -1087,6 +1091,7 @@ function (dojo, declare) {
             this.notifqueue.setSynchronous('discardAllCards', 1000);
 
             dojo.subscribe('changeActivePlayer', this, "notif_changeActivePlayer");
+            dojo.subscribe('changeDealer', this, "notif_changeDealer");
         },  
         
         // TODO: from this point and below, you can write your game notifications handling methods
@@ -1911,6 +1916,50 @@ function (dojo, declare) {
 
             dojo.query(".highlighted-border").removeClass("highlighted-border");
             dojo.addClass(playerTable, "highlighted-border");
+        },
+
+        notif_changeDealer: function(notif) {
+            console.log('notif_changeDealer');
+
+            var currentDealerButton = dojo.query(".dealer-button:not(.dealer-button-hidden)")[0];
+            var newDealerButton = $("dealer_button_" + notif.args.dealer_id);
+            var playerTable = currentDealerButton.parentElement;
+
+            // Place the visual of a dealer button on top of its current position
+            dojo.place('<div class="dealer-button" id="slidingbutton"></div>', currentDealerButton.parentElement);
+            // Slide the button from the current dealer to the next one
+                // Identify target and source absolute position in the DOM
+            var sourcePos = dojo.position(currentDealerButton.id);
+            var targetPos = dojo.position(newDealerButton.id);
+                // Compute the value of the left and top properties based on the translation to do
+            var targetTopValue, targetLeftValue;
+            if (dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
+                targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(currentDealerButton.id, "top");
+                targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(currentDealerButton.id, "left");
+            } else if (dojo.hasClass(playerTable, "playertable_W")) {
+                targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(currentDealerButton.id, "top");
+                targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(currentDealerButton.id, "left");
+            } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
+                targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(currentDealerButton.id, "top");
+                targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(currentDealerButton.id, "left");
+            } else if (dojo.hasClass(playerTable, "playertable_E")) {
+                targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(currentDealerButton.id, "top");
+                targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(currentDealerButton.id, "left");
+            }
+
+            var anim = dojo.fx.slideTo({
+                    node: 'slidingbutton',
+                    top: targetTopValue.toString(),
+                    left: targetLeftValue.toString(),
+                    units: "px",
+                    duration: 1000
+            });
+            dojo.connect(anim, 'onEnd', function(node) {
+                dojo.destroy(node);
+                dojo.removeClass(newDealerButton.id, "dealer-button-hidden");
+            });
+            anim.play();
+            dojo.addClass(currentDealerButton.id, "dealer-button-hidden");
         }
    });             
 });
