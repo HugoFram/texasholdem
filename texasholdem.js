@@ -121,6 +121,10 @@ function (dojo, declare) {
                 }
 
             }
+
+            // Highlight the table of the currently active player
+            var playerTable = $("playertablecards_" + gamedatas.activeplayerid).parentElement;
+            dojo.addClass(playerTable, "highlighted-border");
             
             // TODO: Set up your game interface here, according to "gamedatas"
 
@@ -1081,6 +1085,8 @@ function (dojo, declare) {
             dojo.subscribe('updateScores', this, "notif_updateScores");
             dojo.subscribe('discardAllCards', this, "notif_discardAllCards");
             this.notifqueue.setSynchronous('discardAllCards', 1000);
+
+            dojo.subscribe('changeActivePlayer', this, "notif_changeActivePlayer");
         },  
         
         // TODO: from this point and below, you can write your game notifications handling methods
@@ -1896,6 +1902,15 @@ function (dojo, declare) {
             dojo.query(".playertablecards").forEach(node => {
                 dojo.removeClass(node, "flip-card");
             });
+        },
+
+        notif_changeActivePlayer: function(notif) {
+            console.log('notif_changeActivePlayer');
+
+            var playerTable = $("playertablecards_" + notif.args.player_id).parentElement;
+
+            dojo.query(".highlighted-border").removeClass("highlighted-border");
+            dojo.addClass(playerTable, "highlighted-border");
         }
    });             
 });

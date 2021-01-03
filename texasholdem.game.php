@@ -147,6 +147,10 @@ class texasholdem extends Table
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
         self::setGameStateInitialValue("smallBlindPlayer", self::getActivePlayerId());
+        self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is the active player.'), array(
+            'player_name' => self::getActivePlayerName(),
+            'player_id' => self::getActivePlayerId()
+        ));
 
         /************ End of the game initialization *****/
     }
@@ -190,6 +194,9 @@ class texasholdem extends Table
 
         // Token values
         $result['tokenvalues'] = $this->token_values;
+
+        // Current active player
+        $result['activeplayerid'] = self::getActivePlayerId();
 
         return $result;
     }
@@ -1510,6 +1517,10 @@ class texasholdem extends Table
             $player_id = self::getPlayerAfter($player_id);
         }
         $this->gamestate->changeActivePlayer($player_id);
+        self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player.'), array(
+            'player_name' => self::getActivePlayerName(),
+            'player_id' => $player_id
+        ));
         self::giveExtraTime($player_id);
         $this->gamestate->nextState("bigBlind");
     }
@@ -1524,6 +1535,10 @@ class texasholdem extends Table
             $player_id = self::getPlayerAfter($player_id);
         }
         $this->gamestate->changeActivePlayer($player_id);
+        self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player.'), array(
+            'player_name' => self::getActivePlayerName(),
+            'player_id' => $player_id
+        ));
         self::giveExtraTime($player_id);
         $this->gamestate->nextState("startRound");
     }
@@ -1595,6 +1610,10 @@ class texasholdem extends Table
                     $player_id = self::getPlayerAfter($player_id);
                 }
                 $this->gamestate->changeActivePlayer($player_id);
+                self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player.'), array(
+                    'player_name' => self::getActivePlayerName(),
+                    'player_id' => $player_id
+                ));
                 self::giveExtraTime($player_id);
                 $this->gamestate->nextState("nextPlayer");
             }
@@ -1694,6 +1713,10 @@ class texasholdem extends Table
                 }
             }
             $this->gamestate->changeActivePlayer($player_id);
+            self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player.'), array(
+                'player_name' => self::getActivePlayerName(),
+                'player_id' => $player_id
+            ));
             self::giveExtraTime($player_id);
             $this->gamestate->nextState("nextBetRound");
         }
@@ -1952,6 +1975,10 @@ class texasholdem extends Table
             }
             self::setGameStateValue("smallBlindPlayer", $new_small_blind_player);
             $this->gamestate->changeActivePlayer($new_small_blind_player);
+            self::notifyAllPlayers("changeActivePlayer", clienttranslate('The small blind passes to ${player_name}.'), array(
+                'player_name' => self::getActivePlayerName(),
+                'player_id' => $new_small_blind_player
+            ));
             self::giveExtraTime($new_small_blind_player);
             $this->gamestate->nextState("nextHand");
         }
