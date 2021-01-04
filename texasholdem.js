@@ -334,6 +334,45 @@ function (dojo, declare) {
         
         */
 
+        getSlideTopAndLeftProperties: function(playerTable, source, dest) {
+            var sourcePos = dojo.position(source.id);
+            var targetPos = dojo.position(dest.id);
+
+            var screenWidth = window.screen.width;
+            var targetTopValue, targetLeftValue;
+            if (screenWidth < 1400) {
+                if (playerTable == null || dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_W")) {
+                    targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(source.id, "top");
+                    targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "left");
+                } else if (dojo.hasClass(playerTable, "playertable_S")) {
+                    targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "top");
+                    targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "left");
+                } else if (dojo.hasClass(playerTable, "playertable_N")) {
+                    targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(source.id, "top");
+                    targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(source.id, "left");
+                } else if (dojo.hasClass(playerTable, "playertable_E") || dojo.hasClass(playerTable, "playertable_NE") || dojo.hasClass(playerTable, "playertable_SE")) {
+                    targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "top");
+                    targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(source.id, "left");
+                }
+            } else {
+                if (playerTable == null || dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
+                    targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "top");
+                    targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "left");
+                } else if (dojo.hasClass(playerTable, "playertable_W")) {
+                    targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(source.id, "top");
+                    targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "left");
+                } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
+                    targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(source.id, "top");
+                    targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(source.id, "left");
+                } else if (dojo.hasClass(playerTable, "playertable_E")) {
+                    targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "top");
+                    targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(source.id, "left");
+                }
+            }
+
+            return [targetTopValue, targetLeftValue];
+        },
+
 
         ///////////////////////////////////////////////////
         //// Player's action
@@ -1218,24 +1257,7 @@ function (dojo, declare) {
                     // 1) Place the visual of a token on top of the source token pile
                     dojo.place('<div class = "' + slidingTokenClass + '" id = "slidingtoken_' + color + '_' + from + '_' + to + '_' + i + '"></div>', sourceToken.parentElement.id);
                     // 2) Slide the token from the pot to the player's stock
-                        // 2.1) Identify target and source absolute position in the DOM
-                    var sourcePos = dojo.position(sourceToken.id);
-                    var targetPos = dojo.position(destinationToken.id);
-                        // 2.2) Compute the value of the left and top properties based on the translation to do
-                    var targetTopValue, targetLeftValue;
-                    if (playerTable == null || dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
-                        targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(sourceToken.id, "top");
-                        targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(sourceToken.id, "left");
-                    } else if (dojo.hasClass(playerTable, "playertable_W")) {
-                        targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(sourceToken.id, "top");
-                        targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(sourceToken.id, "left");
-                    } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
-                        targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(sourceToken.id, "top");
-                        targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(sourceToken.id, "left");
-                    } else if (dojo.hasClass(playerTable, "playertable_E")) {
-                        targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(sourceToken.id, "top");
-                        targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(sourceToken.id, "left");
-                    }
+                    var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, sourceToken, destinationToken);
 
                     var anim = dojo.fx.slideTo({
                             node: 'slidingtoken_' + color + '_' + from + '_' + to + '_' + i,
@@ -1304,24 +1326,7 @@ function (dojo, declare) {
                             // 2) Place the visual of a token on top of the token stock pile
                             dojo.place('<div class = "token token' + color + ' behind" id = "slidingstocktoken_' + color + '_' + currentStock + '"></div>', "playertabletokens_" + notif.args.player_id);
                             // 3) Slide the token from the stock to the betting area
-                                // 3.1) Identify target and source absolute position in the DOM
-                            var sourcePos = dojo.position(stockToken.id);
-                            var targetPos = dojo.position(betToken.id);
-                                // 3.2) Compute the value of the left and top properties based on the translation to do
-                            var targetTopValue, targetLeftValue;
-                            if (dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
-                                targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(stockToken.id, "top");
-                                targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(stockToken.id, "left");
-                            } else if (dojo.hasClass(playerTable, "playertable_W")) {
-                                targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(stockToken.id, "top");
-                                targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(stockToken.id, "left");
-                            } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
-                                targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(stockToken.id, "top");
-                                targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(stockToken.id, "left");
-                            } else if (dojo.hasClass(playerTable, "playertable_E")) {
-                                targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(stockToken.id, "top");
-                                targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(stockToken.id, "left");
-                            }
+                            var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, stockToken, betToken);
 
                             var anim = dojo.fx.slideTo({
                                     node: 'slidingstocktoken_' + color + '_' + currentStock,
@@ -1357,24 +1362,7 @@ function (dojo, declare) {
                             // 2) Place the visual of a token on top of the token betting area pile
                             dojo.place('<div class = "token token' + color + ' bettoken behind" id = "slidingbettoken_' + color + '_' + currentBet + '"></div>', "bettingarea_" + notif.args.player_id);
                             // 3) Slide the token from the betting area to the stock
-                                // 3.1) Identify target and source absolute position in the DOM
-                            var sourcePos = dojo.position(betToken.id);
-                            var targetPos = dojo.position(stockToken.id);
-                                // 3.2) Compute the value of the left and top properties based on the translation to do
-                            var targetTopValue, targetLeftValue;
-                            if (dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
-                                targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(betToken.id, "top");
-                                targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(betToken.id, "left");
-                            } else if (dojo.hasClass(playerTable, "playertable_W")) {
-                                targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(betToken.id, "top");
-                                targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(betToken.id, "left");
-                            } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
-                                targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(betToken.id, "top");
-                                targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(betToken.id, "left");
-                            } else if (dojo.hasClass(playerTable, "playertable_E")) {
-                                targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(betToken.id, "top");
-                                targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(betToken.id, "left");
-                            }
+                            var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, betToken, stockToken);
                             var anim = dojo.fx.slideTo({
                                     node: 'slidingbettoken_' + color + '_' + currentBet,
                                     top: targetTopValue.toString(),
@@ -1475,24 +1463,7 @@ function (dojo, declare) {
                         // 2) Place the visual of a token on top of the token stock pile
                         dojo.place('<div class = "token token' + color + ' behind" id = "slidingstocktoken_' + color + '_' + currentStock + '"></div>', "playertabletokens_" + notif.args.player_id);
                         // 3) Slide the token from the stock to the change area
-                            // 3.1) Identify target and source absolute position in the DOM
-                        var sourcePos = dojo.position(stockToken.id);
-                        var targetPos = dojo.position(changeToken.id);
-                            // 3.2) Compute the value of the left and top properties based on the translation to do
-                        var targetTopValue, targetLeftValue;
-                        if (dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
-                            targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(stockToken.id, "top");
-                            targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(stockToken.id, "left");
-                        } else if (dojo.hasClass(playerTable, "playertable_W")) {
-                            targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(stockToken.id, "top");
-                            targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(stockToken.id, "left");
-                        } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
-                            targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(stockToken.id, "top");
-                            targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(stockToken.id, "left");
-                        } else if (dojo.hasClass(playerTable, "playertable_E")) {
-                            targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(stockToken.id, "top");
-                            targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(stockToken.id, "left");
-                        }
+                        var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, stockToken, changeToken);
 
                         var anim = dojo.fx.slideTo({
                                 node: 'slidingstocktoken_' + color + '_' + currentStock,
@@ -1567,24 +1538,7 @@ function (dojo, declare) {
                         // 1) Place the visual of a token on top of the token bet pile
                         dojo.place('<div class = "token token' + color + ' bettoken behind" id = "slidingbettoken_' + color + '_' + playerId + '_' + i + '"></div>', "bettingarea_" + playerId);
                         // 2) Slide the token from the betting area to the pot
-                            // 2.1) Identify target and source absolute position in the DOM
-                        var sourcePos = dojo.position(betToken.id);
-                        var targetPos = dojo.position(tableToken.id);
-                            // 2.2) Compute the value of the left and top properties based on the translation to do
-                        var targetTopValue, targetLeftValue;
-                        if (dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
-                            targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(betToken.id, "top");
-                            targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(betToken.id, "left");
-                        } else if (dojo.hasClass(playerTable, "playertable_W")) {
-                            targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(betToken.id, "top");
-                            targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(betToken.id, "left");
-                        } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
-                            targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(betToken.id, "top");
-                            targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(betToken.id, "left");
-                        } else if (dojo.hasClass(playerTable, "playertable_E")) {
-                            targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(betToken.id, "top");
-                            targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(betToken.id, "left");
-                        }
+                        var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, betToken, tableToken);
 
                         var anim = dojo.fx.slideTo({
                                 node: 'slidingbettoken_' + color + '_' + playerId + '_' + i,
@@ -1929,23 +1883,7 @@ function (dojo, declare) {
             dojo.place('<div class="dealer-button" id="slidingbutton"></div>', currentDealerButton.parentElement);
             // Slide the button from the current dealer to the next one
                 // Identify target and source absolute position in the DOM
-            var sourcePos = dojo.position(currentDealerButton.id);
-            var targetPos = dojo.position(newDealerButton.id);
-                // Compute the value of the left and top properties based on the translation to do
-            var targetTopValue, targetLeftValue;
-            if (dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
-                targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(currentDealerButton.id, "top");
-                targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(currentDealerButton.id, "left");
-            } else if (dojo.hasClass(playerTable, "playertable_W")) {
-                targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(currentDealerButton.id, "top");
-                targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(currentDealerButton.id, "left");
-            } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
-                targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(currentDealerButton.id, "top");
-                targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(currentDealerButton.id, "left");
-            } else if (dojo.hasClass(playerTable, "playertable_E")) {
-                targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(currentDealerButton.id, "top");
-                targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(currentDealerButton.id, "left");
-            }
+                var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, currentDealerButton, newDealerButton);
 
             var anim = dojo.fx.slideTo({
                     node: 'slidingbutton',
