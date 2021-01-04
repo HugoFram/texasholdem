@@ -823,8 +823,6 @@ function (dojo, declare) {
         },
 
         onChangeTokenClick: function(type, color) {
-            console.log(color + " token click in the " + type + " area.");
-
             if (type == "stock") {
                 var sourceToken = $('changeyourstock_' + color);
                 var destinationToken =  $('changegiventokens_' + color);
@@ -872,8 +870,6 @@ function (dojo, declare) {
 
         // Define an display up to 3 tokens combination the player can exchange against the tokens he has put in the given area
         updateReceivedTokens: function() {
-            console.log("Updating received tokens");
-
             // Get current number of tokens in the given area
             var givenTokens = $("changegiventokens").children;
 
@@ -1007,7 +1003,6 @@ function (dojo, declare) {
             // Remove duplicated proposition
             if (givenValue > 0) {
                 if (JSON.stringify(lowestValueProposition) === JSON.stringify(mixedProposition)) {
-                    console.log("Lowest value proposition and mixed tokens proposition are the same");
                     var duplicatedSelection = $("proposed_change_receivedtokensmixed");
                     var selectionTokens = duplicatedSelection.children;
                     for (var i = 0; i < selectionTokens.length; i++) {
@@ -1016,7 +1011,6 @@ function (dojo, declare) {
                     }
                 }
                 if (JSON.stringify(lowestValueProposition) === JSON.stringify(highestValueProposition)) {
-                    console.log("Lowest value proposition and highest value proposition are the same");
                     var duplicatedSelection = $("proposed_change_receivedtokenshighest");
                     var selectionTokens = duplicatedSelection.children;
                     for (var i = 0; i < selectionTokens.length; i++) {
@@ -1025,7 +1019,6 @@ function (dojo, declare) {
                     }
                 }
                 if (JSON.stringify(mixedProposition) === JSON.stringify(highestValueProposition)) {
-                    console.log("Mixed tokens proposition and highest value proposition are the same");
                     var duplicatedSelection = $("proposed_change_receivedtokenshighest");
                     var selectionTokens = duplicatedSelection.children;
                     for (var i = 0; i < selectionTokens.length; i++) {
@@ -1209,8 +1202,6 @@ function (dojo, declare) {
         notif_moveTokens: function(notif) {
             console.log('notif_moveTokens');
 
-            console.log(notif.args);
-
             var from = notif.args.from;
             var to = notif.args.to;
             
@@ -1294,8 +1285,6 @@ function (dojo, declare) {
         notif_betPlaced: function(notif) {
             console.log('notif_betPlaced');
 
-            console.log(notif.args);
-            console.log(notif.args.player_id != this.player_id);
             // Avoid animating again player's own bet
             if (notif.args.player_id != this.player_id || notif.args.show_all) {
                 var diffStock = notif.args.diff_stock;
@@ -1429,7 +1418,6 @@ function (dojo, declare) {
 
         notif_makeChange: function(notif) {
             console.log('notif_makeChange');
-            console.log(notif.args);
 
             // Close change modal
             if (notif.args.player_id == this.player_id) {
@@ -1438,8 +1426,6 @@ function (dojo, declare) {
 
             var diffStock = notif.args.diff_stock;
             var playerTable = $("playertablecards_" + notif.args.player_id).parentElement;
-            console.log(diffStock);
-            console.log(playerTable);
 
             Object.keys(diffStock).forEach(color => {
                 var tokenDiff = diffStock[color];
@@ -1827,8 +1813,6 @@ function (dojo, declare) {
 
         notif_updateScores: function(notif) {
             console.log('notif_updateScores');
-
-            console.log(notif);
 
             // Update players' scores
             for (var player_id in notif.args.players_tokens_value) {
