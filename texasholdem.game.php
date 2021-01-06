@@ -1435,6 +1435,7 @@ class texasholdem extends Table
                     } else {
                         $sql .= "player_stock_token_${color} = " . ($current_tokens["player_stock_token_${color}"] - $token_number) . ", ";
                         $diff_stock[$color] = -1 * (int)$token_number;
+                        $current_tokens["player_stock_token_${color}"] -= $token_number;
                         $valueGiven += $token_number * $this->token_values[$color];
                     }
                 }
@@ -1442,7 +1443,8 @@ class texasholdem extends Table
                 if ($token_number > 0) {
                     // Receive token => increment stock
                     $sql .= "player_stock_token_${color} = " . ($current_tokens["player_stock_token_${color}"] + $token_number) . ", ";
-                    $diff_stock[$color] = (int)$token_number;
+                    $diff_stock[$color] += (int)$token_number;
+                    $current_tokens["player_stock_token_${color}"] += $token_number;
                     $valueReceived += $token_number * $this->token_values[$color];
                 }
             }
