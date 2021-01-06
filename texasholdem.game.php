@@ -757,7 +757,7 @@ class texasholdem extends Table
             }
             $destination_name = $players_tokens[$to_player_id]["player_name"] . "'s betting area";
         } else {
-            throw new feException('Unrecognized destination in moveTokens(\$to = ${to},...)');
+            throw new feException("Unrecognized destination in moveTokens(\$to = ${to},...)");
         }
 
         // Convert value to tokens number
@@ -807,7 +807,7 @@ class texasholdem extends Table
                 }
             }
             if (!$change_done) {
-                throw new feException("Remaining value (${remaining_value}) is larger than 0.");
+                throw new feException(_("Remaining value (${remaining_value}) is larger than 0."));
             }
         }
 
@@ -1280,10 +1280,10 @@ class texasholdem extends Table
                 self::setGameStateValue("currentBetLevel", $total_player_bet);
                 self::setGameStateValue("minimumRaise", $raise_amount);
             } else {
-                throw new BgaUserException(_('You need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}.'));
+                throw new BgaUserException(_("You need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
             }
         } else {
-            throw new BgaUserException(_('To raise you need to bet at least ' . ($current_bet_level + $minimum_raise) . '. You currently bet ${total_player_bet}.'));
+            throw new BgaUserException(_("To raise you need to bet at least " . ($current_bet_level + $minimum_raise) . ". You currently bet ${total_player_bet}."));
         }
 
         // Increment the number of all in players if the player bet all his stock
@@ -1376,7 +1376,7 @@ class texasholdem extends Table
                 self::setGameStateValue("currentBetLevel", $total_player_bet);
                 self::setGameStateValue("minimumRaise", $raise_amount);
             } else {
-                throw new BgaUserException(_('You cannot go all in because you need need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}.'));
+                throw new BgaUserException(_("You cannot go all in because you need need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
             }
         } else {
             self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} does not have enough stock to match the bet. She/he is all in with ${all_in_value} added to the bet.'), array(
