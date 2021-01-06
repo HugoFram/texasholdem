@@ -165,7 +165,13 @@ class texasholdem extends Table
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
         self::setGameStateInitialValue("smallBlindPlayer", self::getActivePlayerId());
-        self::setGameStateInitialValue("dealerId", self::getPlayerBefore(self::getActivePlayerId()));
+        if (count($players) <= 2) {
+            // Heads up case (two players left) => dealer is small blind
+            self::setGameStateInitialValue("dealerId", self::getActivePlayerId());
+        } else {
+            self::setGameStateInitialValue("dealerId", self::getPlayerBefore(self::getActivePlayerId()));
+        }
+        
         self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is the active player.'), array(
             'player_name' => self::getActivePlayerName(),
             'player_id' => self::getActivePlayerId()
@@ -2043,38 +2049,58 @@ class texasholdem extends Table
                 'players' => $non_folded_players
             ));
     
-            // Update the small blind player and make him the active player
+            // Update the dealer player and make him the active player
             $players = self::getCollectionFromDb("SELECT player_id, player_name, is_fold, is_all_in, player_eliminated FROM player");
             $old_small_blind_player = self::getGameStateValue("smallBlindPlayer");
-            self::trace("Next dealer is ${old_small_blind_player}");
-            if (!$players[$old_small_blind_player]["player_eliminated"]) {
-                $dealer = $old_small_blind_player;
-            } else {
-                while ($players[$old_small_blind_player]["player_eliminated"]) {
-                    // Skip player if he is eliminated
-                    self::trace("${old_small_blind_player} was eliminated.");
-                    $old_small_blind_player = self::getPlayerAfter($old_small_blind_player);
-                    self::trace("Next dealer is ${old_small_blind_player}");
-                }
-                $dealer = $old_small_blind_player;
-            }
+            if (count($players) - self::getGameStateValue("numEliminatedPlayers") <= 2) {
+                // Heads up case (two players left) => dealer is small blind
 
-            self::setGameStateValue("dealerId", $dealer);
+                // New small blind player is the next non-eliminated player left to the current small blind player
+                $new_small_blind_player = self::getPlayerAfter($old_small_blind_player);
+                self::trace("Next small blind player is ${new_small_blind_player}");
+                while ($players[$new_small_blind_player]["player_eliminated"]) {
+                    // Skip player if he is eliminated
+                    self::trace("${new_small_blind_player} was eliminated.");
+                    $new_small_blind_player = self::getPlayerAfter($new_small_blind_player);
+                    self::trace("Next small blind player is ${new_small_blind_player}");
+                }
+                self::setGameStateValue("smallBlindPlayer", $new_small_blind_player);
+
+                // Dealer is also the small blind player
+                $dealer = $new_small_blind_player;
+                self::setGameStateValue("dealerId", $dealer);
+            } else {
+                self::trace("Next dealer is ${old_small_blind_player}");
+                if (!$players[$old_small_blind_player]["player_eliminated"]) {
+                    $dealer = $old_small_blind_player;
+                } else {
+                    while ($players[$old_small_blind_player]["player_eliminated"]) {
+                        // Skip player if he is eliminated
+                        self::trace("${old_small_blind_player} was eliminated.");
+                        $old_small_blind_player = self::getPlayerAfter($old_small_blind_player);
+                        self::trace("Next dealer is ${old_small_blind_player}");
+                    }
+                    $dealer = $old_small_blind_player;
+                }
+
+                self::setGameStateValue("dealerId", $dealer);
+
+                $new_small_blind_player = self::getPlayerAfter($old_small_blind_player);
+                self::trace("Next small blind player is ${new_small_blind_player}");
+                while ($players[$new_small_blind_player]["player_eliminated"]) {
+                    // Skip player if he is eliminated
+                    self::trace("${new_small_blind_player} was eliminated.");
+                    $new_small_blind_player = self::getPlayerAfter($new_small_blind_player);
+                    self::trace("Next small blind player is ${new_small_blind_player}");
+                }
+                self::setGameStateValue("smallBlindPlayer", $new_small_blind_player);   
+            }
+            
+            $this->gamestate->changeActivePlayer($new_small_blind_player);
             self::notifyAllPlayers("changeDealer", clienttranslate('The dealer becomes ${player_name}.'), array(
                 'player_name' => $players[$dealer]["player_name"],
                 'dealer_id' => $dealer
             ));
-
-            $new_small_blind_player = self::getPlayerAfter($old_small_blind_player);
-            self::trace("Next small blind player is ${new_small_blind_player}");
-            while ($players[$new_small_blind_player]["player_eliminated"]) {
-                // Skip player if he is eliminated
-                self::trace("${new_small_blind_player} was eliminated.");
-                $new_small_blind_player = self::getPlayerAfter($new_small_blind_player);
-                self::trace("Next small blind player is ${new_small_blind_player}");
-            }
-            self::setGameStateValue("smallBlindPlayer", $new_small_blind_player);
-            $this->gamestate->changeActivePlayer($new_small_blind_player);
             self::notifyAllPlayers("changeActivePlayer", clienttranslate('The small blind passes to ${player_name}.'), array(
                 'player_name' => self::getActivePlayerName(),
                 'player_id' => $new_small_blind_player,
