@@ -1359,6 +1359,7 @@ class texasholdem extends Table
         $players_score = self::getCollectionFromDb("SELECT player_id, player_score FROM player");
 
         if ($total_player_bet > $current_bet_level) {
+            // All in to raise the bet
             $raise_amount = $total_player_bet - $current_bet_level;
 
             // Check that the player raises by a sufficient amount
@@ -1378,7 +1379,18 @@ class texasholdem extends Table
             } else {
                 throw new BgaUserException(_("You cannot go all in because you need need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
             }
+        } else if ($total_player_bet == $current_bet_level) {
+            // All in to call (sufficient stock)
+            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} is all in with ${all_in_value} added to the bet.'), array(
+                'player_id' => $player_id,
+                'player_name' => $player_name,
+                'additional_bet' => $additional_bet,
+                'diff_stock' => $diff_stock,
+                'all_in_value' => $additional_bet,
+                'show_all' => FALSE
+            ));
         } else {
+            // Forced all in (unsufficient stock)
             self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} does not have enough stock to match the bet. She/he is all in with ${all_in_value} added to the bet.'), array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
