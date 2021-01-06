@@ -570,7 +570,7 @@ class texasholdem extends Table
             }
         } else {
             // Wtf? it shouldn't reach this code chunk
-            throw new BgaUserException("Unrecognized combo");
+            throw new BgaUserException(_("Unrecognized combo"));
         }
 
         usort($best_combo_hand, function($card_a, $card_b) {
@@ -698,6 +698,195 @@ class texasholdem extends Table
             'player_score' => $current_tokens["player_score"],
             'token_update_sql' => $sql
         );
+    }
+
+    function moveTokens($from, $to, $value) {
+        // Get current state of pot and players token
+        $sql = "SELECT player_id, player_name, player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
+            player_stock_token_green, player_stock_token_black, player_bet_token_white, player_bet_token_blue, 
+            player_bet_token_red, player_bet_token_green, player_bet_token_black FROM player";
+        $players_tokens = self::getCollectionFromDb($sql);
+        $players_tokens_value = self::getPlayersTokens();
+
+        $colors = ["white", "blue", "red", "green", "black"];
+
+        // Gather information on the source ("from")
+        $from_tokens = array();
+        if ($from == "pot") {
+            $from_player_id = NULL;
+            $sql = "SELECT token_color, token_number FROM token";
+            $pot_tokens = self::getCollectionFromDb($sql);
+            foreach ($colors as $color) {
+                $from_tokens[$color] = $pot_tokens[$color]["token_number"];
+            }
+            $source_name = "the pot";
+        } else if (strpos($from, "stock") !== false) {
+            $from_player_id = str_replace("stock_", "", $from);
+            foreach ($colors as $color) {
+                $from_tokens[$color] = $players_tokens[$from_player_id]["player_stock_token_${color}"];
+            }
+            $source_name = $players_tokens[$from_player_id]["player_name"] . "'s stock";
+        } else if (strpos($from, "bet") !== false) {
+            $from_player_id = str_replace("bet_", "", $from);
+            foreach ($colors as $color) {
+                $from_tokens[$color] = $players_tokens[$from_player_id]["player_bet_token_${color}"];
+            }
+            $source_name = $players_tokens[$from_player_id]["player_name"] . "'s betting area";
+        } else {
+            throw new feException("Unrecognized source in moveTokens(\$from = ${from},...)");
+        }
+
+        // Gather information on the destination ("to")
+        if ($to == "pot") {
+            $to_player_id = NULL;
+            $sql = "SELECT token_color, token_number FROM token";
+            $to_tokens = self::getCollectionFromDb($sql);
+            $destination_name = "the pot";
+        } else if (strpos($to, "stock") !== false) {
+            $to_player_id = str_replace("stock_", "", $to);
+            $to_tokens = array();
+            foreach ($colors as $color) {
+                $to_tokens[$color] = $players_tokens[$to_player_id]["player_stock_token_${color}"];
+            }
+            $destination_name = $players_tokens[$to_player_id]["player_name"] . "'s stock";
+        } else if (strpos($to, "bet") !== false) {
+            $to_player_id = str_replace("bet_", "", $to);
+            $to_tokens = array();
+            foreach ($colors as $color) {
+                $to_tokens[$color] = $players_tokens[$to_player_id]["player_bet_token_${color}"];
+            }
+            $destination_name = $players_tokens[$to_player_id]["player_name"] . "'s betting area";
+        } else {
+            throw new feException('Unrecognized destination in moveTokens(\$to = ${to},...)');
+        }
+
+        // Convert value to tokens number
+        $token_diff = array(
+            "white" => 0,
+            "blue" => 0,
+            "red" => 0,
+            "green" => 0,
+            "black" => 0
+        );
+
+        $remaining_value = $value;
+        $token_added = TRUE;
+        while ($remaining_value > 0 && $token_added) {
+            $token_added = FALSE;
+            foreach (array_reverse($colors) as $color) {
+                if ($remaining_value >= $this->token_values[$color] && $token_diff[$color] < $from_tokens[$color]) {
+                    self::trace("Remaining value: ${remaining_value}, " . ($from_tokens[$color] - $token_diff[$color]) . " ${color} tokens remaining in source. Moving " . $token_diff[$color] . " from ${from} to ${to}");
+                    $token_diff[$color]++;
+                    $remaining_value -= $this->token_values[$color];
+                    $token_added = TRUE;
+                }
+            }
+        }
+
+        if ($remaining_value > 0) {
+            // Try to make change in the source tokens
+            $change_done = FALSE;
+            foreach ($colors as $color_id => $color) {
+                if ($from_tokens[$color] - $token_diff[$color] > 0 && $remaining_value < $this->token_values[$color]) {
+                    // Exchange a token from source with the corresponding value in tokens of the lowest value
+                    $from_tokens[$color]--;
+                    $num_small_tokens = (int)floor($this->token_values[$color] / $this->token_values[$colors[0]]);
+                    self::notifyAllPlayers("changeRequired", clienttranslate('The current tokens in ${from} cannot make ${value}. A ${color} token is exchanged against ${num_small_tokens} ${small_color} tokens.'), array(
+                        'i18n' => array('from', 'color', 'small_color'),
+                        'from' => $from,
+                        'value' => $value,
+                        'color' => $color,
+                        'small_color' => $colors[0],
+                        'num_small_tokens' => (int)floor($remaining_value / $this->token_values[$colors[0]]),
+                    ));
+                    $from_tokens[$colors[0]] += $num_small_tokens;
+                    $token_diff[$colors[0]] += (int)floor($remaining_value / $this->token_values[$colors[0]]);
+                    $remaining_value -= (int)floor($remaining_value / $this->token_values[$colors[0]]) * $this->token_values[$colors[0]];
+                    $change_done = TRUE;
+                    break;
+                }
+            }
+            if (!$change_done) {
+                throw new feException("Remaining value (${remaining_value}) is larger than 0.");
+            }
+        }
+
+        // Update source tokens
+        if ($from == "pot") {
+            foreach ($colors as $color) {
+                $sql_from = "UPDATE token SET token_number = " . ($from_tokens[$color] - $token_diff[$color]) . " WHERE token_color = '${color}'";
+                self::DbQuery($sql_from);
+                $from_tokens[$color] -= $token_diff[$color];
+            }
+        } else if (strpos($from, "stock") !== false) {
+            $sql_from = "UPDATE player SET";
+            foreach ($colors as $id => $color) {
+                $sql_from .= " player_stock_token_${color} = " . ($from_tokens[$color] - $token_diff[$color]);
+                $from_tokens[$color] -= $token_diff[$color];
+                if ($id < (count($colors) - 1)) {
+                    $sql_from .= ",";
+                }
+            }
+            $sql_from .= " WHERE player_id = ${from_player_id}";
+            self::DbQuery($sql_from);
+        } else if (strpos($from, "bet") !== false) {
+            $sql_from = "UPDATE player SET";
+            foreach ($colors as $id => $color) {
+                $sql_from .= " player_bet_token_${color} = " . ($from_tokens[$color] - $token_diff[$color]);
+                $from_tokens[$color] -= $token_diff[$color];
+                if ($id < (count($colors) - 1)) {
+                    $sql_from .= ",";
+                }
+            }
+            $sql_from .= " WHERE player_id = ${from_player_id}";
+            self::DbQuery($sql_from);
+        }
+
+        // Update destination tokens
+        if ($to == "pot") {
+            foreach ($colors as $color) {
+                $sql_to = "UPDATE token SET token_number = " . ($to_tokens[$color] + $token_diff[$color]) . " WHERE token_color = '${color}'";
+                self::DbQuery($sql_to);
+                $to_tokens[$color] += $token_diff[$color];
+            }
+        } else if (strpos($to, "stock") !== false) {
+            $sql_to = "UPDATE player SET";
+            foreach ($colors as $id => $color) {
+                $sql_to .= " player_stock_token_${color} = " . ($to_tokens[$color] + $token_diff[$color]);
+                $to_tokens[$color] += $token_diff[$color];
+                if ($id < (count($colors) - 1)) {
+                    $sql_to .= ",";
+                }
+            }
+            $sql_to .= " WHERE player_id = ${to_player_id}";
+            self::DbQuery($sql_to);
+        } else if (strpos($to, "bet") !== false) {
+            $sql_to = "UPDATE player SET";
+            foreach ($colors as $id => $color) {
+                $sql_to .= " player_bet_token_${color} = " . ($to_tokens[$color] + $token_diff[$color]);
+                $to_tokens[$color] += $token_diff[$color];
+                if ($id < (count($colors) - 1)) {
+                    $sql_to .= ",";
+                }
+            }
+            $sql_to .= " WHERE player_id = ${to_player_id}";
+            self::DbQuery($sql_to);
+        }
+
+        // Notify the client to move the tokens
+        if ($value > 0) {
+            self::notifyAllPlayers("moveTokens", clienttranslate('${value} is moved from ${source_name} to ${destination_name}'), array(
+                'i18n' => array('source_name', 'destination_name'),
+                'value' => $value,
+                'source_name' => $source_name,
+                'destination_name' => $destination_name,
+                'from' => $from,
+                'to' => $to,
+                'from_tokens' => $from_tokens,
+                'to_tokens' => $to_tokens,
+                'token_diff' => $token_diff
+            ));
+        }
     }
 
 
@@ -1091,10 +1280,10 @@ class texasholdem extends Table
                 self::setGameStateValue("currentBetLevel", $total_player_bet);
                 self::setGameStateValue("minimumRaise", $raise_amount);
             } else {
-                throw new BgaUserException(_("You need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
+                throw new BgaUserException(_('You need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}.'));
             }
         } else {
-            throw new BgaUserException(_("To raise you need to bet at least " . ($current_bet_level + $minimum_raise) . ". You currently bet ${total_player_bet}."));
+            throw new BgaUserException(_('To raise you need to bet at least ' . ($current_bet_level + $minimum_raise) . '. You currently bet ${total_player_bet}.'));
         }
 
         // Increment the number of all in players if the player bet all his stock
@@ -1187,7 +1376,7 @@ class texasholdem extends Table
                 self::setGameStateValue("currentBetLevel", $total_player_bet);
                 self::setGameStateValue("minimumRaise", $raise_amount);
             } else {
-                throw new BgaUserException(_("You cannot go all in because you need need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
+                throw new BgaUserException(_('You cannot go all in because you need need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}.'));
             }
         } else {
             self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} does not have enough stock to match the bet. She/he is all in with ${all_in_value} added to the bet.'), array(
@@ -1271,193 +1460,6 @@ class texasholdem extends Table
                 'player_name' => $player_name,
                 'player_id' => $player_id,
                 'diff_stock' => $diff_stock
-            ));
-        }
-    }
-
-    function moveTokens($from, $to, $value) {
-        // Get current state of pot and players token
-        $sql = "SELECT player_id, player_name, player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
-            player_stock_token_green, player_stock_token_black, player_bet_token_white, player_bet_token_blue, 
-            player_bet_token_red, player_bet_token_green, player_bet_token_black FROM player";
-        $players_tokens = self::getCollectionFromDb($sql);
-        $players_tokens_value = self::getPlayersTokens();
-
-        $colors = ["white", "blue", "red", "green", "black"];
-
-        // Gather information on the source ("from")
-        $from_tokens = array();
-        if ($from == "pot") {
-            $from_player_id = NULL;
-            $sql = "SELECT token_color, token_number FROM token";
-            $pot_tokens = self::getCollectionFromDb($sql);
-            foreach ($colors as $color) {
-                $from_tokens[$color] = $pot_tokens[$color]["token_number"];
-            }
-            $source_name = "the pot";
-        } else if (strpos($from, "stock") !== false) {
-            $from_player_id = str_replace("stock_", "", $from);
-            foreach ($colors as $color) {
-                $from_tokens[$color] = $players_tokens[$from_player_id]["player_stock_token_${color}"];
-            }
-            $source_name = $players_tokens[$from_player_id]["player_name"] . "'s stock";
-        } else if (strpos($from, "bet") !== false) {
-            $from_player_id = str_replace("bet_", "", $from);
-            foreach ($colors as $color) {
-                $from_tokens[$color] = $players_tokens[$from_player_id]["player_bet_token_${color}"];
-            }
-            $source_name = $players_tokens[$from_player_id]["player_name"] . "'s betting area";
-        } else {
-            throw new feException("Unrecognized source in moveTokens(\$from = ${from},...)");
-        }
-
-        // Gather information on the destination ("to")
-        if ($to == "pot") {
-            $to_player_id = NULL;
-            $sql = "SELECT token_color, token_number FROM token";
-            $to_tokens = self::getCollectionFromDb($sql);
-            $destination_name = "the pot";
-        } else if (strpos($to, "stock") !== false) {
-            $to_player_id = str_replace("stock_", "", $to);
-            $to_tokens = array();
-            foreach ($colors as $color) {
-                $to_tokens[$color] = $players_tokens[$to_player_id]["player_stock_token_${color}"];
-            }
-            $destination_name = $players_tokens[$to_player_id]["player_name"] . "'s stock";
-        } else if (strpos($to, "bet") !== false) {
-            $to_player_id = str_replace("bet_", "", $to);
-            $to_tokens = array();
-            foreach ($colors as $color) {
-                $to_tokens[$color] = $players_tokens[$to_player_id]["player_bet_token_${color}"];
-            }
-            $destination_name = $players_tokens[$to_player_id]["player_name"] . "'s betting area";
-        } else {
-            throw new feException("Unrecognized destination in moveTokens(\$to = ${to},...)");
-        }
-
-        // Convert value to tokens number
-        $token_diff = array(
-            "white" => 0,
-            "blue" => 0,
-            "red" => 0,
-            "green" => 0,
-            "black" => 0
-        );
-
-        $remaining_value = $value;
-        $token_added = TRUE;
-        while ($remaining_value > 0 && $token_added) {
-            $token_added = FALSE;
-            foreach (array_reverse($colors) as $color) {
-                if ($remaining_value >= $this->token_values[$color] && $token_diff[$color] < $from_tokens[$color]) {
-                    self::trace("Remaining value: ${remaining_value}, " . ($from_tokens[$color] - $token_diff[$color]) . " ${color} tokens remaining in source. Moving " . $token_diff[$color] . " from ${from} to ${to}");
-                    $token_diff[$color]++;
-                    $remaining_value -= $this->token_values[$color];
-                    $token_added = TRUE;
-                }
-            }
-        }
-
-        if ($remaining_value > 0) {
-            // Try to make change in the source tokens
-            $change_done = FALSE;
-            foreach ($colors as $color_id => $color) {
-                if ($from_tokens[$color] - $token_diff[$color] > 0 && $remaining_value < $this->token_values[$color]) {
-                    // Exchange a token from source with the corresponding value in tokens of the lowest value
-                    $from_tokens[$color]--;
-                    $num_small_tokens = (int)floor($this->token_values[$color] / $this->token_values[$colors[0]]);
-                    self::notifyAllPlayers("changeRequired", clienttranslate('The current tokens in ${from} cannot make ${value}. A ${color} token is exchanged against ${num_small_tokens} ${small_color} tokens.'), array(
-                        'from' => $from,
-                        'value' => $value,
-                        'color' => $color,
-                        'small_color' => $colors[0],
-                        'num_small_tokens' => (int)floor($remaining_value / $this->token_values[$colors[0]]),
-                    ));
-                    $from_tokens[$colors[0]] += $num_small_tokens;
-                    $token_diff[$colors[0]] += (int)floor($remaining_value / $this->token_values[$colors[0]]);
-                    $remaining_value -= (int)floor($remaining_value / $this->token_values[$colors[0]]) * $this->token_values[$colors[0]];
-                    $change_done = TRUE;
-                    break;
-                }
-            }
-            if (!$change_done) {
-                throw new feException("Remaining value (${remaining_value}) is larger than 0.");
-            }
-        }
-
-        // Update source tokens
-        if ($from == "pot") {
-            foreach ($colors as $color) {
-                $sql_from = "UPDATE token SET token_number = " . ($from_tokens[$color] - $token_diff[$color]) . " WHERE token_color = '${color}'";
-                self::DbQuery($sql_from);
-                $from_tokens[$color] -= $token_diff[$color];
-            }
-        } else if (strpos($from, "stock") !== false) {
-            $sql_from = "UPDATE player SET";
-            foreach ($colors as $id => $color) {
-                $sql_from .= " player_stock_token_${color} = " . ($from_tokens[$color] - $token_diff[$color]);
-                $from_tokens[$color] -= $token_diff[$color];
-                if ($id < (count($colors) - 1)) {
-                    $sql_from .= ",";
-                }
-            }
-            $sql_from .= " WHERE player_id = ${from_player_id}";
-            self::DbQuery($sql_from);
-        } else if (strpos($from, "bet") !== false) {
-            $sql_from = "UPDATE player SET";
-            foreach ($colors as $id => $color) {
-                $sql_from .= " player_bet_token_${color} = " . ($from_tokens[$color] - $token_diff[$color]);
-                $from_tokens[$color] -= $token_diff[$color];
-                if ($id < (count($colors) - 1)) {
-                    $sql_from .= ",";
-                }
-            }
-            $sql_from .= " WHERE player_id = ${from_player_id}";
-            self::DbQuery($sql_from);
-        }
-
-        // Update destination tokens
-        if ($to == "pot") {
-            foreach ($colors as $color) {
-                $sql_to = "UPDATE token SET token_number = " . ($to_tokens[$color] + $token_diff[$color]) . " WHERE token_color = '${color}'";
-                self::DbQuery($sql_to);
-                $to_tokens[$color] += $token_diff[$color];
-            }
-        } else if (strpos($to, "stock") !== false) {
-            $sql_to = "UPDATE player SET";
-            foreach ($colors as $id => $color) {
-                $sql_to .= " player_stock_token_${color} = " . ($to_tokens[$color] + $token_diff[$color]);
-                $to_tokens[$color] += $token_diff[$color];
-                if ($id < (count($colors) - 1)) {
-                    $sql_to .= ",";
-                }
-            }
-            $sql_to .= " WHERE player_id = ${to_player_id}";
-            self::DbQuery($sql_to);
-        } else if (strpos($to, "bet") !== false) {
-            $sql_to = "UPDATE player SET";
-            foreach ($colors as $id => $color) {
-                $sql_to .= " player_bet_token_${color} = " . ($to_tokens[$color] + $token_diff[$color]);
-                $to_tokens[$color] += $token_diff[$color];
-                if ($id < (count($colors) - 1)) {
-                    $sql_to .= ",";
-                }
-            }
-            $sql_to .= " WHERE player_id = ${to_player_id}";
-            self::DbQuery($sql_to);
-        }
-
-        // Notify the client to move the tokens
-        if ($value > 0) {
-            self::notifyAllPlayers("moveTokens", clienttranslate('${value} is moved from ${source_name} to ${destination_name}'), array(
-                'value' => $value,
-                'source_name' => $source_name,
-                'destination_name' => $destination_name,
-                'from' => $from,
-                'to' => $to,
-                'from_tokens' => $from_tokens,
-                'to_tokens' => $to_tokens,
-                'token_diff' => $token_diff
             ));
         }
     }
@@ -1740,6 +1742,7 @@ class texasholdem extends Table
             }
             self::setGameStateValue("roundStage", $round_stage);
             self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed'), array(
+                'i18n' => array('revealed_card'),
                 'revealed_card' => $revealed_card,
                 'cards' => $new_cards
             ));
@@ -1854,6 +1857,7 @@ class texasholdem extends Table
                 }
                 $players_best_combo[$player_id]["comboName"] = $combo_name;
                 self::notifyAllPlayers("announceCombo", clienttranslate('${player_name} has ${combo_name}'), array(
+                    'i18n' => array('combo_name'),
                     'player_name' => $player["player_name"],
                     'combo_name' => $combo_name,
                     'player_id' => $player_id,
@@ -1912,12 +1916,13 @@ class texasholdem extends Table
                     if ($i < count($same_rank_players) - 2) {
                         $split_player_names .= ", ";
                     } else if ($i == count($same_rank_players) - 2) {
-                        $split_player_names .= " and ";
+                        $split_player_names .= clienttranslate(" and ");
                     }
                     $i++;
                 }
 
                 self::notifyAllPlayers("splitPot", clienttranslate('${split_player_names} have exactly the same winning hand. They share the ${pot_name} and get ${split_gain} each.'), array(
+                    'i18n' => array('pot_name'),
                     'split_player_names' => $split_player_names,
                     'pot_name' => $pot_name,
                     'split_gain' => $split_gain
@@ -1925,6 +1930,7 @@ class texasholdem extends Table
 
                 foreach ($same_rank_players as $player_id => $player) {
                     self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} share the ${pot_name} with ${combo_name}.'), array(
+                        'i18n' => array('pot_name', 'combo_name'),
                         'winner_name' => $players[$player_id]["player_name"],
                         'pot_name' => $pot_name,
                         'combo_name' => $players_best_combo[$player_id]["comboName"],
@@ -1947,6 +1953,7 @@ class texasholdem extends Table
                     }
 
                     self::notifyAllPlayers("splitPot", clienttranslate('The ${pot_name} cannot be split evenly. ${earliest_player_name} gets the remaining ${gain_remainder} as he is in the earliest position.'), array(
+                        'i18n' => array('pot_name'),
                         'pot_name' => $pot_name,
                         'earliest_player_name' => $players[$earliest_player_id]["player_name"],
                         'gain_remainder' => $gain_remainder
@@ -1964,6 +1971,7 @@ class texasholdem extends Table
                 } else {
                     // The winner is the player with the best combo
                     self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} wins the ${pot_name} with ${combo_name}.'), array(
+                        'i18n' => array('pot_name', 'combo_name'),
                         'winner_name' => $players[$winner_id]["player_name"],
                         'pot_name' => $pot_name,
                         'combo_name' => $players_best_combo[$winner_id]["comboName"],

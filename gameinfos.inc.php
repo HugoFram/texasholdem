@@ -13,13 +13,13 @@
 $gameinfos = array( 
 
 // Name of the game in English (will serve as the basis for translation) 
-'game_name' => "Poker Texas Holdem",
+'game_name' => "Poker Texas Hold'em",
 
 // Game designer (or game designers, separated by commas)
-'designer' => 'Hugo Frammery, Mickael Avanthay',       
+'designer' => '',       
 
 // Game artist (or game artists, separated by commas)
-'artist' => 'Hugo Frammery',         
+'artist' => '',         
 
 // Year of FIRST publication of this game. Can be negative.
 'year' => 1810,                 
@@ -143,7 +143,7 @@ $gameinfos = array(
 //  http://en.doc.boardgamearena.com/Game_meta-information:_gameinfos.inc.php
 //  IMPORTANT: this list should be ORDERED, with the most important tag first.
 //  IMPORTANT: it is mandatory that the FIRST tag is 1, 2, 3 and 4 (= game category)
-'tags' => array( 2 ),
+'tags' => array( 1, 12, 23, 200, 205 ),
 
 
 //////// BGA SANDBOX ONLY PARAMETERS (DO NOT MODIFY)
