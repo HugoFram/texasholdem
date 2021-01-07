@@ -1899,8 +1899,6 @@ class texasholdem extends Table
         $total_pot = array_reduce($players_bet, function($sum, $player_bet) {return $sum += $player_bet;});
         // Deal with cases where there may be secondary pots
         while ($total_pot > 0) {
-            $winner_bet = $players_bet[$winner_id];
-            $winner_gain = 0;
 
             if ($winner_order == 0) {
                 $pot_name = "primary pot";
@@ -1910,25 +1908,17 @@ class texasholdem extends Table
                 $pot_name = "next side pot";
             }
 
-            if ($winner_bet < max($players_bet)) {
-                // The winner cannot get the whole pot
-                foreach ($players_bet as $player_id => $player_bet) {
-                    $winner_gain += min($player_bet, $winner_bet);
-                    $players_bet[$player_id] -= min($player_bet, $winner_bet);
-                }
-                $total_pot -= $winner_gain;
-            } else {
-                // The winner can get the whole pot
-                $winner_gain = $total_pot;
-                array_fill_keys(array_keys($players_bet), 0);
-                $total_pot = 0;
-            }
-
             // Deal with split pot cases
-            $same_rank_players = array_filter($players_rank, function($player_rank) use($players_rank, $winner_id) {return $player_rank == $players_rank[$winner_id];});
+            // Get players with the same hand value as the winner
+            $same_rank_players = array();
+            foreach($players_rank as $player_id => $player_rank) {
+                if ($players_bet[$player_id] > 0 && $player_rank == $players_rank[$winner_id]) {
+                    // Exclude players who have zero bet left (possible in case of secondary pot)
+                    $same_rank_players[$player_id] = $player_rank;
+                }
+            }
             if (count($same_rank_players) > 1) {
-                $split_gain = (int)floor($winner_gain / count($same_rank_players));
-
+                // Create string with winner names concatenated
                 $split_player_names = "";
                 $i = 0;
                 foreach ($same_rank_players as $player_id => $player) {
@@ -1941,31 +1931,46 @@ class texasholdem extends Table
                     $i++;
                 }
 
-                self::notifyAllPlayers("splitPot", clienttranslate('${split_player_names} have exactly the same winning hand. They share the ${pot_name} and get ${split_gain} each.'), array(
+                self::notifyAllPlayers("splitPot", clienttranslate('${split_player_names} have exactly the same winning hand. They share the ${pot_name}.'), array(
                     'i18n' => array('pot_name'),
                     'split_player_names' => $split_player_names,
                     'pot_name' => $pot_name,
-                    'split_gain' => $split_gain
                 ));
 
-                foreach ($same_rank_players as $player_id => $player) {
-                    self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} share the ${pot_name} with ${combo_name}.'), array(
+                // Calculate the share of each winner
+                $gain_remainder = 0;
+                foreach ($same_rank_players as $winner_id => $player) {
+                    // Deal with side pots => the winner keeps his bet + get up to his from each other players with a lower hand than him
+                    $winner_bet = $players_bet[$winner_id];
+                    $winner_gain = $winner_bet;
+                    foreach ($players_bet as $player_id => $player_bet) {
+                        if (!array_key_exists($player_id, $same_rank_players)) {
+                            $winner_gain += (int)floor(min($player_bet, $winner_bet) / count($same_rank_players));
+                            // When a 'loser''s bet cannot be divided evenly
+                            $gain_remainder += min($player_bet, $winner_bet) / count($same_rank_players) - floor(min($player_bet, $winner_bet) / count($same_rank_players));
+                            $players_bet[$player_id] -= (int)floor(min($player_bet, $winner_bet) / count($same_rank_players));
+                        }
+                    }
+                    $total_pot -= $winner_gain;
+
+                    self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} shares the ${pot_name} with ${combo_name} and gets ${winner_gain}.'), array(
                         'i18n' => array('pot_name', 'combo_name'),
-                        'winner_name' => $players[$player_id]["player_name"],
+                        'winner_name' => $players[$winner_id]["player_name"],
                         'pot_name' => $pot_name,
-                        'combo_name' => $players_best_combo[$player_id]["comboName"],
-                        'winner_id' => $player_id,
-                        'winner_color' => $players[$player_id]["player_color"],
-                        'winner_best_combo' => $players_best_combo[$player_id]
+                        'combo_name' => $players_best_combo[$winner_id]["comboName"],
+                        'winner_gain' => $winner_gain,
+                        'winner_id' => $winner_id,
+                        'winner_color' => $players[$winner_id]["player_color"],
+                        'winner_best_combo' => $players_best_combo[$winner_id]
                     ));
 
-                    self::incStat(1, "hands_won", $player_id);
+                    self::incStat(1, "hands_won", $winner_id);
 
-                    self::moveTokens("pot", "stock_${player_id}", $split_gain);
+                    self::moveTokens("pot", "stock_${winner_id}", $winner_gain);
                 }
 
                 // If the pot cannot be evenly split, the remainder goes to the player in the earliest position from the Dealer
-                $gain_remainder = $winner_gain - $split_gain * count($same_rank_players);
+                $gain_remainder = (int)$gain_remainder;
                 if ($gain_remainder > 0) {
                     $earliest_player_id = self::getGameStateValue("smallBlindPlayer");
                     while (!array_key_exists($earliest_player_id, $same_rank_players)) {
@@ -1980,6 +1985,7 @@ class texasholdem extends Table
                     ));
 
                     self::moveTokens("pot", "stock_${earliest_player_id}", $gain_remainder);
+                    $total_pot -= $gain_remainder;
                 }
             } else {
                 // Announce winner
@@ -1999,6 +2005,22 @@ class texasholdem extends Table
                         'winner_color' => $players[$winner_id]["player_color"],
                         'winner_best_combo' => $players_best_combo[$winner_id]
                     ));
+                }
+
+                // Deal with side pots
+                $winner_bet = $players_bet[$winner_id];
+                $winner_gain = 0;
+                if ($winner_bet < max($players_bet)) {
+                    // The winner cannot get the whole pot
+                    foreach ($players_bet as $player_id => $player_bet) {
+                        $winner_gain += min($player_bet, $winner_bet);
+                        $players_bet[$player_id] -= min($player_bet, $winner_bet);
+                    }
+                    $total_pot -= $winner_gain;
+                } else {
+                    // The winner can get the whole pot
+                    $winner_gain = $total_pot;
+                    $total_pot = 0;
                 }
 
                 self::moveTokens("pot", "stock_${winner_id}", $winner_gain);
