@@ -1094,6 +1094,8 @@ function (dojo, declare) {
 
             dojo.subscribe('moveTokens', this, "notif_moveTokens");
             this.notifqueue.setSynchronous('moveTokens', 2000);
+            dojo.subscribe('changeRequired', this, "notif_changeRequired");
+            this.notifqueue.setSynchronous('changeRequired', 2000);
 
             dojo.subscribe('betPlaced', this, "notif_betPlaced");
             this.notifqueue.setSynchronous('betPlaced', 2000);
@@ -1280,6 +1282,96 @@ function (dojo, declare) {
                     anim.play();
                 }
             });
+        },
+
+        notif_changeRequired: function(notif) {
+            console.log('notif_changeRequired');
+
+            var bigColor = notif.args.color; // Color of high value token
+            var smallColor = notif.args.small_color; // Color of low value token
+            var numSmallTokens = notif.args.num_small_tokens;
+            var from = notif.args.from;
+
+            // Retrieve HTML elements corresponding to tokens in the source
+            if (from == "pot") {
+                sourceGivenToken = $("token" + bigColor + "_table");
+                sourceReceivedToken = $("token" + smallColor + "_table");
+                playerTable = null;
+                slidingTokenClass = "token token" + bigColor + " behind";
+            } else if (from.includes("stock")) {
+                fromPlayerId = from.replace("stock_", "");
+                sourceGivenToken = $("token" + bigColor + "_" + fromPlayerId);
+                sourceReceivedToken = $("token" + smallColor + "_" + fromPlayerId);
+                playerTable = $("playertablecards_" + fromPlayerId).parentElement;
+                slidingTokenClass = "token token" + bigColor + " behind";
+            } else if (from.includes("bet")) {
+                fromPlayerId = from.replace("bet_", "");
+                sourceGivenToken = $("bettoken" + bigColor + "_" + fromPlayerId);
+                sourceReceivedToken = $("bettoken" + smallColor + "_" + fromPlayerId);
+                playerTable = $("playertablecards_" + fromPlayerId).parentElement;
+                slidingTokenClass = "token token" + bigColor + " bettoken behind";
+            }
+            var changeGivenToken = $("changetoken" + bigColor);
+            var changeReceivedToken = $("changetoken" + smallColor);
+            var currentGivenTokens = parseInt(sourceGivenToken.firstElementChild.textContent);
+            var currentReceivedTokens = parseInt(sourceReceivedToken.firstElementChild.textContent);
+
+            // Animate token going to the change board
+            dojo.html.set(sourceGivenToken.firstElementChild, currentGivenTokens - 1);
+            if (currentGivenTokens - 1 <= 0) {
+                dojo.addClass(sourceGivenToken.id, "tokenhidden");
+            }
+            // Place the visual of a token on top of the source of change token pile
+            dojo.place('<div class = "' + slidingTokenClass + '" id = "slidingtoken_' + bigColor + '"></div>', sourceGivenToken.parentElement.id);
+            // Slide the token from the source of change to the change area
+            var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, sourceGivenToken, changeGivenToken);
+
+            var anim = dojo.fx.slideTo({
+                    node: 'slidingtoken_' + bigColor,
+                    top: targetTopValue.toString(),
+                    left: targetLeftValue.toString(),
+                    units: "px",
+                    duration: 1000
+            });
+            dojo.connect(anim, 'onEnd', function(node) {
+                // Destroy token visual used for the animation
+                dojo.destroy(node);
+            });
+            anim.play();
+
+            // Animate tokens coming from the change board
+            for (var i = 0; i < numSmallTokens; i++) {
+                currentReceivedTokens++;
+                // Move a token from the change area to the source of change
+                // Place the visual of a token on top of the token change area pile
+                dojo.place('<div class = "token token' + smallColor + ' changetoken behind" id = "slidingchangetoken_' + smallColor + '_' + currentReceivedTokens + '"></div>', "changetable");
+                // Slide the token from the change area to the source of change
+                    // Identify target and source absolute position in the DOM
+                var sourcePos = dojo.position(changeReceivedToken.id);
+                var targetPos = dojo.position(sourceReceivedToken.id);
+                    // Compute the value of the left and top properties based on the translation to do
+                var targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(changeReceivedToken.id, "top");
+                var targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(changeReceivedToken.id, "left");
+                var anim = dojo.fx.slideTo({
+                        node: 'slidingchangetoken_' + smallColor + '_' + currentReceivedTokens,
+                        top: targetTopValue.toString(),
+                        left: targetLeftValue.toString(),
+                        units: "px",
+                        duration: 1000 + i * 70 * (20 / (20 + numSmallTokens))
+                });
+                dojo.connect(anim, 'onEnd', function(node) {
+                    // Destroy token visual used for the animation
+                    dojo.destroy(node);
+                    // Increment the number from the source of change
+                    dojo.html.set(sourceReceivedToken.firstElementChild, currentReceivedTokens);
+                    // Unhide the source of change token if it the first token of that color
+                    if (dojo.hasClass(sourceReceivedToken.id, "tokenhidden")) {
+                        dojo.removeClass(sourceReceivedToken.id, "tokenhidden");
+                    }
+                });
+                anim.play();
+            }
+
         },
 
         notif_betPlaced: function(notif) {

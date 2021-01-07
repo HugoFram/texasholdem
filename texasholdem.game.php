@@ -781,7 +781,7 @@ class texasholdem extends Table
             $token_added = FALSE;
             foreach (array_reverse($colors) as $color) {
                 if ($remaining_value >= $this->token_values[$color] && $token_diff[$color] < $from_tokens[$color]) {
-                    self::trace("Remaining value: ${remaining_value}, " . ($from_tokens[$color] - $token_diff[$color]) . " ${color} tokens remaining in source. Moving " . $token_diff[$color] . " from ${from} to ${to}");
+                    self::trace("Remaining value: ${remaining_value}, " . ($from_tokens[$color] - $token_diff[$color]) . " ${color} tokens remaining in source. Moving 1 from ${from} to ${to}");
                     $token_diff[$color]++;
                     $remaining_value -= $this->token_values[$color];
                     $token_added = TRUE;
@@ -797,17 +797,19 @@ class texasholdem extends Table
                     // Exchange a token from source with the corresponding value in tokens of the lowest value
                     $from_tokens[$color]--;
                     $num_small_tokens = (int)floor($this->token_values[$color] / $this->token_values[$colors[0]]);
-                    self::notifyAllPlayers("changeRequired", clienttranslate('The current tokens in ${from} cannot make ${value}. A ${color} token is exchanged against ${num_small_tokens} ${small_color} tokens.'), array(
-                        'i18n' => array('from', 'color', 'small_color'),
+                    self::notifyAllPlayers("changeRequired", clienttranslate('The current tokens in ${source_name} cannot make ${value}. A ${color} token is exchanged against ${num_small_tokens} ${small_color} tokens.'), array(
+                        'i18n' => array('source_name', 'color', 'small_color'),
+                        'source_name' => $source_name,
                         'from' => $from,
                         'value' => $value,
                         'color' => $color,
                         'small_color' => $colors[0],
-                        'num_small_tokens' => (int)floor($remaining_value / $this->token_values[$colors[0]]),
+                        'num_small_tokens' => $num_small_tokens,
                     ));
                     $from_tokens[$colors[0]] += $num_small_tokens;
                     $token_diff[$colors[0]] += (int)floor($remaining_value / $this->token_values[$colors[0]]);
-                    $remaining_value -= (int)floor($remaining_value / $this->token_values[$colors[0]]) * $this->token_values[$colors[0]];
+                    $value = (int)floor($remaining_value / $this->token_values[$colors[0]]) * $this->token_values[$colors[0]];
+                    $remaining_value -= $value;
                     $change_done = TRUE;
                     break;
                 }
@@ -1939,6 +1941,7 @@ class texasholdem extends Table
 
                 // Calculate the share of each winner
                 $gain_remainder = 0;
+                $new_players_bet = $players_bet;
                 foreach ($same_rank_players as $winner_id => $player) {
                     // Deal with side pots => the winner keeps his bet + get up to his from each other players with a lower hand than him
                     $winner_bet = $players_bet[$winner_id];
@@ -1948,7 +1951,7 @@ class texasholdem extends Table
                             $winner_gain += (int)floor(min($player_bet, $winner_bet) / count($same_rank_players));
                             // When a 'loser''s bet cannot be divided evenly
                             $gain_remainder += min($player_bet, $winner_bet) / count($same_rank_players) - floor(min($player_bet, $winner_bet) / count($same_rank_players));
-                            $players_bet[$player_id] -= (int)floor(min($player_bet, $winner_bet) / count($same_rank_players));
+                            $new_players_bet[$player_id] -= (int)floor(min($player_bet, $winner_bet) / count($same_rank_players));
                         }
                     }
                     $total_pot -= $winner_gain;
@@ -1968,6 +1971,7 @@ class texasholdem extends Table
 
                     self::moveTokens("pot", "stock_${winner_id}", $winner_gain);
                 }
+                $players_bet = $new_players_bet;
 
                 // If the pot cannot be evenly split, the remainder goes to the player in the earliest position from the Dealer
                 $gain_remainder = (int)$gain_remainder;
