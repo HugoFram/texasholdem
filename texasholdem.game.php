@@ -2044,6 +2044,9 @@ class texasholdem extends Table
             if ($player["stock"] == 0 && !$players[$player_id]["player_eliminated"]) {
                 self::eliminatePlayer($player_id);
                 self::incGameStateValue("numEliminatedPlayers", 1);
+                self::notifyAllPlayers("eliminatePlayer", '', array(
+                    'eliminated_player' => $player_id
+                ));
             }
 
             if ($player["stock"] != 0) {

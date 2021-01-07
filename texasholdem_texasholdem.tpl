@@ -63,9 +63,11 @@
 
             </div>
         </div>
+        <div class="total-badge playerbettotal" id = "playerbettotal_{PLAYER_ID}" style = "background-color:#{PLAYER_COLOR}55">{PLAYER_BET_TOTAL}</div>
         <div class="playertablename" style="color:#{PLAYER_COLOR}">
             {PLAYER_NAME}
         </div>
+        <div class="total-badge playerstocktotal" id = "playerstocktotal_{PLAYER_ID}" style = "background-color:#{PLAYER_COLOR}55">{PLAYER_STOCK_TOTAL}</div>
         <div class="playertablecards" id="playertablecards_{PLAYER_ID}">
 
         </div>
@@ -106,6 +108,7 @@
 
             </div>
         </div>
+        <div class="total-badge pottotal" id = "pottotal">0</div>
         <div class = "tablecards">
             <div id = "flop1">
             

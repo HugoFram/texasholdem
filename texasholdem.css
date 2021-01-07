@@ -89,6 +89,19 @@
         border-radius: 15px;
         padding: 5px;
     }
+
+    .total-badge {
+        border-radius: 15px;
+        border: 3px solid #30211599;
+        position: absolute;
+        color: floralwhite;
+        padding: 5px 15px 5px 15px;
+    }
+
+    .playerbettotal {
+        left: 10px;
+        top: -95px;
+    }
     
     .playertable_S {
         left: 50%;
@@ -186,6 +199,20 @@
         border-radius: 15px;
         padding: 5px;
     }
+
+    .total-badge {
+        border-radius: 15px;
+        border: 3px solid #30211599;
+        position: absolute;
+        color: floralwhite;
+        padding: 0px 15px 0px 15px;
+    }
+
+    .playerbettotal {
+        left: 10px;
+        top: -75px;
+        font-size: 12px;
+    }
     
     .playertable_S {
         left: 50%;
@@ -195,13 +222,13 @@
     
     .playertable_SW {
         bottom: 25%;
-        left: -90px;
+        left: -100px;
         margin-bottom: -110px;
         transform: rotate(90deg);
     }
     
     .playertable_W {
-        left: -90px;
+        left: -100px;
         bottom: 50%;
         margin-bottom: -110px; /* (height + 2 * margin) / 2 */
         transform: rotate(90deg);
@@ -209,7 +236,7 @@
     
     .playertable_NW {
         bottom: 75%;
-        left: -90px;
+        left: -100px;
         margin-bottom: -110px;
         transform: rotate(90deg);
     }
@@ -222,21 +249,21 @@
     }
     
     .playertable_NE {
-        right: -90px;
+        right: -100px;
         bottom: 75%;
         margin-bottom: -110px;
         transform: rotate(-90deg);
     }
     
     .playertable_E {
-        right: -90px;
+        right: -100px;
         bottom: 50%;
         margin-bottom: -110px;
         transform: rotate(-90deg);
     }
     
     .playertable_SE {
-        right: -90px;
+        right: -100px;
         bottom: 25%;
         margin-bottom: -110px;
         transform: rotate(-90deg);
@@ -274,11 +301,27 @@
 
 .playertablename, .changemodaltitle {
     font-weight: bold;
-    text-align: center;
+}
+
+.playertablename {
+    text-align: left;
 }
 
 .changemodaltitle {
     margin-top: 5px;
+    text-align: center;
+}
+
+.playerstocktotal {
+    left: 185px;
+    top: 3px;
+}
+
+.pottotal {
+    background-color: #00000088;
+    top: 5px;
+    left: 15px;
+    font-weight: bold;
 }
 
 .playertablecards {
@@ -486,7 +529,7 @@
 .tabletokens {
     width: 95px;
     height: 180px;
-    top: 10px;
+    top: 30px;
     position: absolute;
 }
 

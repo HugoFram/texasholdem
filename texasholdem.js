@@ -49,6 +49,9 @@ function (dojo, declare) {
         {
             console.log( "Starting game setup" );
             
+            // Get token values
+            this.tokenValues = gamedatas.tokenvalues;
+
             // Setting up player boards
             for( var player_id in gamedatas.players )
             {
@@ -120,6 +123,15 @@ function (dojo, declare) {
                     dojo.query('#bettingarea_' + player_id + ' > *').connect('onclick', this, 'onBetTokenClicked');
                 }
 
+                // Compute total values
+                this.updateTotal("stock", player_id);
+                this.updateTotal("bet", player_id);
+                if (parseInt(player.eliminated)) {
+                    var playerbettotal = $("playerbettotal_" + player_id);
+                    var playerstocktotal = $("playerstocktotal_" + player_id);
+                    this.fadeOutAndDestroy(playerbettotal, 500);
+                    this.fadeOutAndDestroy(playerstocktotal, 500);
+                }
             }
 
             // Highlight the table of the currently active player
@@ -152,8 +164,8 @@ function (dojo, declare) {
                 }
             }
 
-            // Get token values
-            this.tokenValues = gamedatas.tokenvalues;
+            // Compute total values
+            this.updateTotal("pot", null);
 
             // Display cards in hand
             var hands = gamedatas.hands;
@@ -373,6 +385,201 @@ function (dojo, declare) {
             return [targetTopValue, targetLeftValue];
         },
 
+        updateTotal: function(source, sourceArg) {
+            var colors = ["white", "blue", "red", "green", "black"];
+            
+            var totalValue = 0;
+            colors.forEach((color) => {
+                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
+                switch(source) {
+                    case "pot":
+                        var token = $("token" + color + "_table");
+                        break;
+                    case "stock": 
+                        var token = $("token" + color + "_" + sourceArg);
+                        break;
+                    case "bet":
+                        var token = $("bettoken" + color + "_" + sourceArg);
+                        break;
+                }
+                totalValue += parseInt(token.firstElementChild.textContent) * this.tokenValues[color];
+
+            }, this);
+
+            switch(source) {
+                case "pot":
+                    dojo.html.set($("pottotal"), totalValue);
+                    break;
+                case "stock": 
+                    dojo.html.set($("playerstocktotal_" + sourceArg), totalValue);
+                    break;
+                case "bet":
+                    dojo.html.set($("playerbettotal_" + sourceArg), totalValue);
+                    break;
+            }
+        },
+
+        // Define an display up to 3 tokens combination the player can exchange against the tokens he has put in the given area
+        updateReceivedTokens: function() {
+            // Get current number of tokens in the given area
+            var givenTokens = $("changegiventokens").children;
+
+            var colors = ["white", "blue", "red", "green", "black"];
+            var nonZeroGivenTokenColors = [];
+
+            var givenValue = 0;
+            var maxToken = "white";
+            colors.forEach(color => {
+                var token = givenTokens["changegiventokens_" + color];
+                var number = parseInt(token.firstElementChild.textContent);
+
+                if (number > 0) {
+                    maxToken = color;
+                    nonZeroGivenTokenColors.push(color);
+                }
+                givenValue += number * this.tokenValues[color];
+            });
+
+            var lowestValueProposition = {
+                white: 0,
+                blue: 0,
+                red: 0,
+                green: 0,
+                black: 0
+            };
+            var mixedProposition = {
+                white: 0,
+                blue: 0,
+                red: 0,
+                green: 0,
+                black: 0
+            };
+            var highestValueProposition = {
+                white: 0,
+                blue: 0,
+                red: 0,
+                green: 0,
+                black: 0
+            };
+
+            // Remove selection border if no tokens are given
+            if (givenValue <= 0) {
+                dojo.query(".highlighted-border").removeClass("highlighted-border");
+            }
+
+            // Lowest token proposition
+            // => Only tokens of the lowest possible value
+            var numLowestTokens = Math.floor(givenValue / this.tokenValues[colors[0]]);
+            var lowestToken = $("changereceivedtokenslowest_" + colors[0]);
+            dojo.html.set(lowestToken.firstElementChild, numLowestTokens);
+            lowestValueProposition[colors[0]] = numLowestTokens;
+            if (numLowestTokens > 0 && dojo.hasClass(lowestToken, "tokendisabled")) {
+                dojo.removeClass(lowestToken, "tokendisabled");
+            } else if (numLowestTokens <= 0 && !dojo.hasClass(lowestToken, "tokendisabled")) {
+                dojo.addClass(lowestToken, "tokendisabled");
+            }
+
+            // Mixed token proposition
+            // => Mix of token colors. The goal is to split the value of given tokens evenly among the "lower" value tokens
+            var remainingGivenValue = givenValue;
+            var lowerValueColors = colors.filter(color => nonZeroGivenTokenColors.indexOf(color) == -1 && colors.indexOf(color) < colors.indexOf(maxToken));
+            var targetValuePerTokenColor = remainingGivenValue / lowerValueColors.length;
+            colors.slice().reverse().forEach(color => {
+                // Only provide tokens of "lower" colors than the one provided
+                if (lowerValueColors.indexOf(color) != -1 && color != colors[0]) {
+                    var numTokens = Math.floor(targetValuePerTokenColor / this.tokenValues[color]);
+                    var token = $("changereceivedtokensmixed_" + color);
+                    dojo.html.set(token.firstElementChild, numTokens);
+                    mixedProposition[color] = numTokens;
+
+                    if (numTokens > 0 && dojo.hasClass(token, "tokendisabled")) {
+                        dojo.removeClass(token, "tokendisabled");
+                    } else if (numTokens <= 0 && !dojo.hasClass(token, "tokendisabled")) {
+                        dojo.addClass(token, "tokendisabled");
+                    }
+
+                    remainingGivenValue -= numTokens * this.tokenValues[color];
+                } else if (color == colors[0]) {
+                    // Complete with tokens of the lowest value
+                    var numTokens = Math.floor(remainingGivenValue / this.tokenValues[color]);
+                    var token = $("changereceivedtokensmixed_" + color);
+                    dojo.html.set(token.firstElementChild, numTokens);
+                    mixedProposition[color] = numTokens;
+
+                    if (numTokens > 0 && dojo.hasClass(token, "tokendisabled")) {
+                        dojo.removeClass(token, "tokendisabled");
+                    } else if (numTokens <= 0 && !dojo.hasClass(token, "tokendisabled")) {
+                        dojo.addClass(token, "tokendisabled");
+                    }
+
+                    remainingGivenValue -= numTokens * this.tokenValues[color];
+                } else {
+                    var token = $("changereceivedtokensmixed_" + color);
+                    dojo.html.set(token.firstElementChild, 0);
+                    mixedProposition[color] = 0;
+                    if (!dojo.hasClass(token, "tokendisabled")) {
+                        dojo.addClass(token, "tokendisabled");
+                    }
+                }
+            });
+
+            // Highest token proposition
+            // Convert given tokens into tokens of value as high as possible
+            var remainingGivenValue = givenValue;
+            colors.slice().reverse().forEach(color => {
+                // Only provide tokens of different colors than the one provided
+                if (nonZeroGivenTokenColors.indexOf(color) == -1 || color == colors[0]) {
+                    var numTokens = Math.floor(remainingGivenValue / this.tokenValues[color]);
+                    var token = $("changereceivedtokenshighest_" + color);
+                    dojo.html.set(token.firstElementChild, numTokens);
+                    highestValueProposition[color] = numTokens;
+
+                    if (numTokens > 0 && dojo.hasClass(token, "tokendisabled")) {
+                        dojo.removeClass(token, "tokendisabled");
+                    } else if (numTokens <= 0 && !dojo.hasClass(token, "tokendisabled")) {
+                        dojo.addClass(token, "tokendisabled");
+                    }
+
+                    remainingGivenValue -= numTokens * this.tokenValues[color];
+                } else {
+                    var token = $("changereceivedtokenshighest_" + color);
+                    dojo.html.set(token.firstElementChild, 0);
+                    highestValueProposition[color] = 0;
+                    if (!dojo.hasClass(token, "tokendisabled")) {
+                        dojo.addClass(token, "tokendisabled");
+                    }
+                }
+            });
+
+            // Remove duplicated proposition
+            if (givenValue > 0) {
+                if (JSON.stringify(lowestValueProposition) === JSON.stringify(mixedProposition)) {
+                    var duplicatedSelection = $("proposed_change_receivedtokensmixed");
+                    var selectionTokens = duplicatedSelection.children;
+                    for (var i = 0; i < selectionTokens.length; i++) {
+                        dojo.html.set(selectionTokens[i].firstElementChild, 0);
+                        dojo.addClass(selectionTokens[i], "tokendisabled")
+                    }
+                }
+                if (JSON.stringify(lowestValueProposition) === JSON.stringify(highestValueProposition)) {
+                    var duplicatedSelection = $("proposed_change_receivedtokenshighest");
+                    var selectionTokens = duplicatedSelection.children;
+                    for (var i = 0; i < selectionTokens.length; i++) {
+                        dojo.html.set(selectionTokens[i].firstElementChild, 0);
+                        dojo.addClass(selectionTokens[i], "tokendisabled")
+                    }
+                }
+                if (JSON.stringify(mixedProposition) === JSON.stringify(highestValueProposition)) {
+                    var duplicatedSelection = $("proposed_change_receivedtokenshighest");
+                    var selectionTokens = duplicatedSelection.children;
+                    for (var i = 0; i < selectionTokens.length; i++) {
+                        dojo.html.set(selectionTokens[i].firstElementChild, 0);
+                        dojo.addClass(selectionTokens[i], "tokendisabled")
+                    }
+                }
+            }
+
+        },
 
         ///////////////////////////////////////////////////
         //// Player's action
@@ -445,22 +652,26 @@ function (dojo, declare) {
                 // Move a token from the player's stock to the betting area
                 // 1) Decrement number of token in stock and hide the token if it was the last one
                 dojo.html.set(stockToken.firstElementChild, currentStock);
+                // 2) Update stock total
+                this.updateTotal("stock", this.player_id);
                 if (currentStock <= 0) {
                     dojo.addClass(stockToken.id, "tokenhidden");
                 }
-                // 2) Place the visual of a token on top of the token stock pile
+                // 3) Place the visual of a token on top of the token stock pile
                 dojo.place('<div class = "token token' + color + ' behind" id = "slidingstocktoken_' + color + '_' + currentStock + '"></div>', "playertabletokens_" + this.player_id);
-                // 3) Slide the token from the stock to the betting area
+                // 4) Slide the token from the stock to the betting area
                 var anim = this.slideToObject('slidingstocktoken_' + color + '_' + currentStock, betToken.id);
-                dojo.connect(anim, 'onEnd', function(node) {
-                    // 4) Destroy token visual used for the animation
+                dojo.connect(anim, 'onEnd', this, function(node) {
+                    // 5) Destroy token visual used for the animation
                     dojo.destroy(node);
-                    // 5) Increment the number from the betting area
+                    // 6) Increment the number from the betting area
                     dojo.html.set(betToken.firstElementChild, parseInt(betToken.firstElementChild.textContent) + 1);
-                    // 6) Unhide the betting area token if it the first token of that color
+                    // 7) Unhide the betting area token if it the first token of that color
                     if (dojo.hasClass(betToken.id, "tokenhidden")) {
                         dojo.removeClass(betToken.id, "tokenhidden");
                     }
+                    // 8) Update bet total
+                    this.updateTotal("bet", this.player_id);
                 });
                 anim.play();
             }
@@ -489,22 +700,26 @@ function (dojo, declare) {
                 // Move a token from the player's betting area to the stock
                 // 1) Decrement number of token in betting area and hide the token if it was the last one
                 dojo.html.set(betToken.firstElementChild, currentBet);
+                // 2) Update bet total
+                this.updateTotal("bet", this.player_id);
                 if (currentBet <= 0) {
                     dojo.addClass(betToken.id, "tokenhidden");
                 }
-                // 2) Place the visual of a token on top of the token betting area pile
+                // 3) Place the visual of a token on top of the token betting area pile
                 dojo.place('<div class = "token token' + color + ' bettoken behind" id = "slidingbettoken_' + color + '_' + currentBet + '"></div>', "bettingarea_" + this.player_id);
-                // 3) Slide the token from the betting area to the stock
+                // 4) Slide the token from the betting area to the stock
                 var anim = this.slideToObject('slidingbettoken_' + color + '_' + currentBet, stockToken.id);
-                dojo.connect(anim, 'onEnd', function(node) {
-                    // 4) Destroy token visual used for the animation
+                dojo.connect(anim, 'onEnd', this, function(node) {
+                    // 5) Destroy token visual used for the animation
                     dojo.destroy(node);
-                    // 5) Increment the number from the stock
+                    // 6) Increment the number from the stock
                     dojo.html.set(stockToken.firstElementChild, parseInt(stockToken.firstElementChild.textContent) + 1);
-                    // 6) Unhide the stock token if it the first token of that color
+                    // 7) Unhide the stock token if it the first token of that color
                     if (dojo.hasClass(stockToken.id, "tokenhidden")) {
                         dojo.removeClass(stockToken.id, "tokenhidden");
                     }
+                    // 8) Update stock total
+                    this.updateTotal("stock", this.player_id);
                 });
                 anim.play();
             }
@@ -868,168 +1083,6 @@ function (dojo, declare) {
             }
         },
 
-        // Define an display up to 3 tokens combination the player can exchange against the tokens he has put in the given area
-        updateReceivedTokens: function() {
-            // Get current number of tokens in the given area
-            var givenTokens = $("changegiventokens").children;
-
-            var colors = ["white", "blue", "red", "green", "black"];
-            var nonZeroGivenTokenColors = [];
-
-            var givenValue = 0;
-            var maxToken = "white";
-            colors.forEach(color => {
-                var token = givenTokens["changegiventokens_" + color];
-                var number = parseInt(token.firstElementChild.textContent);
-
-                if (number > 0) {
-                    maxToken = color;
-                    nonZeroGivenTokenColors.push(color);
-                }
-                givenValue += number * this.tokenValues[color];
-            });
-
-            var lowestValueProposition = {
-                white: 0,
-                blue: 0,
-                red: 0,
-                green: 0,
-                black: 0
-            };
-            var mixedProposition = {
-                white: 0,
-                blue: 0,
-                red: 0,
-                green: 0,
-                black: 0
-            };
-            var highestValueProposition = {
-                white: 0,
-                blue: 0,
-                red: 0,
-                green: 0,
-                black: 0
-            };
-
-            // Remove selection border if no tokens are given
-            if (givenValue <= 0) {
-                dojo.query(".highlighted-border").removeClass("highlighted-border");
-            }
-
-            // Lowest token proposition
-            // => Only tokens of the lowest possible value
-            var numLowestTokens = Math.floor(givenValue / this.tokenValues[colors[0]]);
-            var lowestToken = $("changereceivedtokenslowest_" + colors[0]);
-            dojo.html.set(lowestToken.firstElementChild, numLowestTokens);
-            lowestValueProposition[colors[0]] = numLowestTokens;
-            if (numLowestTokens > 0 && dojo.hasClass(lowestToken, "tokendisabled")) {
-                dojo.removeClass(lowestToken, "tokendisabled");
-            } else if (numLowestTokens <= 0 && !dojo.hasClass(lowestToken, "tokendisabled")) {
-                dojo.addClass(lowestToken, "tokendisabled");
-            }
-
-            // Mixed token proposition
-            // => Mix of token colors. The goal is to split the value of given tokens evenly among the "lower" value tokens
-            var remainingGivenValue = givenValue;
-            var lowerValueColors = colors.filter(color => nonZeroGivenTokenColors.indexOf(color) == -1 && colors.indexOf(color) < colors.indexOf(maxToken));
-            var targetValuePerTokenColor = remainingGivenValue / lowerValueColors.length;
-            colors.slice().reverse().forEach(color => {
-                // Only provide tokens of "lower" colors than the one provided
-                if (lowerValueColors.indexOf(color) != -1 && color != colors[0]) {
-                    var numTokens = Math.floor(targetValuePerTokenColor / this.tokenValues[color]);
-                    var token = $("changereceivedtokensmixed_" + color);
-                    dojo.html.set(token.firstElementChild, numTokens);
-                    mixedProposition[color] = numTokens;
-
-                    if (numTokens > 0 && dojo.hasClass(token, "tokendisabled")) {
-                        dojo.removeClass(token, "tokendisabled");
-                    } else if (numTokens <= 0 && !dojo.hasClass(token, "tokendisabled")) {
-                        dojo.addClass(token, "tokendisabled");
-                    }
-
-                    remainingGivenValue -= numTokens * this.tokenValues[color];
-                } else if (color == colors[0]) {
-                    // Complete with tokens of the lowest value
-                    var numTokens = Math.floor(remainingGivenValue / this.tokenValues[color]);
-                    var token = $("changereceivedtokensmixed_" + color);
-                    dojo.html.set(token.firstElementChild, numTokens);
-                    mixedProposition[color] = numTokens;
-
-                    if (numTokens > 0 && dojo.hasClass(token, "tokendisabled")) {
-                        dojo.removeClass(token, "tokendisabled");
-                    } else if (numTokens <= 0 && !dojo.hasClass(token, "tokendisabled")) {
-                        dojo.addClass(token, "tokendisabled");
-                    }
-
-                    remainingGivenValue -= numTokens * this.tokenValues[color];
-                } else {
-                    var token = $("changereceivedtokensmixed_" + color);
-                    dojo.html.set(token.firstElementChild, 0);
-                    mixedProposition[color] = 0;
-                    if (!dojo.hasClass(token, "tokendisabled")) {
-                        dojo.addClass(token, "tokendisabled");
-                    }
-                }
-            });
-
-            // Highest token proposition
-            // Convert given tokens into tokens of value as high as possible
-            var remainingGivenValue = givenValue;
-            colors.slice().reverse().forEach(color => {
-                // Only provide tokens of different colors than the one provided
-                if (nonZeroGivenTokenColors.indexOf(color) == -1 || color == colors[0]) {
-                    var numTokens = Math.floor(remainingGivenValue / this.tokenValues[color]);
-                    var token = $("changereceivedtokenshighest_" + color);
-                    dojo.html.set(token.firstElementChild, numTokens);
-                    highestValueProposition[color] = numTokens;
-
-                    if (numTokens > 0 && dojo.hasClass(token, "tokendisabled")) {
-                        dojo.removeClass(token, "tokendisabled");
-                    } else if (numTokens <= 0 && !dojo.hasClass(token, "tokendisabled")) {
-                        dojo.addClass(token, "tokendisabled");
-                    }
-
-                    remainingGivenValue -= numTokens * this.tokenValues[color];
-                } else {
-                    var token = $("changereceivedtokenshighest_" + color);
-                    dojo.html.set(token.firstElementChild, 0);
-                    highestValueProposition[color] = 0;
-                    if (!dojo.hasClass(token, "tokendisabled")) {
-                        dojo.addClass(token, "tokendisabled");
-                    }
-                }
-            });
-
-            // Remove duplicated proposition
-            if (givenValue > 0) {
-                if (JSON.stringify(lowestValueProposition) === JSON.stringify(mixedProposition)) {
-                    var duplicatedSelection = $("proposed_change_receivedtokensmixed");
-                    var selectionTokens = duplicatedSelection.children;
-                    for (var i = 0; i < selectionTokens.length; i++) {
-                        dojo.html.set(selectionTokens[i].firstElementChild, 0);
-                        dojo.addClass(selectionTokens[i], "tokendisabled")
-                    }
-                }
-                if (JSON.stringify(lowestValueProposition) === JSON.stringify(highestValueProposition)) {
-                    var duplicatedSelection = $("proposed_change_receivedtokenshighest");
-                    var selectionTokens = duplicatedSelection.children;
-                    for (var i = 0; i < selectionTokens.length; i++) {
-                        dojo.html.set(selectionTokens[i].firstElementChild, 0);
-                        dojo.addClass(selectionTokens[i], "tokendisabled")
-                    }
-                }
-                if (JSON.stringify(mixedProposition) === JSON.stringify(highestValueProposition)) {
-                    var duplicatedSelection = $("proposed_change_receivedtokenshighest");
-                    var selectionTokens = duplicatedSelection.children;
-                    for (var i = 0; i < selectionTokens.length; i++) {
-                        dojo.html.set(selectionTokens[i].firstElementChild, 0);
-                        dojo.addClass(selectionTokens[i], "tokendisabled")
-                    }
-                }
-            }
-
-        },
-
         onValidateChange: function() {
             // Check that this action is possible (see "possibleactions" in states.inc.php)
             if(!this.checkAction('makeChange')) return;
@@ -1123,6 +1176,8 @@ function (dojo, declare) {
             dojo.subscribe('updateScores', this, "notif_updateScores");
             dojo.subscribe('discardAllCards', this, "notif_discardAllCards");
             this.notifqueue.setSynchronous('discardAllCards', 1000);
+            dojo.subscribe('eliminatePlayer', this, "notif_eliminatePlayer");
+            this.notifqueue.setSynchronous('eliminatePlayer', 1000);
 
             dojo.subscribe('changeActivePlayer', this, "notif_changeActivePlayer");
             dojo.subscribe('changeDealer', this, "notif_changeDealer");
@@ -1217,28 +1272,36 @@ function (dojo, declare) {
 
                 // Retrieve HTML elements corresponding to tokens in the source
                 if (from == "pot") {
+                    fromPlayerId = null;
                     sourceToken = $("token" + color + "_table");
                     slidingTokenClass = "token token" + color + " behind";
+                    sourceTotalName = "pot";
                 } else if (from.includes("stock")) {
                     fromPlayerId = from.replace("stock_", "");
                     sourceToken = $("token" + color + "_" + fromPlayerId);
                     playerTable = $("playertablecards_" + fromPlayerId).parentElement;
                     slidingTokenClass = "token token" + color + " behind";
+                    sourceTotalName = "stock";
                 } else if (from.includes("bet")) {
                     fromPlayerId = from.replace("bet_", "");
                     sourceToken = $("bettoken" + color + "_" + fromPlayerId);
                     playerTable = $("playertablecards_" + fromPlayerId).parentElement;
                     slidingTokenClass = "token token" + color + " bettoken behind";
+                    sourceTotalName = "bet";
                 }
                 // Retrieve HTML elements corresponding to tokens in the destination
                 if (to == "pot") {
+                    toPlayerId = null;
                     destinationToken = $("token" + color + "_table");
+                    destinationTotalName = "pot";
                 } else if (to.includes("stock")) {
                     toPlayerId = to.replace("stock_", "");
                     destinationToken = $("token" + color + "_" + toPlayerId);
+                    destinationTotalName = "stock";
                 } else if (to.includes("bet")) {
                     toPlayerId = to.replace("bet_", "");
                     destinationToken = $("bettoken" + color + "_" + toPlayerId);
+                    destinationTotalName = "bet";
                 }
 
                 // Extract number of token from HTML element
@@ -1259,22 +1322,26 @@ function (dojo, declare) {
                             units: "px",
                             duration: 500 + i * 70
                     });
-                    dojo.connect(anim, 'onEnd', function(node) {
+                    dojo.connect(anim, 'onEnd', this, function(node) {
                         // 3) Destroy token visual used for the animation
                         dojo.destroy(node);
                         // 4) Set the number of destination tokens expected for this color at the end of all token animations
                         dojo.html.set(destinationToken.firstElementChild, notif.args.to_tokens[color]);
-                        // 5) Unhide the player's stock token if it is the first token of that color
+                        // 5) Update destination total
+                        this.updateTotal(destinationTotalName, toPlayerId);
+                        // 6) Unhide the player's stock token if it is the first token of that color
                         if (dojo.hasClass(destinationToken.id, "tokenhidden") && notif.args.to_tokens[color] > 0) {
                             dojo.removeClass(destinationToken.id, "tokenhidden");
                         }
-                        // 6)  Set the number of source tokens expected for this color at the end of all token animations
+                        // 7)  Set the number of source tokens expected for this color at the end of all token animations
                         dojo.html.set(sourceToken.firstElementChild, notif.args.from_tokens[color]);
-                        // 7) Hide source token if it was the last token of that color
+                        // 8) Update source total
+                        this.updateTotal(sourceTotalName, fromPlayerId);
+                        // 9) Hide source token if it was the last token of that color
                         if (!dojo.hasClass(sourceToken.id, "tokenhidden") && notif.args.from_tokens[color] == 0) {
                             dojo.addClass(sourceToken.id, "tokenhidden");
                         }
-                        // 8) Unhide source token if it has at least one token of that color at the end of the animation
+                        // 10) Unhide source token if it has at least one token of that color at the end of the animation
                         if (dojo.hasClass(sourceToken.id, "tokenhidden") && notif.args.from_tokens[color] > 0) {
                             dojo.removeClass(sourceToken.id, "tokenhidden");
                         }
@@ -1401,12 +1468,14 @@ function (dojo, declare) {
                             // Move a token from the player's stock to the betting area
                             // 1) Decrement number of token in stock and hide the token if it was the last one
                             dojo.html.set(stockToken.firstElementChild, currentStock);
+                            // 2) Update stock total
+                            this.updateTotal("stock", notif.args.player_id);
                             if (currentStock <= 0) {
                                 dojo.addClass(stockToken.id, "tokenhidden");
                             }
-                            // 2) Place the visual of a token on top of the token stock pile
+                            // 3) Place the visual of a token on top of the token stock pile
                             dojo.place('<div class = "token token' + color + ' behind" id = "slidingstocktoken_' + color + '_' + currentStock + '"></div>', "playertabletokens_" + notif.args.player_id);
-                            // 3) Slide the token from the stock to the betting area
+                            // 4) Slide the token from the stock to the betting area
                             var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, stockToken, betToken);
 
                             var anim = dojo.fx.slideTo({
@@ -1416,12 +1485,14 @@ function (dojo, declare) {
                                     units: "px",
                                     duration: 500 - i * 70 * (20 / (20 - tokenDiff))
                             });
-                            dojo.connect(anim, 'onEnd', function(node) {
-                                // 4) Destroy token visual used for the animation
+                            dojo.connect(anim, 'onEnd', this, function(node) {
+                                // 5) Destroy token visual used for the animation
                                 dojo.destroy(node);
-                                // 5) Increment the number from the betting area
+                                // 6) Increment the number from the betting area
                                 dojo.html.set(betToken.firstElementChild, currentBet);
-                                // 6) Unhide the betting area token if it the first token of that color
+                                // 7) Update bet total
+                                this.updateTotal("bet", notif.args.player_id);
+                                // 8) Unhide the betting area token if it the first token of that color
                                 if (dojo.hasClass(betToken.id, "tokenhidden")) {
                                     dojo.removeClass(betToken.id, "tokenhidden");
                                 }
@@ -1437,12 +1508,14 @@ function (dojo, declare) {
                             // Move a token from the player's betting area to the stock
                             // 1) Decrement number of token in betting area and hide the token if it was the last one
                             dojo.html.set(betToken.firstElementChild, currentBet);
+                            // 2) Update bet total
+                            this.updateTotal("bet", notif.args.player_id);
                             if (currentBet <= 0) {
                                 dojo.addClass(betToken.id, "tokenhidden");
                             }
-                            // 2) Place the visual of a token on top of the token betting area pile
+                            // 3) Place the visual of a token on top of the token betting area pile
                             dojo.place('<div class = "token token' + color + ' bettoken behind" id = "slidingbettoken_' + color + '_' + currentBet + '"></div>', "bettingarea_" + notif.args.player_id);
-                            // 3) Slide the token from the betting area to the stock
+                            // 4) Slide the token from the betting area to the stock
                             var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, betToken, stockToken);
                             var anim = dojo.fx.slideTo({
                                     node: 'slidingbettoken_' + color + '_' + currentBet,
@@ -1451,12 +1524,14 @@ function (dojo, declare) {
                                     units: "px",
                                     duration: 500 + i * 70 * (20 / (20 + tokenDiff))
                             });
-                            dojo.connect(anim, 'onEnd', function(node) {
-                                // 4) Destroy token visual used for the animation
+                            dojo.connect(anim, 'onEnd', this, function(node) {
+                                // 5) Destroy token visual used for the animation
                                 dojo.destroy(node);
-                                // 5) Increment the number from the player's stock
+                                // 6) Increment the number from the player's stock
                                 dojo.html.set(stockToken.firstElementChild, currentStock);
-                                // 6) Unhide the stock token if it the first token of that color
+                                // 7) Update stock total
+                                this.updateTotal("stock", notif.args.player_id);
+                                // 8) Unhide the stock token if it the first token of that color
                                 if (dojo.hasClass(stockToken.id, "tokenhidden")) {
                                     dojo.removeClass(stockToken.id, "tokenhidden");
                                 }
@@ -1625,18 +1700,22 @@ function (dojo, declare) {
                                 units: "px",
                                 duration: 500 + i * 70
                         });
-                        dojo.connect(anim, 'onEnd', function(node) {
+                        dojo.connect(anim, 'onEnd', this, function(node) {
                             // 3) Destroy token visual used for the animation
                             dojo.destroy(node);
                             // 4) Set the number of table tokens expected for this color at the end of all token animations
                             dojo.html.set(tableToken.firstElementChild, notif.args.end_pot[color]);
-                            // 5) Unhide the table token if it the first token of that color
+                            // 5) Update pot total
+                            this.updateTotal("pot");
+                            // 6) Unhide the table token if it the first token of that color
                             if (dojo.hasClass(tableToken.id, "tokenhidden")) {
                                 dojo.removeClass(tableToken.id, "tokenhidden");
                             }
-                            // 6) Hide betting area token and set its number to 0 (value expected at the end of all token animations)
+                            // 7) Hide betting area token and set its number to 0 (value expected at the end of all token animations)
                             dojo.html.set(betToken.firstElementChild, 0);
                             dojo.addClass(betToken.id, "tokenhidden");
+                            // 8) Update bet total
+                            this.updateTotal("bet", playerId);
                         });
                         anim.play();
                     }
@@ -1885,18 +1964,22 @@ function (dojo, declare) {
                             units: "px",
                             duration: 500 + i * 70
                     });
-                    dojo.connect(anim, 'onEnd', function(node) {
+                    dojo.connect(anim, 'onEnd', this, function(node) {
                         // 3) Destroy token visual used for the animation
                         dojo.destroy(node);
                         // 4) Set the number of table tokens expected for this color at the end of all token animations
                         dojo.html.set(stockToken.firstElementChild, notif.args.end_player_stock[color]);
-                        // 5) Unhide the player's stock token if it the first token of that color
+                        // 8) Update stock total
+                        this.updateTotal("stock", playerId);
+                        // 9) Unhide the player's stock token if it the first token of that color
                         if (dojo.hasClass(stockToken.id, "tokenhidden")) {
                             dojo.removeClass(stockToken.id, "tokenhidden");
                         }
-                        // 6) Hide table token and set its number to 0 (value expected at the end of all token animations)
+                        // 10) Hide table token and set its number to 0 (value expected at the end of all token animations)
                         dojo.html.set(tableToken.firstElementChild, 0);
                         dojo.addClass(tableToken.id, "tokenhidden");
+                        // 11) Update pot total
+                        this.updateTotal("pot");
                     });
                     anim.play();
                 }
@@ -1937,6 +2020,15 @@ function (dojo, declare) {
             dojo.query(".playertablecards").forEach(node => {
                 dojo.removeClass(node, "flip-card");
             });
+        },
+
+        notif_eliminatePlayer: function(notif) {
+            console.log('notif_eliminatePlayer');
+
+            var playerbettotal = $("playerbettotal_" + notif.args.eliminated_player);
+            var playerstocktotal = $("playerstocktotal_" + notif.args.eliminated_player);
+            this.fadeOutAndDestroy(playerbettotal, 500);
+            this.fadeOutAndDestroy(playerstocktotal, 500);
         },
 
         notif_changeActivePlayer: function(notif) {

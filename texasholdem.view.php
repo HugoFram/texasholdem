@@ -96,11 +96,13 @@
                 "PLAYER_TOKEN_RED" => 3,
                 "PLAYER_TOKEN_GREEN" => 22,
                 "PLAYER_TOKEN_BLACK" => 31,
+                "PLAYER_STOCK_TOTAL" => 100,
                 "PLAYER_BET_TOKEN_WHITE" => 1,
                 "PLAYER_BET_TOKEN_BLUE" => 7,
                 "PLAYER_BET_TOKEN_RED" => 0,
                 "PLAYER_BET_TOKEN_GREEN" => 1,
                 "PLAYER_BET_TOKEN_BLACK" => 3,
+                "PLAYER_BET_TOTAL" => 0
             ));
         }
 
