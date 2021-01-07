@@ -2050,7 +2050,7 @@ class texasholdem extends Table
                 // Increase blinds
                 $small_blind = self::getGameStateValue("smallBlindValue");
                 self::incGameStateValue("smallBlindValue", $small_blind);
-                self::notifyAllPlayers("increaseBlinds", clienttranslate('A player was eliminated. The blinds are doubled (small blind: ${small_blind}, big blind: ${big_blind}'), array(
+                self::notifyAllPlayers("increaseBlinds", clienttranslate('A player was eliminated. The blinds are doubled (small blind: ${small_blind}, big blind: ${big_blind})'), array(
                     'small_blind' => 2*$small_blind,
                     'big_blind' => 4*$small_blind
                 ));
