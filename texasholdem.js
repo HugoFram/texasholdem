@@ -1143,6 +1143,7 @@ function (dojo, declare) {
             // this.notifqueue.setSynchronous( 'cardPlayed', 3000 );
             // 
 
+            dojo.subscribe('increaseBlinds', this, "notif_increaseBlinds");
             dojo.subscribe('dealCards', this, "notif_dealCards");
 
             dojo.subscribe('moveTokens', this, "notif_moveTokens");
@@ -1199,6 +1200,13 @@ function (dojo, declare) {
         },    
         
         */
+        notif_increaseBlinds: function(notif) {
+            console.log('notif_increaseBlinds');
+
+            var smallBlind = notif.args.small_blind;
+            var bigBlind = notif.args.big_blind;
+            this.showMessage(_("The blinds are increased to " + smallBlind + "/" + bigBlind), "info")
+        },
 
         notif_dealCards: function(notif) {
             console.log('notif_dealCards');
