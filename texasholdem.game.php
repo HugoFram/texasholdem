@@ -1125,7 +1125,7 @@ class texasholdem extends Table
         $diff_stock = $bet_computation["diff_stock"];
 
         if ($current_round_stage == 1) {
-            if ($current_bet_level != 2 * $blind_value || $total_player_bet != 2 * $blind_value) {
+            if ($current_bet_level != 2 * $blind_value || $total_player_bet != 2 * $blind_value || $additional_bet > 0) {
                 throw new BgaUserException(_("You cannot check at this stage."));
             }
         } else {
