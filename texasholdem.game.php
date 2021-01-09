@@ -2191,7 +2191,77 @@ class texasholdem extends Table
         if ($state['type'] === "activeplayer") {
             switch ($statename) {
                 default:
-                    $this->gamestate->nextState( "zombiePass" );
+                    $round_stage = self::getGameStateValue("roundStage");
+                    $small_blind_player = self::getGameStateValue("smallBlindPlayer");
+                    $player_id = self::getActivePlayerId();
+                    $player_current_bet = self::getPlayersTokens()[$player_id]["bet"];
+            
+                    // Build tokens array as if it was sent by the frontend
+                    $sql = "SELECT player_id, player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
+                        player_stock_token_green, player_stock_token_black, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
+                        player_bet_token_green, player_bet_token_black FROM player WHERE player_id = ${player_id}";
+                    $player_stock = self::getCollectionFromDb($sql)[$player_id];
+                    $tokens = array(
+                        $player_stock['player_stock_token_white'], $player_stock['player_bet_token_white'], 
+                        $player_stock['player_stock_token_blue'], $player_stock['player_bet_token_blue'],
+                        $player_stock['player_stock_token_red'], $player_stock['player_bet_token_red'],
+                        $player_stock['player_stock_token_green'], $player_stock['player_bet_token_green'],
+                        $player_stock['player_stock_token_black'], $player_stock['player_bet_token_black'],
+                    );
+            
+                    if ($round_stage == 0) {
+                        // Blinds stage => place blind
+                        if ($player_id == $small_blind_player) {
+                            self::placeSmallBlind($tokens);
+                        } else {
+                            self::placeBigBlind($tokens);
+                        }
+                    } else {
+                        // After blinds => give of tokens to the bank and fold
+                        $player_name = self::getActivePlayerName();
+            
+                        $diff_stock = array(
+                            "white" => -$player_stock['player_stock_token_white'],
+                            "blue" => -$player_stock['player_stock_token_blue'],
+                            "red" => -$player_stock['player_stock_token_red'],
+                            "green" => -$player_stock['player_stock_token_green'],
+                            "black" => -$player_stock['player_stock_token_black']
+                        );
+            
+                        // Update playe's stock with new number of tokens
+                        $colors = ["white", "blue", "red", "green", "black"];
+            
+                        $sql = "UPDATE player SET player_score = ${player_current_bet}, ";
+                        foreach($colors as $color) {
+                            $sql .= "player_stock_token_${color} = 0, ";
+                        }
+                        // Removing last ',' if exists
+                        if (substr($sql, -2) == ', ') {
+                            $sql = substr($sql, 0, -2);
+                        }
+                        $sql .= " WHERE player_id = '" . $player_id. "'";
+                        self::DbQuery($sql);
+                        self::notifyAllPlayers("makeChange", clienttranslate('${player_name} gives all her/his stock to the bank'), array(
+                            'player_name' => $player_name,
+                            'player_id' => $player_id,
+                            'diff_stock' => $diff_stock
+                        ));
+            
+                        // Build tokens array as if it was sent by the frontend
+                        $sql = "SELECT player_id, player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
+                            player_stock_token_green, player_stock_token_black, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
+                            player_bet_token_green, player_bet_token_black FROM player WHERE player_id = ${player_id}";
+                        $player_stock = self::getCollectionFromDb($sql)[$player_id];
+                        $tokens = array(
+                            $player_stock['player_stock_token_white'], $player_stock['player_bet_token_white'], 
+                            $player_stock['player_stock_token_blue'], $player_stock['player_bet_token_blue'],
+                            $player_stock['player_stock_token_red'], $player_stock['player_bet_token_red'],
+                            $player_stock['player_stock_token_green'], $player_stock['player_bet_token_green'],
+                            $player_stock['player_stock_token_black'], $player_stock['player_bet_token_black'],
+                        );
+                                    
+                        self::fold($player_id, $tokens);
+                    }
                 	break;
             }
 

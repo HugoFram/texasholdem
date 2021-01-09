@@ -1595,7 +1595,7 @@ function (dojo, declare) {
             console.log('notif_makeChange');
 
             // Close change modal
-            if (notif.args.player_id == this.player_id) {
+            if (notif.args.player_id == this.player_id && this.myDlg) {
                 this.myDlg.destroy();
             }
 
@@ -1673,6 +1673,8 @@ function (dojo, declare) {
                         anim.play();
                     }
                 }
+                // Update stock total
+                this.updateTotal("stock", notif.args.player_id);
             });
         },
 
