@@ -2053,6 +2053,9 @@ class texasholdem extends Table
 
             if ($player["stock"] == 0 && !$players[$player_id]["player_eliminated"]) {
                 self::eliminatePlayer($player_id);
+                // The earlier the player is eliminated the worse he is in ranking
+                $sql = "UPDATE player SET player_score_aux = " . self::getGameStateValue("roundNumber") . " WHERE player_id = " . $player_id;
+                self::DbQuery($sql);
                 self::incGameStateValue("numEliminatedPlayers", 1);
                 self::notifyAllPlayers("eliminatePlayer", '', array(
                     'eliminated_player' => $player_id
