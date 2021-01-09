@@ -172,7 +172,7 @@ class texasholdem extends Table
             self::setGameStateInitialValue("dealerId", self::getPlayerBefore(self::getActivePlayerId()));
         }
         
-        self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is the active player.'), array(
+        self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is the active player'), array(
             'player_name' => self::getActivePlayerName(),
             'player_id' => self::getActivePlayerId()
         ));
@@ -975,7 +975,7 @@ class texasholdem extends Table
                 if ($player_score >= $blind_value) {
                     // The player has enough in stock for the small blind => place the tokens for him
                     self::moveTokens("stock_${player_id}", "bet_${player_id}", $blind_value);
-                    self::notifyAllPlayers("smallBlindPlaced", clienttranslate('${player_name} places the small blind.'), array(
+                    self::notifyAllPlayers("smallBlindPlaced", clienttranslate('${player_name} places the small blind'), array(
                         'player_name' => $player_name
                     ));
                     $additional_bet = $blind_value;
@@ -987,7 +987,7 @@ class texasholdem extends Table
                         'all_in_value' => $player_score
                     ));
                     self::moveTokens("stock_${player_id}", "bet_${player_id}", $player_score);
-                    self::notifyAllPlayers("smallBlindPlaced", clienttranslate('${player_name} places the small blind.'), array(
+                    self::notifyAllPlayers("smallBlindPlaced", clienttranslate('${player_name} places the small blind'), array(
                         'player_name' => $player_name
                     ));
                     $additional_bet = $player_score;
@@ -997,7 +997,7 @@ class texasholdem extends Table
         } else {
             // Notify other player that the player placed the small blind
             self::DbQuery($sql);
-            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${additional_bet} for the small blind.'), array(
+            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${additional_bet} for the small blind'), array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'additional_bet' => $additional_bet,
@@ -1063,7 +1063,7 @@ class texasholdem extends Table
                 if ($player_score >= $big_blind) {
                     // The player has enough in stock for the big blind => place the tokens for him
                     self::moveTokens("stock_${player_id}", "bet_${player_id}", $big_blind);
-                    self::notifyAllPlayers("bigBlindPlaced", clienttranslate('${player_name} places the big blind.'), array(
+                    self::notifyAllPlayers("bigBlindPlaced", clienttranslate('${player_name} places the big blind'), array(
                         'player_name' => $player_name
                     ));
                     $additional_bet = $big_blind;
@@ -1075,7 +1075,7 @@ class texasholdem extends Table
                         'all_in_value' => $player_score
                     ));
                     self::moveTokens("stock_${player_id}", "bet_${player_id}", $player_score);
-                    self::notifyAllPlayers("bigBlindPlaced", clienttranslate('${player_name} places the big blind.'), array(
+                    self::notifyAllPlayers("bigBlindPlaced", clienttranslate('${player_name} places the big blind'), array(
                         'player_name' => $player_name
                     ));
                     $additional_bet = $player_score;
@@ -1085,7 +1085,7 @@ class texasholdem extends Table
         } else {
             // Notify other player that the player placed the small blind
             self::DbQuery($sql);
-            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${additional_bet} for the big blind.'), array(
+            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${additional_bet} for the big blind'), array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'additional_bet' => $additional_bet,
@@ -1126,11 +1126,11 @@ class texasholdem extends Table
 
         if ($current_round_stage == 1) {
             if ($current_bet_level != 2 * $blind_value || $total_player_bet != 2 * $blind_value || $additional_bet > 0) {
-                throw new BgaUserException(_("You cannot check at this stage."));
+                throw new BgaUserException(_("You cannot check at this stage"));
             }
         } else {
             if ($current_bet_level != 0) {
-                throw new BgaUserException(_("You cannot check because the current bet is not 0."));
+                throw new BgaUserException(_("You cannot check because the current bet is not 0"));
             }
         }
 
@@ -1178,7 +1178,7 @@ class texasholdem extends Table
         if ($total_player_bet == $current_bet_level) {
             // The player has already put the correct amount of tokens in the betting area
             self::DbQuery($sql);
-            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} calls by betting ${additional_bet}.'), array(
+            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} calls by betting ${additional_bet}'), array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'additional_bet' => $additional_bet,
@@ -1211,7 +1211,7 @@ class texasholdem extends Table
                 if ($player_tokens["stock"] >= ($current_bet_level - $player_tokens["bet"])) {
                     // The player has enough stock to call
                     self::moveTokens("stock_${player_id}", "bet_${player_id}", $current_bet_level - $player_tokens["bet"]);
-                    self::notifyAllPlayers("callPlaced", clienttranslate('${player_name} calls by betting ${additional_bet}.'), array(
+                    self::notifyAllPlayers("callPlaced", clienttranslate('${player_name} calls by betting ${additional_bet}'), array(
                         'player_name' => $player_name,
                         'additional_bet' => $current_bet_level - $player_tokens["bet"]
                     ));
@@ -1224,7 +1224,7 @@ class texasholdem extends Table
                         'all_in_value' => $player_tokens["stock"]
                     ));
                     self::moveTokens("stock_${player_id}", "bet_${player_id}", $player_tokens["stock"]);
-                    self::notifyAllPlayers("callPlaced", clienttranslate('${player_name} calls.'), array(
+                    self::notifyAllPlayers("callPlaced", clienttranslate('${player_name} calls'), array(
                         'player_name' => $player_name
                     ));
                     $additional_bet = $player_tokens["stock"];
@@ -1269,7 +1269,7 @@ class texasholdem extends Table
         self::DbQuery($sql);
 
         if ($current_round_stage == 0) {
-            throw new feException(_("You are not supposed to raise during the blinds phase."));
+            throw new feException(_("You are not supposed to raise during the blinds phase"));
         } else if ($total_player_bet > $current_bet_level) {
             $raise_amount = $total_player_bet - $current_bet_level;
 
@@ -1389,7 +1389,7 @@ class texasholdem extends Table
             }
         } else if ($total_player_bet == $current_bet_level) {
             // All in to call (sufficient stock)
-            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} is all in with ${all_in_value} added to the bet.'), array(
+            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} is all in with ${all_in_value} added to the bet'), array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'additional_bet' => $additional_bet,
@@ -1475,10 +1475,10 @@ class texasholdem extends Table
         }
         $sql .= " WHERE player_id = '" . $player_id. "'";
         if ($valueReceived != $valueGiven) {
-            throw new feException(_("The value of tokens given is different than the value of received tokens."));
+            throw new feException(_("The value of tokens given is different than the value of received tokens"));
         } else {
             self::DbQuery($sql);
-            self::notifyAllPlayers("makeChange", clienttranslate('${player_name} makes some change.'), array(
+            self::notifyAllPlayers("makeChange", clienttranslate('${player_name} makes some change'), array(
                 'player_name' => $player_name,
                 'player_id' => $player_id,
                 'diff_stock' => $diff_stock
@@ -1579,7 +1579,7 @@ class texasholdem extends Table
 
         $hands = $this->cards->getCardsInLocation('hand');
 
-        self::notifyAllPlayers("dealCards", clienttranslate('New hand. Two cards are dealt to each player'), array(
+        self::notifyAllPlayers("dealCards", clienttranslate('New hand. Two cards are dealt to each player.'), array(
             'players' => $players,
             'hands' => $hands
         ));
@@ -1596,7 +1596,7 @@ class texasholdem extends Table
             $player_id = self::getPlayerAfter($player_id);
         }
         $this->gamestate->changeActivePlayer($player_id);
-        self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player.'), array(
+        self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player'), array(
             'player_name' => self::getActivePlayerName(),
             'player_id' => $player_id
         ));
@@ -1614,7 +1614,7 @@ class texasholdem extends Table
             $player_id = self::getPlayerAfter($player_id);
         }
         $this->gamestate->changeActivePlayer($player_id);
-        self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player.'), array(
+        self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player'), array(
             'player_name' => self::getActivePlayerName(),
             'player_id' => $player_id
         ));
@@ -1693,7 +1693,7 @@ class texasholdem extends Table
                     $player_id = self::getPlayerAfter($player_id);
                 }
                 $this->gamestate->changeActivePlayer($player_id);
-                self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player.'), array(
+                self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player'), array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $player_id
                 ));
@@ -1988,7 +1988,7 @@ class texasholdem extends Table
                     $winner_gain = (int)floor($pot_value / count($same_rank_players));
                     $gain_remainder += $pot_value / count($same_rank_players) - floor($pot_value / count($same_rank_players));
 
-                    self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} ${shares_or_wins} the ${pot_name} with ${combo_name} and gets ${winner_gain}.'), array(
+                    self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} ${shares_or_wins} the ${pot_name} with ${combo_name} and gets ${winner_gain}'), array(
                         'i18n' => array('pot_name', 'combo_name', 'shares_or_wins'),
                         'winner_name' => $players[$winner_id]["player_name"],
                         'shares_or_wins' => $shares_or_wins,
@@ -2039,7 +2039,7 @@ class texasholdem extends Table
             // Only one non-folded player => he gets the whole pot
             $total_pot = array_reduce($players_bet, function($sum, $player_bet) {return $sum += $player_bet;});
             $winner_id = array_keys($non_folded_players)[0];
-            self::notifyAllPlayers("allFolded", clienttranslate('${winner_name} wins the round because all other players have folded.'), array(
+            self::notifyAllPlayers("allFolded", clienttranslate('${winner_name} wins the round because all other players have folded'), array(
                 'winner_name' => $players[$winner_id]["player_name"]
             ));
 
@@ -2143,11 +2143,11 @@ class texasholdem extends Table
             }
             
             $this->gamestate->changeActivePlayer($new_small_blind_player);
-            self::notifyAllPlayers("changeDealer", clienttranslate('The dealer becomes ${player_name}.'), array(
+            self::notifyAllPlayers("changeDealer", clienttranslate('The dealer becomes ${player_name}'), array(
                 'player_name' => $players[$dealer]["player_name"],
                 'dealer_id' => $dealer
             ));
-            self::notifyAllPlayers("changeActivePlayer", clienttranslate('The small blind passes to ${player_name}.'), array(
+            self::notifyAllPlayers("changeActivePlayer", clienttranslate('The small blind passes to ${player_name}'), array(
                 'player_name' => self::getActivePlayerName(),
                 'player_id' => $new_small_blind_player,
                 'dealer_id' => $dealer
