@@ -1208,6 +1208,7 @@ function (dojo, declare) {
             dojo.subscribe('changeDealer', this, "notif_changeDealer");
 
             dojo.subscribe('autoblindsChange', this, "notif_autoblindsChange");
+            dojo.subscribe('announceAction', this, "notif_announceAction");
         },  
         
         // TODO: from this point and below, you can write your game notifications handling methods
@@ -2105,7 +2106,19 @@ function (dojo, declare) {
         },
 
         notif_autoblindsChange: function(notif) {
+            console.log('notif_autoblindsChange');
             this.showMessage(_("Autoblinds configuration change applied"), "info");
+        },
+
+        notif_announceAction: function(notif) {
+            console.log('notif_announceAction');
+            var playerId = notif.args.player_id;
+
+            if (playerId != this.player_id) {
+                var message = notif.args.message;
+
+                this.showBubble("overall_player_board_" + playerId, _(message), 0, 5000);
+            }
         }
    });             
 });

@@ -955,6 +955,12 @@ class texasholdem extends Table
         $current_round_stage = self::getGameStateValue("roundStage");
         $blind_value = self::getGameStateValue("smallBlindValue");
 
+        // Send notification for dialog bubble
+        self::notifyAllPlayers("announceAction", '', array(
+            'player_id' => $player_id,
+            'message' => clienttranslate("I place the small blind")
+        ));
+
         // Get current level of bet
         $current_bet_level = self::getGameStateValue("currentBetLevel");
 
@@ -1043,6 +1049,12 @@ class texasholdem extends Table
         $player_name = self::getActivePlayerName();
         $current_round_stage = self::getGameStateValue("roundStage");
         $blind_value = self::getGameStateValue("smallBlindValue");
+
+        // Send notification for dialog bubble
+        self::notifyAllPlayers("announceAction", '', array(
+            'player_id' => $player_id,
+            'message' => clienttranslate("I place the big blind")
+        ));
 
         // Get current level of bet
         $current_bet_level = self::getGameStateValue("currentBetLevel");
@@ -1136,6 +1148,12 @@ class texasholdem extends Table
         $current_round_stage = self::getGameStateValue("roundStage");
         $blind_value = self::getGameStateValue("smallBlindValue");
 
+        // Send notification for dialog bubble
+        self::notifyAllPlayers("announceAction", '', array(
+            'player_id' => $player_id,
+            'message' => clienttranslate("I check")
+        ));
+
         $bet_computation = self::computeBet($tokens, $player_id);
         $additional_bet = $bet_computation["additional_bet"];
         $total_player_bet = $bet_computation["total_player_bet"];
@@ -1180,6 +1198,12 @@ class texasholdem extends Table
 
         // Get current level of bet
         $current_bet_level = self::getGameStateValue("currentBetLevel");
+
+        // Send notification for dialog bubble
+        self::notifyAllPlayers("announceAction", '', array(
+            'player_id' => $player_id,
+            'message' => clienttranslate("I call")
+        ));
 
         $bet_computation = self::computeBet($tokens, $player_id);
         $additional_bet = $bet_computation["additional_bet"];
@@ -1285,10 +1309,24 @@ class texasholdem extends Table
         $sql = $bet_computation["token_update_sql"];
         self::DbQuery($sql);
 
+        $raise_amount = $total_player_bet - $current_bet_level;
+
+        // Send notification for dialog bubble
+        if ($current_bet_level == 0) {
+            self::notifyAllPlayers("announceAction", '', array(
+                'player_id' => $player_id,
+                'message' => _("I bet ${raise_amount}")
+            ));
+        } else {
+            self::notifyAllPlayers("announceAction", '', array(
+                'player_id' => $player_id,
+                'message' => _("I raise by ${raise_amount}")
+            ));
+        }
+
         if ($current_round_stage == 0) {
             throw new feException(_("You are not supposed to raise during the blinds phase"));
         } else if ($total_player_bet > $current_bet_level) {
-            $raise_amount = $total_player_bet - $current_bet_level;
 
             // Check that the player raises by a sufficient amount
             if ($raise_amount >= $minimum_raise) {
@@ -1330,6 +1368,12 @@ class texasholdem extends Table
     function fold($player_id, $tokens) {
         self::checkAction("fold");
         $player_id = self::getActivePlayerId();
+
+        // Send notification for dialog bubble
+        self::notifyAllPlayers("announceAction", '', array(
+            'player_id' => $player_id,
+            'message' => clienttranslate('I fold')
+        ));
 
         $bet_computation = self::computeBet($tokens, $player_id);
         $additional_bet = $bet_computation["additional_bet"];
@@ -1373,6 +1417,12 @@ class texasholdem extends Table
 
         // Get current level of bet
         $current_bet_level = self::getGameStateValue("currentBetLevel");
+
+        // Send notification for dialog bubble
+        self::notifyAllPlayers("announceAction", '', array(
+            'player_id' => $player_id,
+            'message' => clienttranslate('I go all in')
+        ));
 
         $bet_computation = self::computeBet($tokens, $player_id);
         $additional_bet = $bet_computation["additional_bet"];
