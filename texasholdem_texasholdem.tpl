@@ -128,7 +128,10 @@
         </div>
     </div>
 </div>
-
+<div class="slider-checkbox">
+    <input type="checkbox" class="autoblinds" name="autoblinds" id="autoblinds">
+    <label for = "autoblinds" class="label">{AUTOBLINDS_DESCRIPTION}</span>
+</div>
 <script type="text/javascript">
 
 // Javascript HTML templates

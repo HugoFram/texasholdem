@@ -121,6 +121,11 @@ function (dojo, declare) {
                     dojo.query('#playertabletokens_' + player_id + ' > *').connect('onclick', this, 'onStockTokenClicked');
                     // Add relevant onclick event to all immediate children of the element with id bettingarea_{player_id}
                     dojo.query('#bettingarea_' + player_id + ' > *').connect('onclick', this, 'onBetTokenClicked');
+                
+                    // Autoblinds slider
+                    if (player.wants_autoblinds == 1) {
+                        $("autoblinds").checked = true;
+                    }
                 }
 
                 // Compute total values
@@ -225,6 +230,9 @@ function (dojo, declare) {
                 BACKGROUND_POSITION_LEFT_PERCENTAGE: isRiverShown ? -100 * (gamedatas.cardriver[Object.keys(gamedatas.cardriver)[0]].type_arg - 2) : 0,
                 BACKGROUND_POSITION_TOP_PERCENTAGE: isRiverShown ? -100 * (gamedatas.cardriver[Object.keys(gamedatas.cardriver)[0]].type - 1) : 0
             }), 'river');
+
+            // Connect autoblinds check box
+            dojo.query('#autoblinds').connect('change', this, 'onAutoblindsChange');
 
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -1114,6 +1122,13 @@ function (dojo, declare) {
              }, this, function(result) {}, function(is_error) {});
         },
 
+        onAutoblindsChange: function(event) {
+            this.ajaxcall("/texasholdem/texasholdem/autoblinds.html", { 
+                lock: true, 
+                playerId: this.player_id,
+                isAutoblinds: event.target.checked ? 1 : 0
+             }, this, function(result) {}, function(is_error) {});
+        },
         
         ///////////////////////////////////////////////////
         //// Reaction to cometD notifications
@@ -1183,6 +1198,8 @@ function (dojo, declare) {
 
             dojo.subscribe('changeActivePlayer', this, "notif_changeActivePlayer");
             dojo.subscribe('changeDealer', this, "notif_changeDealer");
+
+            dojo.subscribe('autoblindsChange', this, "notif_autoblindsChange");
         },  
         
         // TODO: from this point and below, you can write your game notifications handling methods
@@ -2077,6 +2094,10 @@ function (dojo, declare) {
             });
             anim.play();
             dojo.addClass(currentDealerButton.id, "dealer-button-hidden");
+        },
+
+        notif_autoblindsChange: function(notif) {
+            this.showMessage(_("Autoblinds configuration change applied"), "info");
         }
    });             
 });

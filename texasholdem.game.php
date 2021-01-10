@@ -199,7 +199,7 @@ class texasholdem extends Table
     
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $sql = "SELECT player_id id, player_score score, is_fold, player_stock_token_white stock_white, 
+        $sql = "SELECT player_id id, player_score score, is_fold, wants_autoblinds, player_stock_token_white stock_white, 
             player_stock_token_blue stock_blue, player_stock_token_red stock_red, player_stock_token_green stock_green,
             player_stock_token_black stock_black, player_bet_token_white bet_white, player_bet_token_blue bet_blue,
             player_bet_token_red bet_red, player_bet_token_green bet_green, player_bet_token_black bet_black FROM player ";
@@ -1492,6 +1492,12 @@ class texasholdem extends Table
         }
     }
 
+    function changeAutoblinds($player_id, $is_checked) {
+        self::trace("Autoblinds for player ${player_id}: " . ($is_checked == 1 ? "enabled" : "disabled"));
+        $sql = "UPDATE player SET wants_autoblinds = ${is_checked} WHERE player_id = ${player_id}";
+        self::DbQuery($sql);
+        self::notifyPlayer($player_id, "autoblindsChange", '', array());
+    }
     
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state arguments
@@ -1596,7 +1602,6 @@ class texasholdem extends Table
             $sql = "SELECT player_id, player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
                 player_stock_token_green, player_stock_token_black FROM player WHERE player_id = ${player_id}";
             $player_stock = self::getCollectionFromDb($sql)[$player_id];
-            //self::varDumpToString($player_stock);
             $tokens = array(
                 $player_stock['player_stock_token_white'], 0, 
                 $player_stock['player_stock_token_blue'], 0,

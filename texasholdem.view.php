@@ -106,6 +106,8 @@
             ));
         }
 
+        $this->tpl['AUTOBLINDS_DESCRIPTION'] = self::_("Place blinds automatically");
+
         /*********** Do not change anything below this line  ************/
   	}
   }
