@@ -1593,7 +1593,7 @@ class texasholdem extends Table
         }
 
         // All in
-        if ($player_tokens["stock"] < $current_bet_level || ($player_tokens["stock"] - $current_bet_level) > $minimum_raise) {
+        if ($player_tokens["stock"] <= $current_bet_level || ($player_tokens["stock"] - $current_bet_level) > $minimum_raise) {
             $possible_actions["all_in"] = TRUE;
         } else {
             $possible_actions["all_in"] = FALSE;

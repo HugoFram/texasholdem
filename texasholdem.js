@@ -871,6 +871,13 @@ function (dojo, declare) {
             // Check that this action is possible (see "possibleactions" in states.inc.php)
             if(!this.checkAction('placeBet')) return;
 
+            this.confirmationDialog( _('Are you sure you want to go all in?'), dojo.hitch( this, function() {
+                this.confirmAllIn();
+            } ) ); 
+            return;
+        },
+
+        confirmAllIn: function() {
             var colors = ["white", "blue", "red", "green", "black"];
             
             var valuesString = "";
