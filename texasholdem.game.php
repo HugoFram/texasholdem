@@ -1752,7 +1752,7 @@ class texasholdem extends Table
         $num_all_in_players = self::getGameStateValue("numAllInPlayers");
         $num_eliminated_players = self::getGameStateValue("numEliminatedPlayers");
         if (($num_folded_players + $num_all_in_players + $num_eliminated_players) >= ($num_players - 1)) {
-            if (self::getGameStateValue("roundStage") == 1 && self::getGameStateValue("currentBetLevel") < 2 * self::getGameStateValue("smallBlindValue")) {
+            if (self::getGameStateValue("roundStage") == 1) {
                 $this->gamestate->nextState("startRound");
             } else {
                 $this->gamestate->nextState("allAllIn");
