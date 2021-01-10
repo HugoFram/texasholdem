@@ -82,7 +82,7 @@
           $tokens = explode( ';', $tokens_raw);
         }
 
-        $this->game->placeSmallBlind($tokens);
+        $this->game->placeSmallBlind($tokens, false);
 
         self::ajaxResponse();
     }
@@ -106,7 +106,7 @@
           $tokens = explode( ';', $tokens_raw);
         }
 
-        $this->game->placeBigBlind($tokens);
+        $this->game->placeBigBlind($tokens, false);
 
         self::ajaxResponse();
     }

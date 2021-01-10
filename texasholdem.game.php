@@ -82,7 +82,7 @@ class texasholdem extends Table
         $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar, player_score,
             player_stock_token_white, player_stock_token_blue, player_stock_token_red, player_stock_token_green,
             player_stock_token_black, player_bet_token_white, player_bet_token_blue,
-            player_bet_token_red, player_bet_token_green, player_bet_token_black, is_fold, is_all_in) VALUES ";
+            player_bet_token_red, player_bet_token_green, player_bet_token_black, is_fold, is_all_in, wants_autoblinds) VALUES ";
         $values = array();
         $initial_score = 100;
         $initial_white_tokens = 10;
@@ -93,12 +93,14 @@ class texasholdem extends Table
         $initial_bet_tokens = 0;
         $initial_is_fold = 0;
         $initial_is_all_in = 0;
+        $initial_wants_autoblinds = 1;
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
             $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."',".
                 $initial_score.",".$initial_white_tokens.",".$initial_blue_tokens.",".$initial_red_tokens.",".$initial_green_tokens.",".$initial_black_tokens.",".
-                $initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_is_fold.",".$initial_is_all_in.")";
+                $initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_is_fold.",".$initial_is_all_in.
+                ",".$initial_wants_autoblinds.")";
         }
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
@@ -933,8 +935,10 @@ class texasholdem extends Table
     
     */
 
-    function placeSmallBlind($tokens) {
-        self::checkAction("placeSmallBlind");
+    function placeSmallBlind($tokens, $is_auto) {
+        if (!$is_auto) {
+            self::checkAction("placeSmallBlind");
+        }
         $player_id = self::getActivePlayerId();
         $player_name = self::getActivePlayerName();
         $current_round_stage = self::getGameStateValue("roundStage");
@@ -1020,8 +1024,10 @@ class texasholdem extends Table
         $this->gamestate->nextState('placeSmallBlind');
     }
 
-    function placeBigBlind($tokens) {
-        self::checkAction("placeBigBlind");
+    function placeBigBlind($tokens, $is_auto) {
+        if (!$is_auto) {
+            self::checkAction("placeBigBlind");
+        }
         $player_id = self::getActivePlayerId();
         $player_name = self::getActivePlayerName();
         $current_round_stage = self::getGameStateValue("roundStage");
@@ -1555,7 +1561,7 @@ class texasholdem extends Table
         self::DbQuery($sql);
 
         // Deal two cards to each player
-        $players = self::getCollectionFromDb("SELECT player_id, player_eliminated FROM player");
+        $players = self::getCollectionFromDb("SELECT player_id, player_eliminated, wants_autoblinds FROM player");
         foreach ($players as $player_id => $player) {
             if (!$player["player_eliminated"]) {
                 $cards = $this->cards->pickCards(2, 'deck', $player_id);
@@ -1584,11 +1590,28 @@ class texasholdem extends Table
             'hands' => $hands
         ));
 
-        $this->gamestate->nextState();
+        $player_id = self::getActivePlayerId();
+        if ($players[$player_id]["wants_autoblinds"]) {
+            // Build tokens array as if it was sent by the frontend
+            $sql = "SELECT player_id, player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
+                player_stock_token_green, player_stock_token_black FROM player WHERE player_id = ${player_id}";
+            $player_stock = self::getCollectionFromDb($sql)[$player_id];
+            //self::varDumpToString($player_stock);
+            $tokens = array(
+                $player_stock['player_stock_token_white'], 0, 
+                $player_stock['player_stock_token_blue'], 0,
+                $player_stock['player_stock_token_red'], 0,
+                $player_stock['player_stock_token_green'], 0,
+                $player_stock['player_stock_token_black'], 0,
+            );
+            self::placeSmallBlind($tokens, true);
+        } else {
+            $this->gamestate->nextState("manualSmallBlind");
+        }
     }
 
     function stToBigBlind() {
-        $players = self::getCollectionFromDb("SELECT player_id, is_fold, is_all_in, player_eliminated FROM player");
+        $players = self::getCollectionFromDb("SELECT player_id, is_fold, is_all_in, player_eliminated, wants_autoblinds FROM player");
 
         // Skip player if he has folded or is already all in
         $player_id = self::getPlayerAfter(self::getActivePlayerId());
@@ -1596,12 +1619,28 @@ class texasholdem extends Table
             $player_id = self::getPlayerAfter($player_id);
         }
         $this->gamestate->changeActivePlayer($player_id);
-        self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player'), array(
-            'player_name' => self::getActivePlayerName(),
-            'player_id' => $player_id
-        ));
-        self::giveExtraTime($player_id);
-        $this->gamestate->nextState("bigBlind");
+
+        if ($players[$player_id]["wants_autoblinds"]) {
+            // Build tokens array as if it was sent by the frontend
+            $sql = "SELECT player_id, player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
+                player_stock_token_green, player_stock_token_black FROM player WHERE player_id = ${player_id}";
+            $player_stock = self::getCollectionFromDb($sql)[$player_id];
+            $tokens = array(
+                $player_stock['player_stock_token_white'], 0, 
+                $player_stock['player_stock_token_blue'], 0,
+                $player_stock['player_stock_token_red'], 0,
+                $player_stock['player_stock_token_green'], 0,
+                $player_stock['player_stock_token_black'], 0,
+            );
+            self::placeBigBlind($tokens, true);
+        } else {
+            self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player'), array(
+                'player_name' => self::getActivePlayerName(),
+                'player_id' => $player_id
+            ));
+            self::giveExtraTime($player_id);
+            $this->gamestate->nextState("manualBigBlind");
+        }
     }
 
     function stToBetRound() {

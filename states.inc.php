@@ -68,7 +68,7 @@ $machinestates = array(
         "type" => "game",
         "action" => "stNewHand",
         "updateGameProgression" => true,   
-        "transitions" => array( "" => 21 )
+        "transitions" => array("manualSmallBlind" => 21, "placeSmallBlind" => 22)
     ),
 
     // Small blind player's turn
@@ -88,7 +88,7 @@ $machinestates = array(
         "description" => "",
         "type" => "game",
         "action" => "stToBigBlind",
-        "transitions" => array( "bigBlind" => 23)
+        "transitions" => array("manualBigBlind" => 23, "placeBigBlind" => 24)
     ), 
 
     // Big blind player's turn

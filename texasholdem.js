@@ -1145,6 +1145,7 @@ function (dojo, declare) {
 
             dojo.subscribe('increaseBlinds', this, "notif_increaseBlinds");
             dojo.subscribe('dealCards', this, "notif_dealCards");
+            this.notifqueue.setSynchronous('dealCards', 1000);
 
             dojo.subscribe('moveTokens', this, "notif_moveTokens");
             this.notifqueue.setSynchronous('moveTokens', 2000);
