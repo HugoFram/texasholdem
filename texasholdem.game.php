@@ -327,10 +327,16 @@ class texasholdem extends Table
         $values_occurrences = array();
         $suits_occurrences = array();
         $is_straight = FALSE;
+        $has_ace = FALSE;
 
         foreach($cards_flat as $card_id => $card) {
             $card_value = (int)(floor($card / 4) + 2);
             $card_suit = $card % 4 + 1;
+
+            // Check if card is ace as it has a special behaviour for straights
+            if ($card_value == 14) {
+                $has_ace = TRUE;
+            }
 
             // Increase the number of occurrences of this value
             if (!array_key_exists($card_value, $values_occurrences)) {
@@ -354,9 +360,14 @@ class texasholdem extends Table
                 $diff_value = $card_value - (int)(floor($cards_flat[$card_id - 1] / 4) + 2);
                 if ($diff_value == -1) {
                     $num_consecutive++;
-                    if ($num_consecutive >= 5 && !$is_straight) {
+                    if (($num_consecutive >= 5 || ($num_consecutive >= 4 && $has_ace && $card_value == 2)) && !$is_straight) {
                         $is_straight = TRUE;
-                        $straight_lowest_value = $card_value;
+                        if ($num_consecutive >= 4 && $has_ace && $card_value == 2) {
+                            // Case of Ace-2-3-4-5 straight
+                            $straight_lowest_value = 1;
+                        } else {
+                            $straight_lowest_value = $card_value;
+                        }
                     }
                 } else if ($diff_value < -1) {
                     $num_consecutive = 1;
@@ -439,7 +450,7 @@ class texasholdem extends Table
 
             foreach ($hand as $card) {
                 // Check if card is between lowest straight value and (4 + lowest straigh value)
-                if ($card["type_arg"] <= ($straight_lowest_value + 4) && $card["type_arg"] >= $straight_lowest_value) {
+                if (($card["type_arg"] <= ($straight_lowest_value + 4) && $card["type_arg"] >= $straight_lowest_value) || ($straight_lowest_value == 1 && $card["type_arg"] == 14)) {
                     // Check if a card with the same value is already in the selected cards
                     if (!in_array($card["type_arg"], array_map(function($card) {return $card["type_arg"];}, $best_combo_hand))) {
                         $best_combo_hand[] = $card;
