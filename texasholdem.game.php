@@ -1131,7 +1131,7 @@ class texasholdem extends Table
         $diff_stock = $bet_computation["diff_stock"];
 
         if ($current_round_stage == 1) {
-            if ($current_bet_level != 2 * $blind_value || $total_player_bet != 2 * $blind_value || $additional_bet > 0) {
+            if ($current_bet_level != 2 * $blind_value || $total_player_bet != 2 * $blind_value) {
                 throw new BgaUserException(_("You cannot check at this stage"));
             }
         } else {
@@ -1532,6 +1532,66 @@ class texasholdem extends Table
 
     function argBigBlind() {
         return array('bigblind' => 2 * self::getGameStateValue("smallBlindValue"));
+    }
+
+    function argPlayerTurn() {
+        $round_stage = self::getGameStateValue("roundStage");
+        $player_id = self::getActivePlayerId();
+        $current_bet_level = self::getGameStateValue("currentBetLevel");
+        $minimum_raise = self::getGameStateValue("minimumRaise");
+        $small_blind = self::getGameStateValue("smallBlindValue");
+        $big_blind = 2 * $small_blind;
+        $player_tokens = self::getPlayersTokens()[$player_id];
+
+        $possible_actions = array();
+
+        // Check
+        if (self::getGameStateValue("roundStage") == 1) {
+            if ($current_bet_level == $big_blind && $player_tokens["bet"] == $big_blind) {
+                $possible_actions["check"] = TRUE;
+            } else {
+                $possible_actions["check"] = FALSE;
+            }
+        } else {
+            if ($current_bet_level == 0 && $player_tokens["bet"] == 0) {
+                $possible_actions["check"] = TRUE;
+            } else {
+                $possible_actions["check"] = FALSE;
+            }
+        }
+
+        // Call
+        if ($player_tokens["bet"] < $current_bet_level) {
+            $possible_actions["call"] = TRUE;
+        } else {
+            $possible_actions["call"] = FALSE;
+        }
+
+        // Raise
+        if (0 < $current_bet_level && $player_tokens["bet"] <= $current_bet_level) {
+            $possible_actions["raise"] = TRUE;
+        } else {
+            $possible_actions["raise"] = FALSE;
+        }
+
+        // Bet
+        if ($player_tokens["bet"] == 0 && $current_bet_level == 0) {
+            $possible_actions["bet"] = TRUE;
+        } else {
+            $possible_actions["bet"] = FALSE;
+        }
+
+        // All in
+        if ($player_tokens["stock"] < $current_bet_level || ($player_tokens["stock"] - $current_bet_level) > $minimum_raise) {
+            $possible_actions["all_in"] = TRUE;
+        } else {
+            $possible_actions["all_in"] = FALSE;
+        }
+
+        // Fold
+        $possible_actions["fold"] = TRUE;
+        
+        return $possible_actions;
     }
 
 //////////////////////////////////////////////////////////////////////////////

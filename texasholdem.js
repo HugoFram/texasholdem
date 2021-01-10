@@ -332,11 +332,12 @@ function (dojo, declare) {
                         break;
 
                     case 'playerTurn':
-                        this.addActionButton('check', _('Check'), 'onCheck'); 
-                        this.addActionButton('call', _('Call'), 'onCall'); 
-                        this.addActionButton('raise', _('Raise'), 'onRaise'); 
-                        this.addActionButton('fold', _('Fold'), 'onFold');
-                        this.addActionButton('all_in', _('All in'), 'onAllIn'); 
+                        if (args.check) this.addActionButton('check', _('Check'), 'onCheck'); 
+                        if (args.call) this.addActionButton('call', _('Call'), 'onCall'); 
+                        if (args.raise) this.addActionButton('raise', _('Raise'), 'onRaise'); 
+                        if (args.bet) this.addActionButton('bet', _('Bet'), 'onRaise'); 
+                        if (args.fold) this.addActionButton('fold', _('Fold'), 'onFold');
+                        if (args.all_in) this.addActionButton('all_in', _('All in'), 'onAllIn'); 
                         this.addActionButton('change', _('Make change'), 'onMakeChange');
                         break;
 

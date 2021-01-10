@@ -126,6 +126,7 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} must call, raise, or fold'),
         "descriptionmyturn" => clienttranslate('${you} must call, raise, or fold'),
         "type" => "activeplayer",
+        "args" => "argPlayerTurn",
         "possibleactions" => array( "placeBet", "fold", "makeChange" ),
         "transitions" => array( "placeBet" => 41, "fold" => 41, "zombiePass" => 98)
     ),
