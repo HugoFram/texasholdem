@@ -96,7 +96,7 @@ function (dojo, declare) {
                     dojo.place(this.format_block('jstpl_player_stock_token', {
                         TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
                         TOKEN_NUM: stockTokens
-                    }), 'token' + color + '_' + player_id);
+                    }), 'token' + color + '_' + player_id, "first");
                     if (stockTokens > 0) {
                         if (dojo.hasClass('token' + color + '_' + player_id, "tokenhidden")) {
                             dojo.removeClass('token' + color + '_' + player_id, "tokenhidden");
@@ -115,7 +115,7 @@ function (dojo, declare) {
                     dojo.place(this.format_block('jstpl_player_bet_token', {
                         TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
                         TOKEN_NUM: betTokens
-                    }), 'bettoken' + color + '_' + player_id);
+                    }), 'bettoken' + color + '_' + player_id, "first");
                     if (betTokens > 0) {
                         if (dojo.hasClass('bettoken' + color + '_' + player_id, "tokenhidden")) {
                             dojo.removeClass('bettoken' + color + '_' + player_id, "tokenhidden");
@@ -180,7 +180,7 @@ function (dojo, declare) {
                 dojo.place(this.format_block('jstpl_table_token', {
                     TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
                     TOKEN_NUM: tokenNum
-                }), 'token' + color + '_table');
+                }), 'token' + color + '_table', "first");
 
                 if (tokenNum > 0) {
                     if (dojo.hasClass('token' + color + '_table', "tokenhidden")) {

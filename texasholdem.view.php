@@ -76,11 +76,11 @@
         
         */
 
-        $this->tpl['TOKEN_VALUE_WHITE'] = " = " . $this->game->token_values["white"];
-        $this->tpl['TOKEN_VALUE_BLUE'] = " = " . $this->game->token_values["blue"];
-        $this->tpl['TOKEN_VALUE_RED'] = " = " . $this->game->token_values["red"];
-        $this->tpl['TOKEN_VALUE_GREEN'] = " = " . $this->game->token_values["green"];
-        $this->tpl['TOKEN_VALUE_BLACK'] = " = " . $this->game->token_values["black"];
+        $this->tpl['CHANGE_TOKEN_VALUE_WHITE'] = " = " . $this->game->token_values["white"];
+        $this->tpl['CHANGE_TOKEN_VALUE_BLUE'] = " = " . $this->game->token_values["blue"];
+        $this->tpl['CHANGE_TOKEN_VALUE_RED'] = " = " . $this->game->token_values["red"];
+        $this->tpl['CHANGE_TOKEN_VALUE_GREEN'] = " = " . $this->game->token_values["green"];
+        $this->tpl['CHANGE_TOKEN_VALUE_BLACK'] = " = " . $this->game->token_values["black"];
 
         $players_dir = $this->game->getPlayerDirections();
 
@@ -107,6 +107,12 @@
         }
 
         $this->tpl['AUTOBLINDS_DESCRIPTION'] = self::_("Place blinds automatically");
+        $this->tpl['TOKEN_VALUE_WHITE'] = $this->game->token_values["white"];
+        $this->tpl['TOKEN_VALUE_BLUE'] = $this->game->token_values["blue"];
+        $this->tpl['TOKEN_VALUE_RED'] = $this->game->token_values["red"];
+        $this->tpl['TOKEN_VALUE_GREEN'] = $this->game->token_values["green"];
+        $this->tpl['TOKEN_VALUE_BLACK'] = $this->game->token_values["black"];
+        $this->tpl['CURRENCY'] = self::_("$");
 
         /*********** Do not change anything below this line  ************/
   	}

@@ -27,19 +27,19 @@
 
 <div class="changetable whiteblock" id = "changetable">
     <div class = "token tokenwhite changetoken" id = "changetokenwhite">
-        <span class = "changetokenvalue">{TOKEN_VALUE_WHITE}</span>
+        <span class = "changetokenvalue">{CHANGE_TOKEN_VALUE_WHITE}</span>
     </div>
     <div class = "token tokenblue changetoken" id = "changetokenblue">
-        <span class = "changetokenvalue">{TOKEN_VALUE_BLUE}</span>
+        <span class = "changetokenvalue">{CHANGE_TOKEN_VALUE_BLUE}</span>
     </div>
     <div class = "token tokenred changetoken" id = "changetokenred">
-        <span class = "changetokenvalue">{TOKEN_VALUE_RED}</span>
+        <span class = "changetokenvalue">{CHANGE_TOKEN_VALUE_RED}</span>
     </div>
     <div class = "token tokengreen changetoken" id = "changetokengreen">
-        <span class = "changetokenvalue">{TOKEN_VALUE_GREEN}</span>
+        <span class = "changetokenvalue">{CHANGE_TOKEN_VALUE_GREEN}</span>
     </div>
     <div class = "token tokenblack changetoken" id = "changetokenblack">
-        <span class = "changetokenvalue">{TOKEN_VALUE_BLACK}</span>
+        <span class = "changetokenvalue">{CHANGE_TOKEN_VALUE_BLACK}</span>
     </div>
 </div>
 <div id = "table">
@@ -48,19 +48,19 @@
         <div class = "dealer-button dealer-button-hidden" id = "dealer_button_{PLAYER_ID}"></div>
         <div class = "bettokens" id = "bettingarea_{PLAYER_ID}">
             <div class = "token tokenwhite bettoken" id = "bettokenwhite_{PLAYER_ID}">
-                
+                <div class = "tokenvalue tokennumberdark">{CURRENCY}{TOKEN_VALUE_WHITE}</div>
             </div>
             <div class = "token tokenblue bettoken" id = "bettokenblue_{PLAYER_ID}">
-
+                <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_BLUE}</div>
             </div>
             <div class = "token tokenred bettoken" id = "bettokenred_{PLAYER_ID}">
-
+                <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_RED}</div>
             </div>
             <div class = "token tokengreen bettoken" id = "bettokengreen_{PLAYER_ID}">
-
+                <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_GREEN}</div>
             </div>
             <div class = "token tokenblack bettoken" id = "bettokenblack_{PLAYER_ID}">
-
+                <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_BLACK}</div>
             </div>
         </div>
         <div class="total-badge playerbettotal" id = "playerbettotal_{PLAYER_ID}" style = "background-color:#{PLAYER_COLOR}55">{PLAYER_BET_TOTAL}</div>
@@ -73,19 +73,19 @@
         </div>
         <div class="playertabletokens" id="playertabletokens_{PLAYER_ID}">
             <div class = "token tokenwhite" id = "tokenwhite_{PLAYER_ID}">
-                
+                <div class = "tokenvalue tokennumberdark">{CURRENCY}{TOKEN_VALUE_WHITE}</div>
             </div>
             <div class = "token tokenblue" id = "tokenblue_{PLAYER_ID}">
-
+                <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_BLUE}</div>
             </div>
             <div class = "token tokenred" id = "tokenred_{PLAYER_ID}">
-
+                <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_RED}</div>
             </div>
             <div class = "token tokengreen" id = "tokengreen_{PLAYER_ID}">
-
+                <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_GREEN}</div>
             </div>
             <div class = "token tokenblack" id = "tokenblack_{PLAYER_ID}">
-
+                <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_BLACK}</div>
             </div>
         </div>
     </div>
@@ -93,19 +93,19 @@
     <div class = "playingarea">
         <div class = "tabletokens" id = "previousroundtokens">
             <div class = "token tokenwhite" id = "tokenwhite_table">
-
+                <div class = "tokenvalue tokennumberdark">{CURRENCY}{TOKEN_VALUE_WHITE}</div>
             </div>
             <div class = "token tokenblue" id = "tokenblue_table">
-
+                <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_BLUE}</div>
             </div>
             <div class = "token tokenred"  id = "tokenred_table">
-
+                <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_RED}</div>
             </div>
             <div class = "token tokengreen tokenhidden" id = "tokengreen_table">
-
+                <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_GREEN}</div>
             </div>
             <div class = "token tokenblack" id = "tokenblack_table">
-
+                <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_BLACK}</div>
             </div>
         </div>
         <div class="total-badge pottotal" id = "pottotal">0</div>
@@ -184,7 +184,7 @@ var jstpl_change_board=' \
 
 var jstpl_change_token = ' \
     <div class = "token token${TOKEN_COLOR} ${TOKEN_CLASS}" id = "${TOKEN_ID}"> \
-        <div class = "tokennumber ${TEXT_CLASS}">${TOKEN_NUM}</div> \
+        <div class = "changetokennumber ${TEXT_CLASS}">${TOKEN_NUM}</div> \
     </div> \
 ';
 
