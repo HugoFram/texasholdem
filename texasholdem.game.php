@@ -2514,6 +2514,12 @@ class texasholdem extends Table
 //
 //
 
+        if( $from_version <= 2101072144 ) {
+            // ! important ! Use DBPREFIX_<table_name> for all tables
+
+            $sql = "ALTER TABLE DBPREFIX_player ADD wants_autoblinds BOOLEAN DEFAULT false;";
+            self::applyDbUpgradeToAllDB( $sql );
+        }
 
     }    
 }
