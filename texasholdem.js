@@ -1323,8 +1323,8 @@ function (dojo, declare) {
             // 
 
             dojo.subscribe('increaseBlinds', this, "notif_increaseBlinds");
-            dojo.subscribe('dealCards', this, "notif_dealCards");
-            this.notifqueue.setSynchronous('dealCards', 1000);
+            dojo.subscribe('dealCardsPlayer', this, "notif_dealCardsPlayer");
+            this.notifqueue.setSynchronous('dealCardsPlayer', 1000);
 
             dojo.subscribe('moveTokens', this, "notif_moveTokens");
             this.notifqueue.setSynchronous('moveTokens', 2000);
@@ -1391,8 +1391,8 @@ function (dojo, declare) {
             this.showMessage(_("The blinds are increased to " + smallBlind + "/" + bigBlind), "info")
         },
 
-        notif_dealCards: function(notif) {
-            console.log('notif_dealCards');
+        notif_dealCardsPlayer: function(notif) {
+            console.log('notif_dealCardsPlayer');
 
             // Display cards in hand
             var hands = notif.args.hands;

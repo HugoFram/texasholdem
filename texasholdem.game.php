@@ -208,7 +208,15 @@ class texasholdem extends Table
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
   
         // Cards in player hand
-        $result['hands'] = $this->cards->getCardsInLocation('hand');
+        $hands_cards = $this->cards->getCardsInLocation('hand');
+        foreach ($hands_cards as $card_id => $card) {
+            if ($card["location_arg"] != $current_player_id) {
+                // Hide the actual value of other player cards to avoid JS interception cheat
+                $hands_cards[$card_id]["type"] = 0;
+                $hands_cards[$card_id]["type_arg"] = 0;
+            }
+        }
+        $result['hands'] = $hands_cards;
 
         // Cards played on the table
         $result['cardsflop'] = $this->cards->getCardsInLocation('flop');
@@ -1710,12 +1718,24 @@ class texasholdem extends Table
             self::setGameStateValue("smallBlindValue", $new_small_blind);
         }
 
-        $hands = $this->cards->getCardsInLocation('hand');
+        self::notifyAllPlayers("dealCards", clienttranslate('New hand. Two cards are dealt to each player.'), array());
 
-        self::notifyAllPlayers("dealCards", clienttranslate('New hand. Two cards are dealt to each player.'), array(
-            'players' => $players,
-            'hands' => $hands
-        ));
+        // Send individual notification to each player hiding other players cards
+        foreach ($players as $player_id => $player) {
+            $hands_cards = $this->cards->getCardsInLocation('hand');
+            $player_hand = $hands_cards;
+            foreach ($player_hand as $card_id => $card) {
+                if ($card["location_arg"] != $player_id) {
+                    // Hide the actual value of other player cards to avoid JS interception cheat
+                    $player_hand[$card_id]["type"] = 0;
+                    $player_hand[$card_id]["type_arg"] = 0;
+                }
+            }
+            self::notifyPlayer($player_id, "dealCardsPlayer", '', array(
+                'players' => $players,
+                'hands' => $player_hand
+            ));
+        }
 
         $player_id = self::getActivePlayerId();
         if ($players[$player_id]["wants_autoblinds"]) {
