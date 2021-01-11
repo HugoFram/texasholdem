@@ -45,8 +45,8 @@
 <div id = "table">
     <!-- BEGIN player -->
     <div class="playertable whiteblock playertable_{DIR}">
-        <div class = "dealer-button dealer-button-hidden" id = "dealer_button_{PLAYER_ID}"></div>
-        <div class = "bettokens" id = "bettingarea_{PLAYER_ID}">
+        <div class = "dealer-button dealer-button-hidden orientation_{DIR}" id = "dealer_button_{PLAYER_ID}"></div>
+        <div class = "bettokens orientation_{DIR}" id = "bettingarea_{PLAYER_ID}">
             <div class = "token tokenwhite bettoken" id = "bettokenwhite_{PLAYER_ID}">
                 <div class = "tokenvalue tokennumberdark">{CURRENCY}{TOKEN_VALUE_WHITE}</div>
             </div>
@@ -63,7 +63,7 @@
                 <div class = "tokenvalue tokennumberlight">{CURRENCY}{TOKEN_VALUE_BLACK}</div>
             </div>
         </div>
-        <div class="total-badge playerbettotal" id = "playerbettotal_{PLAYER_ID}" style = "background-color:#{PLAYER_COLOR}55">{PLAYER_BET_TOTAL}</div>
+        <div class="total-badge playerbettotal orientation_{DIR}" id = "playerbettotal_{PLAYER_ID}" style = "background-color:#{PLAYER_COLOR}55">{PLAYER_BET_TOTAL}</div>
         <div class="playertablename" style="color:#{PLAYER_COLOR}">
             {PLAYER_NAME}
         </div>

@@ -402,26 +402,22 @@ function (dojo, declare) {
                 if (playerTable == null || dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_W")) {
                     targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(source.id, "top");
                     targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "left");
-                } else if (dojo.hasClass(playerTable, "playertable_S")) {
+                } else if (dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_N")) {
                     targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "top");
                     targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "left");
-                } else if (dojo.hasClass(playerTable, "playertable_N")) {
-                    targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(source.id, "top");
-                    targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(source.id, "left");
                 } else if (dojo.hasClass(playerTable, "playertable_E") || dojo.hasClass(playerTable, "playertable_NE") || dojo.hasClass(playerTable, "playertable_SE")) {
                     targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "top");
                     targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(source.id, "left");
                 }
             } else {
-                if (playerTable == null || dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_SE")) {
+                if (playerTable == null || dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || 
+                    dojo.hasClass(playerTable, "playertable_SE") || dojo.hasClass(playerTable, "playertable_NW") || 
+                    dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
                     targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "top");
                     targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "left");
                 } else if (dojo.hasClass(playerTable, "playertable_W")) {
                     targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(source.id, "top");
                     targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "left");
-                } else if (dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
-                    targetTopValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(source.id, "top");
-                    targetLeftValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(source.id, "left");
                 } else if (dojo.hasClass(playerTable, "playertable_E")) {
                     targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "top");
                     targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(source.id, "left");

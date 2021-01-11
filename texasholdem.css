@@ -99,8 +99,18 @@
     }
 
     .playerbettotal {
-        left: 10px;
+        
+    }
+
+    .playerbettotal.orientation_NW, .playerbettotal.orientation_N, .playerbettotal.orientation_NE {
+        bottom: -95px;
+        right: 10px;
+    }
+    
+    .playerbettotal.orientation_SW, .playerbettotal.orientation_S, .playerbettotal.orientation_SE,
+    .playerbettotal.orientation_W, .playerbettotal.orientation_E {
         top: -95px;
+        left: 10px;
     }
     
     .playertable_S {
@@ -126,21 +136,18 @@
         left: 25%;
         top: -130px;
         margin-left: -135px;
-        transform: rotate(180deg);
     }
     
     .playertable_N {
         left: 50%;
         top: -130px;
         margin-left: -135px;
-        transform: rotate(180deg);
     }
     
     .playertable_NE {
         left: 75%;
         top: -130px;
         margin-left: -135px;
-        transform: rotate(180deg);
     }
     
     .playertable_E {
@@ -173,6 +180,15 @@
         background-image: url("img/dealer_button50.png");
         top: -105px;
         left: 110px;
+    }
+
+    .dealer-button.orientation_NW, .dealer-button.orientation_N, .dealer-button.orientation_NE {
+        bottom: -105px;
+    }
+
+    .dealer-button.orientation_SW, .dealer-button.orientation_S, .dealer-button.orientation_SE, 
+    .dealer-button.orientation_W, .dealer-button.orientation_E {
+        top: -105px;
     }
 }
 
@@ -209,9 +225,19 @@
     }
 
     .playerbettotal {
-        left: 10px;
-        top: -75px;
         font-size: 12px;
+    }
+
+    .playerbettotal.orientation_N {
+        bottom: -75px;
+        right: 10px;
+    }
+    
+    .playerbettotal.orientation_SW, .playerbettotal.orientation_S, .playerbettotal.orientation_SE,
+    .playerbettotal.orientation_W, .playerbettotal.orientation_E,
+    .playerbettotal.orientation_NW, .playerbettotal.orientation_NE {
+        top: -75px;
+        left: 10px;
     }
     
     .playertable_S {
@@ -245,7 +271,6 @@
         left: 50%;
         top: -150px;
         margin-left: -135px;
-        transform: rotate(180deg);
     }
     
     .playertable_NE {
@@ -360,10 +385,18 @@
 .bettokens {
     position: absolute;
     left: 0px;
-    top: -65px;
     width: 250px;
     height: 60px;
     margin: 5px 0px 5px 0px;
+}
+
+.bettokens.orientation_NW, .bettokens.orientation_N, .bettokens.orientation_NE {
+    bottom: -65px;
+}
+
+.bettokens.orientation_SW, .bettokens.orientation_S, .bettokens.orientation_SE,
+.bettokens.orientation_W, .bettokens.orientation_E {
+    top: -65px;
 }
 
 .token {
