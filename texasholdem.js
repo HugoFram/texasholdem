@@ -56,7 +56,7 @@ function (dojo, declare) {
             for( var player_id in gamedatas.players )
             {
                 var player = gamedatas.players[player_id];
-                         
+
                 // TODO: Setting up players boards if needed
 
                 var tokenColors = ["white", "blue", "red", "green", "black"];
@@ -153,12 +153,26 @@ function (dojo, declare) {
                 // Compute total values
                 this.updateTotal("stock", player_id);
                 this.updateTotal("bet", player_id);
+                var playerbettotal = $("playerbettotal_" + player_id);
+                var playerstocktotal = $("playerstocktotal_" + player_id);
                 if (parseInt(player.eliminated)) {
-                    var playerbettotal = $("playerbettotal_" + player_id);
-                    var playerstocktotal = $("playerstocktotal_" + player_id);
                     this.fadeOutAndDestroy(playerbettotal, 500);
                     this.fadeOutAndDestroy(playerstocktotal, 500);
                 }
+
+                // Add totals tooltips
+                if (player_id == this.player_id) {
+                    this.addTooltip(playerstocktotal.id, _("This is the amount you still have in stock"), '');
+                    this.addTooltip(playerbettotal.id, _("This is the amount you have bet for this betting round"), '');
+                } else {
+                    this.addTooltip(playerstocktotal.id, _("This is the amount " + player.name + " still has in stock"), '');
+                    this.addTooltip(playerbettotal.id, _("This is the amount " + player.name + " has bet for this betting round"), '');
+                }
+
+                // Add tooltips to tokens
+                this.updateTooltips("pot", null);
+                this.updateTooltips("stock", player_id);
+                this.updateTooltips("bet", player_id);
             }
 
             // Highlight the table of the currently active player
@@ -193,6 +207,7 @@ function (dojo, declare) {
 
             // Compute total values
             this.updateTotal("pot", null);
+            this.addTooltip('pottotal', _("This is the total amount bet at previous betting rounds by all players"), '');
 
             // Display cards in hand
             var hands = gamedatas.hands;
@@ -469,6 +484,102 @@ function (dojo, declare) {
             }, this);
         },
 
+        updateTooltips: function(source, sourceArg) {
+            var colors = ["white", "blue", "red", "green", "black"];
+
+            colors.forEach((color) => {
+                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
+                switch(source) {
+                    case "pot":
+                        var token = $("token" + color + "_table");
+                        var tokenNumber = token.firstElementChild.textContent;
+                        this.removeTooltip(token);
+                        if (tokenNumber > 1) {
+                            this.addTooltip(
+                                token.id, 
+                                _("There are " + tokenNumber + " " + color + " chips"), 
+                                ''
+                            );
+                        } else if (tokenNumber == 1) {
+                            this.addTooltip(
+                                token.id, 
+                                _("There is " + tokenNumber + " " + color + " chip"), 
+                                ''
+                            );
+                        }
+                        break;
+                    case "stock": 
+                        var token = $("token" + color + "_" + sourceArg);
+                        var tokenNumber = token.firstElementChild.textContent;
+                        this.removeTooltip(token);
+                        if (sourceArg == this.player_id) {
+                            if (tokenNumber > 1) {
+                                this.addTooltip(
+                                    token.id, 
+                                    _("You have " + tokenNumber + " " + color + " chips in your stock"), 
+                                    _("Click to move " + this.tokenValues[color] + " to your current bet")
+                                );
+                            } else if (tokenNumber == 1) {
+                                this.addTooltip(
+                                    token.id, 
+                                    _("You have " + tokenNumber + " " + color + " chip in your stock"), 
+                                    _("Click to move " + this.tokenValues[color] + " to your current bet")
+                                );
+                            }
+                        } else {
+                            if (tokenNumber > 1) {
+                                this.addTooltip(
+                                    token.id, 
+                                    _("There are " + tokenNumber + " " + color + " chips"), 
+                                    ''
+                                );
+                            } else if (tokenNumber == 1) {
+                                this.addTooltip(
+                                    token.id, 
+                                    _("There is " + tokenNumber + " " + color + " chip"), 
+                                    ''
+                                );
+                            }
+                        }
+                        break;
+                    case "bet":
+                        var token = $("bettoken" + color + "_" + sourceArg);
+                        var tokenNumber = token.firstElementChild.textContent;
+                        this.removeTooltip(token);
+                        if (sourceArg == this.player_id) {
+                            if (tokenNumber > 1) {
+                                this.addTooltip(
+                                    token.id, 
+                                    _("You have " + tokenNumber + " " + color + " chips in your betting area"), 
+                                    _("Click to move " + this.tokenValues[color] + " back to your stock")
+                                );
+                            } else if (tokenNumber == 1) {
+                                this.addTooltip(
+                                    token.id, 
+                                    _("You have " + tokenNumber + " " + color + " chip in your betting area"), 
+                                    _("Click to move " + this.tokenValues[color] + " back to your stock")
+                                );
+                            }
+                        } else {
+                            if (tokenNumber > 1) {
+                                this.addTooltip(
+                                    token.id, 
+                                    _("There are " + tokenNumber + " " + color + " chips"), 
+                                    ''
+                                );
+                            } else if (tokenNumber == 1) {
+                                this.addTooltip(
+                                    token.id, 
+                                    _("There is " + tokenNumber + " " + color + " chip"), 
+                                    ''
+                                );
+                            }
+                        }
+                        break;
+                }
+            }, this);
+        },
+
         // Define an display up to 3 tokens combination the player can exchange against the tokens he has put in the given area
         updateReceivedTokens: function() {
             // Get current number of tokens in the given area
@@ -704,6 +815,7 @@ function (dojo, declare) {
                 dojo.html.set(stockToken.firstElementChild, currentStock);
                 // 2) Update stock total
                 this.updateTotal("stock", this.player_id);
+                this.updateTooltips("stock", this.player_id);
                 if (currentStock <= 0) {
                     dojo.addClass(stockToken.id, "tokenhidden");
                 }
@@ -723,6 +835,7 @@ function (dojo, declare) {
                     // 8) Update bet total
                     this.updateTotal("bet", this.player_id);
                     this.updatePlayerBoardTokens("bet", this.player_id);
+                    this.updateTooltips("bet", this.player_id);
                 });
                 anim.play();
             }
@@ -754,6 +867,7 @@ function (dojo, declare) {
                 dojo.html.set(betToken.firstElementChild, currentBet);
                 // 2) Update bet total
                 this.updateTotal("bet", this.player_id);
+                this.updateTooltips("bet", this.player_id);
                 if (currentBet <= 0) {
                     dojo.addClass(betToken.id, "tokenhidden");
                 }
@@ -773,6 +887,7 @@ function (dojo, declare) {
                     // 8) Update stock total
                     this.updateTotal("stock", this.player_id);
                     this.updatePlayerBoardTokens("stock", this.player_id);
+                    this.updateTooltips("stock", this.player_id);
                 });
                 anim.play();
             }
@@ -1411,6 +1526,9 @@ function (dojo, declare) {
                         this.updateTotal(destinationTotalName, toPlayerId);
                         if (destinationTotalName == "stock" || destinationTotalName == "bet") {
                             this.updatePlayerBoardTokens(destinationTotalName, toPlayerId);
+                            this.updateTooltips(destinationTotalName, toPlayerId);
+                        } else {
+                            this.updateTooltips("pot", null);
                         }
                         // 6) Unhide the player's stock token if it is the first token of that color
                         if (dojo.hasClass(destinationToken.id, "tokenhidden") && notif.args.to_tokens[color] > 0) {
@@ -1422,6 +1540,9 @@ function (dojo, declare) {
                         this.updateTotal(sourceTotalName, fromPlayerId);
                         if (sourceTotalName == "stock" || sourceTotalName == "bet") {
                             this.updatePlayerBoardTokens(sourceTotalName, fromPlayerId);
+                            this.updateTooltips(sourceTotalName, fromPlayerId);
+                        } else {
+                            this.updateTooltips("pot", null);
                         }
                         // 9) Hide source token if it was the last token of that color
                         if (!dojo.hasClass(sourceToken.id, "tokenhidden") && notif.args.from_tokens[color] == 0) {
@@ -1557,6 +1678,7 @@ function (dojo, declare) {
                             // 2) Update stock total
                             this.updateTotal("stock", notif.args.player_id);
                             this.updatePlayerBoardTokens("stock", notif.args.player_id);
+                            this.updateTooltips("stock", notif.args.player_id);
                             if (currentStock <= 0) {
                                 dojo.addClass(stockToken.id, "tokenhidden");
                             }
@@ -1580,6 +1702,7 @@ function (dojo, declare) {
                                 // 7) Update bet total
                                 this.updateTotal("bet", notif.args.player_id);
                                 this.updatePlayerBoardTokens("bet", notif.args.player_id);
+                                this.updateTooltips("bet", notif.args.player_id);
                                 // 8) Unhide the betting area token if it the first token of that color
                                 if (dojo.hasClass(betToken.id, "tokenhidden")) {
                                     dojo.removeClass(betToken.id, "tokenhidden");
@@ -1599,6 +1722,7 @@ function (dojo, declare) {
                             // 2) Update bet total
                             this.updateTotal("bet", notif.args.player_id);
                             this.updatePlayerBoardTokens("bet", notif.args.player_id);
+                            this.updateTooltips("bet", notif.args.player_id);
                             if (currentBet <= 0) {
                                 dojo.addClass(betToken.id, "tokenhidden");
                             }
@@ -1621,6 +1745,7 @@ function (dojo, declare) {
                                 // 7) Update stock total
                                 this.updateTotal("stock", notif.args.player_id);
                                 this.updatePlayerBoardTokens("stock", notif.args.player_id);
+                                this.updateTooltips("stock", notif.args.player_id);
                                 // 8) Unhide the stock token if it the first token of that color
                                 if (dojo.hasClass(stockToken.id, "tokenhidden")) {
                                     dojo.removeClass(stockToken.id, "tokenhidden");
@@ -1800,6 +1925,7 @@ function (dojo, declare) {
                             dojo.html.set(tableToken.firstElementChild, notif.args.end_pot[color]);
                             // 5) Update pot total
                             this.updateTotal("pot");
+                            this.updateTooltips("pot", null);
                             // 6) Unhide the table token if it the first token of that color
                             if (dojo.hasClass(tableToken.id, "tokenhidden")) {
                                 dojo.removeClass(tableToken.id, "tokenhidden");
@@ -1810,6 +1936,7 @@ function (dojo, declare) {
                             // 8) Update bet total
                             this.updateTotal("bet", playerId);
                             this.updatePlayerBoardTokens("bet", playerId);
+                            this.updateTooltips("bet", playerId);
                         });
                         anim.play();
                     }
@@ -2066,6 +2193,7 @@ function (dojo, declare) {
                         // 8) Update stock total
                         this.updateTotal("stock", playerId);
                         this.updatePlayerBoardTokens("stock", playerId);
+                        this.updateTooltips("stock", playerId);
                         // 9) Unhide the player's stock token if it the first token of that color
                         if (dojo.hasClass(stockToken.id, "tokenhidden")) {
                             dojo.removeClass(stockToken.id, "tokenhidden");
@@ -2075,6 +2203,7 @@ function (dojo, declare) {
                         dojo.addClass(tableToken.id, "tokenhidden");
                         // 11) Update pot total
                         this.updateTotal("pot");
+                        this.updateTooltips("pot", null);
                     });
                     anim.play();
                 }
