@@ -190,6 +190,16 @@ var jstpl_change_token = ' \
 
 var jstpl_change_proposed_change = '<div class = "changetokens-horizontal changereceivedproposition" id = "proposed_change_${PROPOSED_CHANGE_ID}">${TOKENS}</div>';
 
+var jstpl_player_board_tokens = '<div class = "paneltokens"> \
+        <div id = "panelstocktoken_${player_id}" class = "paneltokenscolumn"><span>Stock</span>${STOCK_TOKENS}</div> \
+        <div id = "panelbettoken_${player_id}" class = "paneltokenscolumn"><span>Bet</span>${BET_TOKENS}</div> \
+    </div>';
+
+var jstpl_player_board_token = '<div class = "paneltokencounter"> \
+        <div id="panel${type}token_${color}_${player_id}" class="paneltoken tokensmall token_${color}"></div> \
+        <span id="panel${type}tokencount_${color}_${player_id}" class = "paneltokennum">x${num_tokens}</span> \
+    </div>';
+
 </script>  
 
 {OVERALL_GAME_FOOTER}
