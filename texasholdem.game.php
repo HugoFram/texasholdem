@@ -1876,7 +1876,7 @@ class texasholdem extends Table
 
         // Place all tokens in the betting area to the pot
         $sql = "SELECT player_id, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
-            player_bet_token_green, player_bet_token_black, is_fold, is_all_in FROM player";
+            player_bet_token_green, player_bet_token_black, is_fold, is_all_in, player_eliminated FROM player";
         $current_players_bet = self::getCollectionFromDb($sql);
 
         $sql = "SELECT token_color, token_number FROM token";
@@ -1956,8 +1956,8 @@ class texasholdem extends Table
             // Set the small blind player active at the start of each betting round
             $player_id = self::getGameStateValue("smallBlindPlayer");
             if (($num_folded_players + $num_all_in_players + $num_eliminated_players) <= (count($current_players_bet) - 1)) {
-                while (($current_players_bet[$player_id]["is_fold"] || $current_players_bet[$player_id]["is_all_in"])) {
-                    // Skip player if he has folded or is already all in
+                while (($current_players_bet[$player_id]["is_fold"] || $current_players_bet[$player_id]["is_all_in"] || $current_players_bet[$player_id]["player_eliminated"])) {
+                    // Skip player if he has folded or is already all in or eliminated (if he quited during the round)
                     $player_id = self::getPlayerAfter($player_id);
                 }
             }
@@ -2366,10 +2366,10 @@ class texasholdem extends Table
                     $round_stage = self::getGameStateValue("roundStage");
                     $small_blind_player = self::getGameStateValue("smallBlindPlayer");
                     $player_id = self::getActivePlayerId();
-                    $player_current_bet = self::getPlayersTokens()[$player_id]["bet"];
+                    $player_current_tokens = self::getPlayersTokens()[$player_id];
             
                     // Build tokens array as if it was sent by the frontend
-                    $sql = "SELECT player_id, player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
+                    $sql = "SELECT player_id, player_score, player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
                         player_stock_token_green, player_stock_token_black, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
                         player_bet_token_green, player_bet_token_black FROM player WHERE player_id = ${player_id}";
                     $player_stock = self::getCollectionFromDb($sql)[$player_id];
@@ -2402,8 +2402,9 @@ class texasholdem extends Table
             
                         // Update playe's stock with new number of tokens
                         $colors = ["white", "blue", "red", "green", "black"];
-            
-                        $sql = "UPDATE player SET player_score = ${player_current_bet}, ";
+
+                        $amount_already_bet = $player_stock["player_score"] - $player_current_tokens["stock"];
+                        $sql = "UPDATE player SET player_score = ${amount_already_bet}, ";
                         foreach($colors as $color) {
                             $sql .= "player_stock_token_${color} = 0, ";
                         }
