@@ -214,6 +214,7 @@ class texasholdem extends Table
                 // Hide the actual value of other player cards to avoid JS interception cheat
                 $hands_cards[$card_id]["type"] = 0;
                 $hands_cards[$card_id]["type_arg"] = 0;
+                $hands_cards[$card_id]["id"] = 0;
             }
         }
         $result['hands'] = $hands_cards;
@@ -1729,6 +1730,7 @@ class texasholdem extends Table
                     // Hide the actual value of other player cards to avoid JS interception cheat
                     $player_hand[$card_id]["type"] = 0;
                     $player_hand[$card_id]["type_arg"] = 0;
+                    $player_hand[$card_id]["id"] = 0;
                 }
             }
             self::notifyPlayer($player_id, "dealCardsPlayer", '', array(
