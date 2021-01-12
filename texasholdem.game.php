@@ -1979,11 +1979,22 @@ class texasholdem extends Table
             ));
 
             // Set the small blind player active at the start of each betting round
-            $player_id = self::getGameStateValue("smallBlindPlayer");
-            if (($num_folded_players + $num_all_in_players + $num_eliminated_players) <= (count($current_players_bet) - 1)) {
-                while (($current_players_bet[$player_id]["is_fold"] || $current_players_bet[$player_id]["is_all_in"] || $current_players_bet[$player_id]["player_eliminated"])) {
-                    // Skip player if he has folded or is already all in or eliminated (if he quited during the round)
-                    $player_id = self::getPlayerAfter($player_id);
+            if (count($current_players_bet) - self::getGameStateValue("numEliminatedPlayers") <= 2) {
+                // In headsup the first player to talk after the flop is the big blind
+                $player_id = self::getPlayerAfter(self::getGameStateValue("smallBlindPlayer"));
+                if (($num_folded_players + $num_all_in_players + $num_eliminated_players) <= (count($current_players_bet) - 1)) {
+                    while (($current_players_bet[$player_id]["is_fold"] || $current_players_bet[$player_id]["is_all_in"] || $current_players_bet[$player_id]["player_eliminated"])) {
+                        // Skip player if he has folded or is already all in or eliminated (if he quited during the round)
+                        $player_id = self::getPlayerAfter($player_id);
+                    }
+                }
+            } else {
+                $player_id = self::getGameStateValue("smallBlindPlayer");
+                if (($num_folded_players + $num_all_in_players + $num_eliminated_players) <= (count($current_players_bet) - 1)) {
+                    while (($current_players_bet[$player_id]["is_fold"] || $current_players_bet[$player_id]["is_all_in"] || $current_players_bet[$player_id]["player_eliminated"])) {
+                        // Skip player if he has folded or is already all in or eliminated (if he quited during the round)
+                        $player_id = self::getPlayerAfter($player_id);
+                    }
                 }
             }
             $this->gamestate->changeActivePlayer($player_id);
