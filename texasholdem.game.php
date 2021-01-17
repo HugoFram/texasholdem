@@ -217,7 +217,7 @@ class texasholdem extends Table
                 $hands_cards[$card_id]["id"] = 0;
             }
         }
-        $result['hands'] = $hands_cards;
+        $result['hands'] = array_values($hands_cards);
 
         // Cards played on the table
         $result['cardsflop'] = $this->cards->getCardsInLocation('flop');
@@ -1735,7 +1735,7 @@ class texasholdem extends Table
             }
             self::notifyPlayer($player_id, "dealCardsPlayer", '', array(
                 'players' => $players,
-                'hands' => $player_hand
+                'hands' => array_values($player_hand)
             ));
         }
 
