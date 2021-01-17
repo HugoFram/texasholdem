@@ -49,7 +49,8 @@ class texasholdem extends Table
             "smallBlindValue" => 17,
             "numBettingPlayers" => 18, // Number of players who have bet, checked or folded during this betting round
             "minimumRaise" => 19,
-            "dealerId" => 20
+            "dealerId" => 20,
+            "areHandsRevealed" => 21
         ) );
 
         $this->cards = self::getNew("module.common.deck");
@@ -146,6 +147,7 @@ class texasholdem extends Table
         self::setGameStateInitialValue("smallBlindValue", 1);
         self::setGameStateInitialValue("numBettingPlayers", 0);
         self::setGameStateInitialValue("minimumRaise", 2);
+        self::setGameStateInitialValue("areHandsRevealed", 0);
 
         // Initialize tokens bet in previous round stages to 0
         $sql = "INSERT INTO token (token_color, token_number) VALUES ('white', 0), ('blue', 0), ('red', 0), ('green', 0), ('black', 0)";
@@ -1691,6 +1693,7 @@ class texasholdem extends Table
         self::setGameStateValue("roundStage", 0);
         self::setGameStateValue("numFoldedPlayers", 0);
         self::setGameStateValue("numAllInPlayers", 0);
+        self::setGameStateValue("areHandsRevealed", 0);
 
         // Unfold all players and reset all in flag
         $sql = "UPDATE player SET is_fold = 0, is_all_in = 0";
@@ -1947,6 +1950,21 @@ class texasholdem extends Table
             $this->gamestate->nextState("endHand");
         } else {
             // More than one player still not folded
+
+            // Showdown in case all players are all in
+            if (self::getGameStateValue("areHandsRevealed") == 0 && $num_all_in_players >= (count($current_players_bet) - $num_folded_players - $num_eliminated_players - 1)) {
+                $cards_in_hand = $this->cards->getCardsInLocation("hand");
+                $sql = "SELECT player_id, player_name, player_color, is_fold, is_all_in, player_eliminated, player_score FROM player WHERE is_fold = 0 AND player_eliminated = 0";
+                $non_folded_players = self::getCollectionFromDb($sql);
+                // Reveal players hands
+                self::notifyAllPlayers("revealHands", clienttranslate('There cannot be any further betting round. All non-folded players reveal their hand.'), array(
+                    'players' => array_values($non_folded_players),
+                    'hands' => array_values($cards_in_hand)
+                ));
+
+                self::setGameStateValue("areHandsRevealed", 1);
+            }
+            
             $round_stage++;
             switch($round_stage) {
                 case 2:
@@ -2051,10 +2069,12 @@ class texasholdem extends Table
             self::dump("Players rank:", $players_rank);
 
             // Reveal players hands
-            self::notifyAllPlayers("revealHands", clienttranslate('The non-folded players reveal their hands'), array(
-                'players' => array_values($non_folded_players),
-                'hands' => array_values($cards_in_hand)
-            ));
+            if (self::getGameStateValue("areHandsRevealed") == 0) {
+                self::notifyAllPlayers("revealHands", clienttranslate('The non-folded players reveal their hands'), array(
+                    'players' => array_values($non_folded_players),
+                    'hands' => array_values($cards_in_hand)
+                ));
+            }
 
             // Announce the combo of each player
             foreach($non_folded_players as $player_id => $player) {
