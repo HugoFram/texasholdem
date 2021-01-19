@@ -372,10 +372,29 @@ function (dojo, declare) {
                         if (args.check) this.addActionButton('check', _('Check'), 'onCheck'); 
                         if (args.call) this.addActionButton('call', _('Call'), 'onCall'); 
                         if (args.raise) this.addActionButton('raise', _('Raise'), 'onRaise'); 
-                        if (args.bet) this.addActionButton('bet', _('Bet'), 'onRaise'); 
+                        if (args.raise_by_first) {
+                            this.addActionButton('raiseByFirst', _('Raise by ' + args.raise_by_first), 'onRaiseBy');
+                        }
+                        if (args.raise_by_second) {
+                            this.addActionButton('raiseBySecond', _('Raise by ' + args.raise_by_second), 'onRaiseBy');
+                        }
+                        if (args.raise_by_third) {
+                            this.addActionButton('raiseByThird', _('Raise by ' + args.raise_by_third), 'onRaiseBy');
+                        }
+                        if (args.bet) this.addActionButton('bet', _('Bet'), 'onRaise');
+                        if (args.bet_first) {
+                            this.addActionButton('betFirst', _('Bet ' + args.bet_first), 'onRaiseBy');
+                        }
+                        if (args.bet_second) {
+                            this.addActionButton('betSecond', _('Bet ' + args.bet_second), 'onRaiseBy');
+                        }
+                        if (args.bet_third) {
+                            this.addActionButton('betThird', _('Bet ' + args.bet_third), 'onRaiseBy');
+                        }
                         if (args.fold) this.addActionButton('fold', _('Fold'), 'onFold');
                         if (args.all_in) this.addActionButton('all_in', _('All in'), 'onAllIn'); 
                         this.addActionButton('change', _('Make change'), 'onMakeChange');
+
                         break;
 
                 }
@@ -997,6 +1016,31 @@ function (dojo, declare) {
             this.ajaxcall("/texasholdem/texasholdem/raise.html", { 
                 lock: true, 
                 tokens: valuesString
+            }, this, function(result) {}, function(is_error) {});
+        },
+
+        onRaiseBy: function(event) {
+            // Check that this action is possible (see "possibleactions" in states.inc.php)
+            if(!this.checkAction('placeBet')) return;
+
+            var raiseValue = parseInt(event.target.innerText.replace(/Raise by /, "").replace(/Bet /, ""));
+
+            var colors = ["white", "blue", "red", "green", "black"];
+            
+            var valuesString = "";
+            colors.forEach(color => {
+                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
+                var stockToken = $("token" + color + "_" + this.player_id);
+                var betToken = $("bettoken" + color + "_" + this.player_id);
+                // Extract number of token from HTML element and build a string to pass to the server
+                valuesString += stockToken.firstElementChild.textContent + ";";
+                valuesString += betToken.firstElementChild.textContent + ";";
+            });
+
+            this.ajaxcall("/texasholdem/texasholdem/raiseBy.html", { 
+                lock: true, 
+                tokens: valuesString,
+                raiseValue: raiseValue
             }, this, function(result) {}, function(is_error) {});
         },
 

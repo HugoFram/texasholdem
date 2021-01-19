@@ -183,6 +183,32 @@
       self::ajaxResponse();
     }
 
+    public function raiseBy() {
+      self::setAjaxMode();     
+
+      // Retrieve arguments
+      // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+      // Expects a number list with the following format
+      // "<num tokens white in stock>;<num tokens white in betting area>;<num tokens blue in stock>;<num tokens blue in betting area>;..."
+      $tokens_raw = self::getArg("tokens", AT_numberlist, true);
+
+      // Removing last ';' if exists
+      if (substr($tokens_raw, -1) == ';') {
+        $tokens_raw = substr($tokens_raw, 0, -1 );
+      }
+      if ($tokens_raw == '') {
+        $tokens = array();
+      } else {
+        $tokens = explode( ';', $tokens_raw);
+      }
+
+      $raise_value = self::getArg("raiseValue", AT_int, true);
+
+      $this->game->raiseBy($tokens, $raise_value);
+
+      self::ajaxResponse();
+    }
+
     public function fold() {
       self::setAjaxMode();
 

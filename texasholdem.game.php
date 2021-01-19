@@ -1304,12 +1304,8 @@ class texasholdem extends Table
         self::checkAction("placeBet");
         $player_id = self::getActivePlayerId();
         $player_name = self::getActivePlayerName();
-        $small_blind_player = self::getGameStateValue("smallBlindPlayer");
         $current_round_stage = self::getGameStateValue("roundStage");
-        $blind_value = self::getGameStateValue("smallBlindValue");
         $minimum_raise = self::getGameStateValue("minimumRaise");
-
-        // Get current level of bet
         $current_bet_level = self::getGameStateValue("currentBetLevel");
 
         $bet_computation = self::computeBet($tokens, $player_id);
@@ -1341,14 +1337,25 @@ class texasholdem extends Table
 
             // Check that the player raises by a sufficient amount
             if ($raise_amount >= $minimum_raise) {
-                self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} raises by ${raise_amount}' ), array(
-                    'player_id' => $player_id,
+                if ($current_bet_level == 0) {
+                    self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${raise_amount}'), array(
+                        'player_id' => $player_id,
+                        'player_name' => $player_name,
+                        'additional_bet' => $additional_bet,
+                        'diff_stock' => $diff_stock,
+                        'raise_amount' => $raise_amount,
+                        'show_all' => FALSE
+                    ));
+                } else {
+                    self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} raises by ${raise_amount}'), array(
+                        'player_id' => $player_id,
                     'player_name' => $player_name,
                     'additional_bet' => $additional_bet,
                     'diff_stock' => $diff_stock,
                     'raise_amount' => $raise_amount,
                     'show_all' => FALSE
-                ));
+                    ));
+                }
     
                 // Update current bet level
                 self::setGameStateValue("currentBetLevel", $total_player_bet);
@@ -1362,6 +1369,118 @@ class texasholdem extends Table
 
         // Increment the number of all in players if the player bet all his stock
         if ($total_player_bet > 0 && $is_all_in) {
+            $sql = "UPDATE player SET is_all_in = 1 WHERE player_id = " . $player_id;
+            self::DbQuery($sql);
+
+            self::incGameStateValue("numAllInPlayers", 1);
+        } else {
+            self::incGameStateValue("numBettingPlayers", 1); // An additional player has played for this betting round
+        }
+
+        // Increment stats
+        self::incStat(1, "times_raised", $player_id);
+
+        $this->gamestate->nextState('placeBet');
+    }
+
+    function raiseBy($tokens, $raise_value) {
+        self::checkAction("placeBet");
+        $player_id = self::getActivePlayerId();
+        $player_name = self::getActivePlayerName();
+        $current_round_stage = self::getGameStateValue("roundStage");
+        $minimum_raise = self::getGameStateValue("minimumRaise");  
+        $current_bet_level = self::getGameStateValue("currentBetLevel");
+
+        $bet_computation = self::computeBet($tokens, $player_id);
+        $additional_bet = $bet_computation["additional_bet"];
+        $current_player_bet = $bet_computation["current_player_bet"];
+        $total_player_bet = $bet_computation["total_player_bet"]; // Value of tokens that will be in the betting area after the current place bet action
+        $diff_stock = $bet_computation["diff_stock"];
+        $is_all_in = $bet_computation["is_all_in"];
+        $sql = $bet_computation["token_update_sql"];
+
+        $player_tokens = self::getPlayersTokens()[$player_id];
+
+        $raise_amount = $raise_value;
+
+        // Send notification for dialog bubble
+        if ($current_bet_level == 0) {
+            self::notifyAllPlayers("announceAction", '', array(
+                'player_id' => $player_id,
+                'message' => _("I bet ${raise_amount}")
+            ));
+        } else {
+            self::notifyAllPlayers("announceAction", '', array(
+                'player_id' => $player_id,
+                'message' => _("I raise by ${raise_amount}")
+            ));
+        }
+
+        if ($current_round_stage == 0) {
+            throw new feException(_("You are not supposed to raise during the blinds phase"));
+        } else {
+            if ($raise_amount < $minimum_raise) {
+                // The raise is lower than the minimum possible raise
+                throw new BgaUserException(_("You need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
+            } else if ($raise_amount > $player_tokens["stock"]) {
+                // The player does not have enough stock to raise by the specified amount
+                throw new BgaUserException(_("You need don't have enough chips in stock to raise by ${raise_amount}"));
+            }
+
+            if ($total_player_bet == ($current_bet_level + $raise_amount)) {
+                // The player has moved to the betting area an amount of tokens that corresponds to the raise he announced
+                self::DbQuery($sql);
+                if ($current_bet_level == 0) {
+                    self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${additional_bet}'), array(
+                        'player_id' => $player_id,
+                        'player_name' => $player_name,
+                        'additional_bet' => $additional_bet,
+                        'diff_stock' => $diff_stock,
+                        'show_all' => FALSE
+                    ));
+                } else {
+                    self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} raises by ${additional_bet}'), array(
+                        'player_id' => $player_id,
+                        'player_name' => $player_name,
+                        'additional_bet' => $additional_bet,
+                        'diff_stock' => $diff_stock,
+                        'show_all' => FALSE
+                    ));
+                }
+            } else {
+                // The player has not moved to the betting area an amount of tokens that corresponds to the raise he announced
+                if ($additional_bet != 0) {
+                    self::notifyPlayer($player_id, "betPlaced", clienttranslate('Incorrect bet placed. Moving back ${additional_bet} to your stock.'), array(
+                        'player_id' => $player_id,
+                        'additional_bet' => $additional_bet,
+                        'diff_stock' => array_map(function($token_num) {return -$token_num;}, $diff_stock),
+                        'show_all' => TRUE
+                    ));
+                }
+
+                // The player has enough stock to call
+                self::moveTokens("stock_${player_id}", "bet_${player_id}", $current_bet_level + $raise_amount - $current_player_bet);
+                if ($current_bet_level == 0) {
+                    self::notifyAllPlayers("raisePlaced", clienttranslate('${player_name} bets ${raise_amount}'), array(
+                        'player_name' => $player_name,
+                        'raise_amount' => $raise_amount
+                    ));
+                } else {
+                    self::notifyAllPlayers("raisePlaced", clienttranslate('${player_name} raises by ${raise_amount}'), array(
+                        'player_name' => $player_name,
+                        'raise_amount' => $raise_amount
+                    ));
+                }
+                $additional_bet = $raise_amount;
+                $is_all_in = $player_tokens["stock"] == $raise_amount;
+            }
+            // Update current bet level
+            self::incGameStateValue("currentBetLevel", $raise_amount);
+            self::setGameStateValue("minimumRaise", $raise_amount);
+        }
+
+        // Increment the number of all in players if the player bet all his stock
+        if ($is_all_in) {
             $sql = "UPDATE player SET is_all_in = 1 WHERE player_id = " . $player_id;
             self::DbQuery($sql);
 
@@ -1646,6 +1765,27 @@ class texasholdem extends Table
             $possible_actions["raise"] = FALSE;
         }
 
+        // Buttons to raise by a fixed amount
+        if ($possible_actions["raise"]) {
+            $first_raise_amount = $minimum_raise;
+            $second_raise_amount = 2 * $minimum_raise;
+            $third_raise_amount = 5 * $minimum_raise;
+            // Raise by (first value)
+            if (($player_tokens["stock"] - $current_bet_level) >= $first_raise_amount) {
+                $possible_actions["raise_by_first"] = $first_raise_amount;
+            }
+
+            // Raise by (second value)
+            if (($player_tokens["stock"] - $current_bet_level) >= $second_raise_amount) {
+                $possible_actions["raise_by_second"] = $second_raise_amount;
+            }
+
+            // Raise by (third value)
+            if (($player_tokens["stock"] - $current_bet_level) >= $third_raise_amount) {
+                $possible_actions["raise_by_third"] = $third_raise_amount;
+            }
+        }
+
         // Bet
         if ($player_tokens["bet"] == 0 && $current_bet_level == 0) {
             $possible_actions["bet"] = TRUE;
@@ -1653,8 +1793,29 @@ class texasholdem extends Table
             $possible_actions["bet"] = FALSE;
         }
 
+        // Buttons to bet by a fixed amount
+        if ($possible_actions["bet"]) {
+            $first_raise_amount = $minimum_raise;
+            $second_raise_amount = 2 * $minimum_raise;
+            $third_raise_amount = 5 * $minimum_raise;
+            // Raise by (first value)
+            if (($player_tokens["stock"] - $current_bet_level) >= $first_raise_amount) {
+                $possible_actions["bet_first"] = $first_raise_amount;
+            }
+
+            // Raise by (second value)
+            if (($player_tokens["stock"] - $current_bet_level) >= $second_raise_amount) {
+                $possible_actions["bet_second"] = $second_raise_amount;
+            }
+
+            // Raise by (third value)
+            if (($player_tokens["stock"] - $current_bet_level) >= $third_raise_amount) {
+                $possible_actions["bet_third"] = $third_raise_amount;
+            }
+        }
+
         // All in
-        if ($player_tokens["stock"] <= $current_bet_level || ($player_tokens["stock"] - $current_bet_level) > $minimum_raise) {
+        if ($player_tokens["stock"] <= $current_bet_level || ($player_tokens["stock"] - $current_bet_level) >= $minimum_raise) {
             $possible_actions["all_in"] = TRUE;
         } else {
             $possible_actions["all_in"] = FALSE;
@@ -1964,7 +2125,7 @@ class texasholdem extends Table
 
                 self::setGameStateValue("areHandsRevealed", 1);
             }
-            
+
             $round_stage++;
             switch($round_stage) {
                 case 2:
