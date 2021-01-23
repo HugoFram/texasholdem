@@ -533,7 +533,7 @@ function (dojo, declare) {
                     case "pot":
                         var token = $("token" + color + "_table");
                         var tokenNumber = token.firstElementChild.textContent;
-                        this.removeTooltip(token);
+                        this.removeTooltip(token.id);
                         if (tokenNumber > 1) {
                             this.addTooltip(
                                 token.id, 
@@ -546,12 +546,18 @@ function (dojo, declare) {
                                 _("There is " + tokenNumber + " " + color + " chip"), 
                                 ''
                             );
+                        } else if (tokenNumber == 0) {
+                            this.addTooltip(
+                                token.id, 
+                                _("There is no " + color + " chip"), 
+                                ''
+                            );
                         }
                         break;
                     case "stock": 
                         var token = $("token" + color + "_" + sourceArg);
                         var tokenNumber = token.firstElementChild.textContent;
-                        this.removeTooltip(token);
+                        this.removeTooltip(token.id);
                         if (sourceArg == this.player_id) {
                             if (tokenNumber > 1) {
                                 this.addTooltip(
@@ -565,6 +571,12 @@ function (dojo, declare) {
                                     _("You have " + tokenNumber + " " + color + " chip in your stock"), 
                                     _("Click to move " + this.tokenValues[color] + " to your current bet")
                                 );
+                            } else if (tokenNumber == 0) {
+                                this.addTooltip(
+                                    token.id, 
+                                    _("You have is no " + color + " chip in your stock"), 
+                                    ''
+                                );
                             }
                         } else {
                             if (tokenNumber > 1) {
@@ -579,13 +591,19 @@ function (dojo, declare) {
                                     _("There is " + tokenNumber + " " + color + " chip"), 
                                     ''
                                 );
+                            } else if (tokenNumber == 0) {
+                                this.addTooltip(
+                                    token.id, 
+                                    _("There is no " + color + " chip"), 
+                                    ''
+                                );
                             }
                         }
                         break;
                     case "bet":
                         var token = $("bettoken" + color + "_" + sourceArg);
                         var tokenNumber = token.firstElementChild.textContent;
-                        this.removeTooltip(token);
+                        this.removeTooltip(token.id);
                         if (sourceArg == this.player_id) {
                             if (tokenNumber > 1) {
                                 this.addTooltip(
@@ -599,6 +617,12 @@ function (dojo, declare) {
                                     _("You have " + tokenNumber + " " + color + " chip in your betting area"), 
                                     _("Click to move " + this.tokenValues[color] + " back to your stock")
                                 );
+                            } else if (tokenNumber == 0) {
+                                this.addTooltip(
+                                    token.id, 
+                                    _("You have no " + color + " chip in your betting area"), 
+                                    ''
+                                );
                             }
                         } else {
                             if (tokenNumber > 1) {
@@ -611,6 +635,12 @@ function (dojo, declare) {
                                 this.addTooltip(
                                     token.id, 
                                     _("There is " + tokenNumber + " " + color + " chip"), 
+                                    ''
+                                );
+                            } else if (tokenNumber == 0) {
+                                this.addTooltip(
+                                    token.id, 
+                                    _("There is no " + color + " chip in your betting area"), 
                                     ''
                                 );
                             }
@@ -1559,7 +1589,7 @@ function (dojo, declare) {
 
         notif_dealCardsPlayer: function(notif) {
             console.log('notif_dealCardsPlayer');
-            
+
             // Display cards in hand
             var hands = notif.args.hands;
             var playerToIsLeftCard = [];
