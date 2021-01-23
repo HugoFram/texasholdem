@@ -83,7 +83,7 @@ class texasholdem extends Table
         $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar, player_score,
             player_stock_token_white, player_stock_token_blue, player_stock_token_red, player_stock_token_green,
             player_stock_token_black, player_bet_token_white, player_bet_token_blue,
-            player_bet_token_red, player_bet_token_green, player_bet_token_black, is_fold, is_all_in, wants_autoblinds) VALUES ";
+            player_bet_token_red, player_bet_token_green, player_bet_token_black, is_fold, is_all_in, wants_autoblinds, wants_manualbet) VALUES ";
         $values = array();
         $initial_score = 100;
         $initial_white_tokens = 10;
@@ -95,13 +95,14 @@ class texasholdem extends Table
         $initial_is_fold = 0;
         $initial_is_all_in = 0;
         $initial_wants_autoblinds = 1;
+        $initial_wants_manualbet = 0;
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
             $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."',".
                 $initial_score.",".$initial_white_tokens.",".$initial_blue_tokens.",".$initial_red_tokens.",".$initial_green_tokens.",".$initial_black_tokens.",".
                 $initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_is_fold.",".$initial_is_all_in.
-                ",".$initial_wants_autoblinds.")";
+                ",".$initial_wants_autoblinds.",".$initial_wants_manualbet.")";
         }
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
@@ -201,7 +202,7 @@ class texasholdem extends Table
     
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $sql = "SELECT player_id id, player_score score, is_fold, wants_autoblinds, player_stock_token_white stock_white, 
+        $sql = "SELECT player_id id, player_score score, is_fold, wants_autoblinds, wants_manualbet, player_stock_token_white stock_white, 
             player_stock_token_blue stock_blue, player_stock_token_red stock_red, player_stock_token_green stock_green,
             player_stock_token_black stock_black, player_bet_token_white bet_white, player_bet_token_blue bet_blue,
             player_bet_token_red bet_red, player_bet_token_green bet_green, player_bet_token_black bet_black FROM player ";
@@ -1688,6 +1689,30 @@ class texasholdem extends Table
         $sql = "UPDATE player SET wants_autoblinds = ${is_checked} WHERE player_id = ${player_id}";
         self::DbQuery($sql);
         self::notifyPlayer($player_id, "autoblindsChange", '', array());
+    }
+
+    function changeBetmode($player_id, $is_checked, $tokens) {
+        self::trace("Manual bet for player ${player_id}: " . ($is_checked == 1 ? "enabled" : "disabled"));
+        $sql = "UPDATE player SET wants_manualbet = ${is_checked} WHERE player_id = ${player_id}";
+        self::DbQuery($sql);
+
+        if (!$is_checked) {
+            // Move back chips that were moved during the current player's turn
+            $bet_computation = self::computeBet($tokens, $player_id);
+            $additional_bet = $bet_computation["additional_bet"];
+            $diff_stock = $bet_computation["diff_stock"];
+
+            if ($additional_bet != 0) {
+                self::notifyPlayer($player_id, "betPlaced", clienttranslate('You chose to not bet by clicking on chips. The chips you moved during the current turn are returned to their origin.'), array(
+                    'player_id' => $player_id,
+                    'additional_bet' => $additional_bet,
+                    'diff_stock' => array_map(function($token_num) {return -$token_num;}, $diff_stock),
+                    'show_all' => TRUE
+                ));
+            }
+        }
+
+        self::notifyPlayer($player_id, "betmodeChange", '', array());
     }
     
 //////////////////////////////////////////////////////////////////////////////

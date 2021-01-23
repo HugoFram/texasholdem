@@ -132,6 +132,10 @@
     <input type="checkbox" class="autoblinds" name="autoblinds" id="autoblinds">
     <label for = "autoblinds" class="label">{AUTOBLINDS_DESCRIPTION}</span>
 </div>
+<div class="slider-checkbox">
+    <input type="checkbox" class="betmode" name="betmode" id="betmode">
+    <label for = "betmode" class="label">{BETMODE_DESCRIPTION}</span>
+</div>
 <script type="text/javascript">
 
 // Javascript HTML templates
@@ -199,6 +203,15 @@ var jstpl_player_board_token = '<div class = "paneltokencounter"> \
         <div id="panel${type}token_${color}_${player_id}" class="paneltoken tokensmall token_${color}"></div> \
         <span id="panel${type}tokencount_${color}_${player_id}" class = "paneltokennum">x${num_tokens}</span> \
     </div>';
+
+var jstpl_choose_raise_dialog = ' \
+    <form> \
+        <label for = "raiseAmount">${INPUT_LABEL}</label> \
+        <input type = "number" id = "raiseAmount" value = 0><br> \
+    </form> \
+    <a type="button" class = "action-button bgabutton bgabutton_blue" id = "raisebutton">${RAISE_BUTTON_LABEL}</a> \
+    <a type="button" class = "action-button bgabutton bgabutton_blue" id = "cancelbutton">${CANCEL_BUTTON_LABEL}</a> \
+';
 
 </script>  
 

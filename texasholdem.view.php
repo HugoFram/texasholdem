@@ -107,6 +107,7 @@
         }
 
         $this->tpl['AUTOBLINDS_DESCRIPTION'] = self::_("Place blinds automatically");
+        $this->tpl['BETMODE_DESCRIPTION'] = self::_("Choose raise amount by clicking on chips");
         $this->tpl['TOKEN_VALUE_WHITE'] = $this->game->token_values["white"];
         $this->tpl['TOKEN_VALUE_BLUE'] = $this->game->token_values["blue"];
         $this->tpl['TOKEN_VALUE_RED'] = $this->game->token_values["red"];

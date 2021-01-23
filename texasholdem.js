@@ -148,6 +148,11 @@ function (dojo, declare) {
                     if (player.wants_autoblinds == 1) {
                         $("autoblinds").checked = true;
                     }
+
+                    // Betmode slider
+                    if (player.wants_manualbet == 1) {
+                        $("betmode").checked = true;
+                    }
                 }
 
                 // Compute total values
@@ -173,6 +178,10 @@ function (dojo, declare) {
                 this.updateTooltips("pot", null);
                 this.updateTooltips("stock", player_id);
                 this.updateTooltips("bet", player_id);
+
+                // Add tooltips to option sliders
+                this.addTooltip("autoblinds", _("This option lets you define if you want your blinds to be placed automatically or if you prefer to place them manually by clicking on your chips for more immersion"), '');
+                this.addTooltip("betmode", _("This option lets you define if you want to choose the amount of your raises by entering a number in a pop-up window or by manually placing chips in your betting area by clicking on them"), '');
             }
 
             // Highlight the table of the currently active player
@@ -271,6 +280,9 @@ function (dojo, declare) {
             // Connect autoblinds check box
             dojo.query('#autoblinds').connect('change', this, 'onAutoblindsChange');
 
+            // Connect betmode check box
+            dojo.query('#betmode').connect('change', this, 'onBetmodeChange');
+
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
 
@@ -359,40 +371,47 @@ function (dojo, declare) {
                 */
 
                     case 'smallBlind':
-                        this.addActionButton('place_small_blind', _('Place small blind'), 'onPlaceSmallBlind'); 
+                        this.addActionButton('place_small_blind', _('Place small blind'), 'onPlaceSmallBlind', null, false, "red"); 
                         this.addActionButton('change', _('Make change'), 'onMakeChange');
                         break;
 
                     case 'bigBlind':
-                        this.addActionButton('place_big_blind', _('Place big blind'), 'onPlaceBigBlind'); 
+                        this.addActionButton('place_big_blind', _('Place big blind'), 'onPlaceBigBlind', null, false, "red"); 
                         this.addActionButton('change', _('Make change'), 'onMakeChange');
                         break;
 
                     case 'playerTurn':
                         if (args.check) this.addActionButton('check', _('Check'), 'onCheck'); 
                         if (args.call) this.addActionButton('call', _('Call'), 'onCall'); 
-                        if (args.raise) this.addActionButton('raise', _('Raise'), 'onRaise'); 
                         if (args.raise_by_first) {
-                            this.addActionButton('raiseByFirst', _('Raise by ' + args.raise_by_first), 'onRaiseBy');
+                            this.addActionButton('raiseByFirst', _('Raise by ' + args.raise_by_first), 'onRaiseBy', null, false, "red");
                         }
                         if (args.raise_by_second) {
-                            this.addActionButton('raiseBySecond', _('Raise by ' + args.raise_by_second), 'onRaiseBy');
+                            this.addActionButton('raiseBySecond', _('Raise by ' + args.raise_by_second), 'onRaiseBy', null, false, "red");
                         }
                         if (args.raise_by_third) {
-                            this.addActionButton('raiseByThird', _('Raise by ' + args.raise_by_third), 'onRaiseBy');
+                            this.addActionButton('raiseByThird', _('Raise by ' + args.raise_by_third), 'onRaiseBy', null, false, "red");
                         }
-                        if (args.bet) this.addActionButton('bet', _('Bet'), 'onRaise');
+                        if (args.raise) {
+                            if (!$("betmode").checked) {
+                                this.addActionButton('raise', _('Choose raise'), 'onRaise', null, false, "red"); 
+                            } else {
+                                this.addActionButton('raise', _('Confirm raise'), 'onRaise', null, false, "red");
+                                this.addTooltip('raise', 'You need can move chips to your betting area by clicking on them', _('This will raise by the amount of chips you currently have in your betting area'));
+                            }
+                        }
                         if (args.bet_first) {
-                            this.addActionButton('betFirst', _('Bet ' + args.bet_first), 'onRaiseBy');
+                            this.addActionButton('betFirst', _('Bet ' + args.bet_first), 'onRaiseBy', null, false, "red");
                         }
                         if (args.bet_second) {
-                            this.addActionButton('betSecond', _('Bet ' + args.bet_second), 'onRaiseBy');
+                            this.addActionButton('betSecond', _('Bet ' + args.bet_second), 'onRaiseBy', null, false, "red");
                         }
                         if (args.bet_third) {
-                            this.addActionButton('betThird', _('Bet ' + args.bet_third), 'onRaiseBy');
+                            this.addActionButton('betThird', _('Bet ' + args.bet_third), 'onRaiseBy', null, false, "red");
                         }
-                        if (args.fold) this.addActionButton('fold', _('Fold'), 'onFold');
-                        if (args.all_in) this.addActionButton('all_in', _('All in'), 'onAllIn'); 
+                        if (args.bet) this.addActionButton('bet', _('Choose bet'), 'onRaise', null, false, "red");
+                        if (args.fold) this.addActionButton('fold', _('Fold'), 'onFold', null, false, "gray");
+                        if (args.all_in) this.addActionButton('all_in', _('All in'), 'onAllIn', null, false, "red"); 
                         this.addActionButton('change', _('Make change'), 'onMakeChange');
 
                         break;
@@ -757,6 +776,26 @@ function (dojo, declare) {
 
         },
 
+        raiseBy: function(raiseAmount) {
+            var colors = ["white", "blue", "red", "green", "black"];
+            
+            var valuesString = "";
+            colors.forEach(color => {
+                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
+                var stockToken = $("token" + color + "_" + this.player_id);
+                var betToken = $("bettoken" + color + "_" + this.player_id);
+                // Extract number of token from HTML element and build a string to pass to the server
+                valuesString += stockToken.firstElementChild.textContent + ";";
+                valuesString += betToken.firstElementChild.textContent + ";";
+            });
+
+            this.ajaxcall("/texasholdem/texasholdem/raiseBy.html", { 
+                lock: true, 
+                tokens: valuesString,
+                raiseValue: raiseAmount
+            }, this, function(result) {}, function(is_error) {});
+        },
+
         ///////////////////////////////////////////////////
         //// Player's action
         
@@ -1001,22 +1040,67 @@ function (dojo, declare) {
             // Check that this action is possible (see "possibleactions" in states.inc.php)
             if(!this.checkAction('placeBet')) return;
 
-            var colors = ["white", "blue", "red", "green", "black"];
-            
-            var valuesString = "";
-            colors.forEach(color => {
-                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
-                var stockToken = $("token" + color + "_" + this.player_id);
-                var betToken = $("bettoken" + color + "_" + this.player_id);
-                // Extract number of token from HTML element and build a string to pass to the server
-                valuesString += stockToken.firstElementChild.textContent + ";";
-                valuesString += betToken.firstElementChild.textContent + ";";
-            });
+            var betmodeSlider = $('betmode');
 
-            this.ajaxcall("/texasholdem/texasholdem/raise.html", { 
-                lock: true, 
-                tokens: valuesString
-            }, this, function(result) {}, function(is_error) {});
+            if (!betmodeSlider.checked) {
+                // Use modal to choose the bet amount
+
+                // Create the new dialog over the play zone.
+                this.raiseDlg = new ebg.popindialog();
+                this.raiseDlg.create('chooseRaise');
+                this.raiseDlg.setTitle(_("Choose Amount"));
+                this.raiseDlg.setMaxWidth(500); // Optional
+
+                var html = this.format_block('jstpl_choose_raise_dialog', {
+                    INPUT_LABEL: _("Amount"),
+                    RAISE_BUTTON_LABEL: _("OK"),
+                    CANCEL_BUTTON_LABEL: _("Cancel")
+                });  
+                
+                // Show the dialog
+                this.raiseDlg.setContent(html);
+                this.raiseDlg.show();
+                
+
+                dojo.connect($('raisebutton'), 'onclick', this, function(evt) {
+                    var raiseAmount = $("raiseAmount").value;
+                    this.raiseBy(raiseAmount);
+                    evt.preventDefault();
+                    this.raiseDlg.destroy();
+                });
+
+                dojo.connect($('cancelbutton'), 'onclick', this, function(evt) {
+                    evt.preventDefault();
+                    this.raiseDlg.destroy();
+                });
+
+                dojo.connect($('chooseRaise'), 'onkeypress', this, function(evt) {
+                    var keycode = (evt.keyCode ? evt.keyCode : evt.which);
+                    if (keycode == '13') {
+                        $('raisebutton').click()
+                    } else if (keycode == '27') {
+                        $('cancelbutton').click()
+                    }
+                });
+            } else {
+                // Click on chips to define the bet amount
+                var colors = ["white", "blue", "red", "green", "black"];
+            
+                var valuesString = "";
+                colors.forEach(color => {
+                    // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
+                    var stockToken = $("token" + color + "_" + this.player_id);
+                    var betToken = $("bettoken" + color + "_" + this.player_id);
+                    // Extract number of token from HTML element and build a string to pass to the server
+                    valuesString += stockToken.firstElementChild.textContent + ";";
+                    valuesString += betToken.firstElementChild.textContent + ";";
+                });
+
+                this.ajaxcall("/texasholdem/texasholdem/raise.html", { 
+                    lock: true, 
+                    tokens: valuesString
+                }, this, function(result) {}, function(is_error) {});
+            }
         },
 
         onRaiseBy: function(event) {
@@ -1025,23 +1109,7 @@ function (dojo, declare) {
 
             var raiseValue = parseInt(event.target.innerText.replace(/Raise by /, "").replace(/Bet /, ""));
 
-            var colors = ["white", "blue", "red", "green", "black"];
-            
-            var valuesString = "";
-            colors.forEach(color => {
-                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
-                var stockToken = $("token" + color + "_" + this.player_id);
-                var betToken = $("bettoken" + color + "_" + this.player_id);
-                // Extract number of token from HTML element and build a string to pass to the server
-                valuesString += stockToken.firstElementChild.textContent + ";";
-                valuesString += betToken.firstElementChild.textContent + ";";
-            });
-
-            this.ajaxcall("/texasholdem/texasholdem/raiseBy.html", { 
-                lock: true, 
-                tokens: valuesString,
-                raiseValue: raiseValue
-            }, this, function(result) {}, function(is_error) {});
+            this.raiseBy(raiseValue);
         },
 
         onFold: function() {
@@ -1337,6 +1405,41 @@ function (dojo, declare) {
                 isAutoblinds: event.target.checked ? 1 : 0
              }, this, function(result) {}, function(is_error) {});
         },
+
+        onBetmodeChange: function(event) {
+            if (this.isCurrentPlayerActive()) {
+                // Update choose raise button
+            if (event.target.checked) {
+                dojo.html.set($('raise'), _('Confirm raise'));
+                this.removeTooltip('raise');
+                this.addTooltip('raise', 'You need can move chips to your betting area by clicking on them', _('This will raise by the amount of chips you currently have in your betting area'));
+            } else {
+                dojo.html.set($('raise'), _('Choose raise'));
+                this.addTooltip('raise', '', _('This will open a sub-window to let you choose a raise amount'));
+            }
+            }
+
+            // If the player has already moved chips to the betting area during the 
+            // current turn, they are moved back to his stock if he disables manual betting
+            var colors = ["white", "blue", "red", "green", "black"];
+            
+            var valuesString = "";
+            colors.forEach(color => {
+                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
+                var stockToken = $("token" + color + "_" + this.player_id);
+                var betToken = $("bettoken" + color + "_" + this.player_id);
+                // Extract number of token from HTML element and build a string to pass to the server
+                valuesString += stockToken.firstElementChild.textContent + ";";
+                valuesString += betToken.firstElementChild.textContent + ";";
+            });
+
+            this.ajaxcall("/texasholdem/texasholdem/betmode.html", { 
+                lock: true, 
+                playerId: this.player_id,
+                isBetManual: event.target.checked ? 1 : 0,
+                tokens: valuesString
+             }, this, function(result) {}, function(is_error) {});
+        },
         
         ///////////////////////////////////////////////////
         //// Reaction to cometD notifications
@@ -1408,6 +1511,7 @@ function (dojo, declare) {
             dojo.subscribe('changeDealer', this, "notif_changeDealer");
 
             dojo.subscribe('autoblindsChange', this, "notif_autoblindsChange");
+            dojo.subscribe('betmodeChange', this, "notif_betmodeChange");
             dojo.subscribe('announceAction', this, "notif_announceAction");
         },  
         
@@ -2335,6 +2439,11 @@ function (dojo, declare) {
         notif_autoblindsChange: function(notif) {
             console.log('notif_autoblindsChange');
             this.showMessage(_("Autoblinds configuration change applied"), "info");
+        },
+
+        notif_betmodeChange: function(notif) {
+            console.log('notif_betmodeChange');
+            this.showMessage(_("Bet mode change applied"), "info");
         },
 
         notif_announceAction: function(notif) {

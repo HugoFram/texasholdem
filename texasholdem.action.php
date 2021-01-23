@@ -298,6 +298,37 @@
         self::ajaxResponse();
     }
 
+    public function betmode() {
+      self::setAjaxMode();     
+
+        // Retrieve arguments
+        // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+        // playerId: integer for the id of the player who clicked the slider
+        // checked: integer, 0 = disable autoblinds, 1 = enable autoblinds
+        $player_id = self::getArg("playerId", AT_int, true);
+        $is_checked = self::getArg("isBetManual", AT_int, true);
+
+        // Expects a number list with the following format
+        // "<num tokens white in stock>;<num tokens white in betting area>;<num tokens blue in stock>;<num tokens blue in betting area>;..."
+        $tokens_raw = self::getArg("tokens", AT_numberlist, true);
+
+        // Removing last ';' if exists
+        if (substr($tokens_raw, -1) == ';') {
+          $tokens_raw = substr($tokens_raw, 0, -1 );
+        }
+        if ($tokens_raw == '') {
+          $tokens = array();
+        } else if ($tokens_raw == '0;0;0;0;0;0;0;0;0;0') {
+          throw new BgaUserException(_("You must select one of the tokens proposition to get in exchange of what you give."));
+        } else {
+          $tokens = explode( ';', $tokens_raw);
+        }
+
+        $this->game->changeBetmode($player_id, $is_checked, $tokens);
+
+        self::ajaxResponse();
+    }
+
   }
   
 

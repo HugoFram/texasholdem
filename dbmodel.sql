@@ -57,6 +57,7 @@ ALTER TABLE `player` ADD `player_bet_token_black` INT UNSIGNED NOT NULL DEFAULT 
 ALTER TABLE `player` ADD `is_fold` BOOLEAN DEFAULT false;
 ALTER TABLE `player` ADD `is_all_in` BOOLEAN DEFAULT false;
 ALTER TABLE `player` ADD `wants_autoblinds` BOOLEAN DEFAULT false;
+ALTER TABLE `player` ADD `wants_manualbet` BOOLEAN DEFAULT false;
 
 -- Table to store tokens bet on previous betting rounds
 CREATE TABLE IF NOT EXISTS `token` (
