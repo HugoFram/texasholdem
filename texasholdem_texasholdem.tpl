@@ -130,12 +130,14 @@
 </div>
 <div class="slider-checkbox">
     <input type="checkbox" class="autoblinds" name="autoblinds" id="autoblinds">
-    <label for = "autoblinds" class="label">{AUTOBLINDS_DESCRIPTION}</span>
+    <label for = "autoblinds" class="label">{AUTOBLINDS_DESCRIPTION}</label>
 </div>
 <div class="slider-checkbox">
     <input type="checkbox" class="betmode" name="betmode" id="betmode">
-    <label for = "betmode" class="label">{BETMODE_DESCRIPTION}</span>
+    <label for = "betmode" class="label">{BETMODE_DESCRIPTION}</label>
 </div>
+<p class="label" id = "blind_level"></p>
+<p class="label" id = "hand_number"></p>
 <script type="text/javascript">
 
 // Javascript HTML templates

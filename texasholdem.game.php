@@ -240,6 +240,14 @@ class texasholdem extends Table
         // Dealer id
         $result['dealer'] = self::getGameStateValue("dealerId");
 
+        // Blinds level
+        $small_blind = self::getGameStateValue("smallBlindValue");
+        $result['smallblind'] = $small_blind;
+        $result['bigblind'] = 2 * $small_blind;
+
+        // Hand number
+        $result['handnumber'] = self::getGameStateValue("roundNumber");
+
         return $result;
     }
 
@@ -1908,7 +1916,9 @@ class texasholdem extends Table
             self::setGameStateValue("smallBlindValue", $new_small_blind);
         }
 
-        self::notifyAllPlayers("dealCards", clienttranslate('New hand. Two cards are dealt to each player.'), array());
+        self::notifyAllPlayers("newHand", clienttranslate('Hand number ${num_turns} starts. Two cards are dealt to each player.'), array(
+            'num_turns' => $num_turns
+        ));
 
         // Send individual notification to each player hiding other players cards
         foreach ($players as $player_id => $player) {

@@ -178,12 +178,18 @@ function (dojo, declare) {
                 this.updateTooltips("pot", null);
                 this.updateTooltips("stock", player_id);
                 this.updateTooltips("bet", player_id);
-
-                // Add tooltips to option sliders
-                this.addTooltip("autoblinds", _("This option lets you define if you want your blinds to be placed automatically or if you prefer to place them manually by clicking on your chips for more immersion"), '');
-                this.addTooltip("betmode", _("This option lets you define if you want to choose the amount of your raises by entering a number in a pop-up window or by manually placing chips in your betting area by clicking on them"), '');
             }
 
+            // Add tooltips to option sliders
+            this.addTooltip("autoblinds", _("This option lets you define if you want your blinds to be placed automatically or if you prefer to place them manually by clicking on your chips for more immersion"), '');
+            this.addTooltip("betmode", _("This option lets you define if you want to choose the amount of your raises by entering a number in a pop-up window or by manually placing chips in your betting area by clicking on them"), '');
+
+            // Add blinds and hand number info
+            var blindsLevelText = _("Blinds level: ") + gamedatas.smallblind + "/" + gamedatas.bigblind;
+            var handNumberText = _("Hand number: ") + gamedatas.handnumber;
+            dojo.html.set($('blind_level'), blindsLevelText);
+            dojo.html.set($('hand_number'), handNumberText);
+            
             // Highlight the table of the currently active player
             var playerTable = $("playertablecards_" + gamedatas.activeplayerid).parentElement;
             dojo.addClass(playerTable, "highlighted-border");
@@ -1470,6 +1476,7 @@ function (dojo, declare) {
             // 
 
             dojo.subscribe('increaseBlinds', this, "notif_increaseBlinds");
+            dojo.subscribe('newHand', this, "notif_newHand");
             dojo.subscribe('dealCardsPlayer', this, "notif_dealCardsPlayer");
             this.notifqueue.setSynchronous('dealCardsPlayer', 1000);
 
@@ -1536,12 +1543,23 @@ function (dojo, declare) {
 
             var smallBlind = notif.args.small_blind;
             var bigBlind = notif.args.big_blind;
+
+            var blindsLevelText = _("Blinds level: ") + smallBlind + "/" + bigBlind;
+            dojo.html.set($('blind_level'), blindsLevelText);
+
             this.showMessage(_("The blinds are increased to " + smallBlind + "/" + bigBlind), "info")
+        },
+
+        notif_newHand: function(notif) {
+            console.log('notif_newHand');
+
+            var handNumberText = _("Hand number: ") + notif.args.num_turns;
+            dojo.html.set($('hand_number'), handNumberText);
         },
 
         notif_dealCardsPlayer: function(notif) {
             console.log('notif_dealCardsPlayer');
-
+            
             // Display cards in hand
             var hands = notif.args.hands;
             var playerToIsLeftCard = [];
