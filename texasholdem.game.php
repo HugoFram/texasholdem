@@ -374,7 +374,7 @@ class texasholdem extends Table
                     $num_consecutive++;
                     if (($num_consecutive >= 5 || ($num_consecutive >= 4 && $has_ace && $card_value == 2)) && !$is_straight) {
                         $is_straight = TRUE;
-                        if ($num_consecutive >= 4 && $has_ace && $card_value == 2) {
+                        if ($num_consecutive == 4 && $has_ace && $card_value == 2) {
                             // Case of Ace-2-3-4-5 straight
                             $straight_lowest_value = 1;
                         } else {
