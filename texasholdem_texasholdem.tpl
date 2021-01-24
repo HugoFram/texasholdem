@@ -207,10 +207,8 @@ var jstpl_player_board_token = '<div class = "paneltokencounter"> \
     </div>';
 
 var jstpl_choose_raise_dialog = ' \
-    <form> \
-        <label for = "raiseAmount">${INPUT_LABEL}</label> \
-        <input type = "number" id = "raiseAmount" value = 0><br> \
-    </form> \
+    <label for = "raiseAmount">${INPUT_LABEL}</label> \
+    <input type = "number" id = "raiseAmount" value = 0><br> \
     <a type="button" class = "action-button bgabutton bgabutton_blue" id = "raisebutton">${RAISE_BUTTON_LABEL}</a> \
     <a type="button" class = "action-button bgabutton bgabutton_blue" id = "cancelbutton">${CANCEL_BUTTON_LABEL}</a> \
 ';

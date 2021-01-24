@@ -1431,7 +1431,7 @@ class texasholdem extends Table
             if ($raise_amount < $minimum_raise) {
                 // The raise is lower than the minimum possible raise
                 throw new BgaUserException(_("You need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
-            } else if ($raise_amount > $player_tokens["stock"]) {
+            } else if ($raise_amount + ($current_bet_level - $current_player_bet) > $player_tokens["stock"]) {
                 // The player does not have enough stock to raise by the specified amount
                 throw new BgaUserException(_("You need don't have enough chips in stock to raise by ${raise_amount}"));
             }
