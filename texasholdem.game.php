@@ -50,7 +50,10 @@ class texasholdem extends Table
             "numBettingPlayers" => 18, // Number of players who have bet, checked or folded during this betting round
             "minimumRaise" => 19,
             "dealerId" => 20,
-            "areHandsRevealed" => 21
+            "areHandsRevealed" => 21,
+
+            "gameEndVariant" => 100,
+            "handsNumberLimit" => 101,
         ) );
 
         $this->cards = self::getNew("module.common.deck");
@@ -139,7 +142,7 @@ class texasholdem extends Table
         // TODO: setup the initial game situation here
 
         // Set values of state variables
-        self::setGameStateInitialValue("roundNumber", 1);
+        self::setGameStateInitialValue("roundNumber", 0);
         self::setGameStateInitialValue("roundStage", 0);
         self::setGameStateInitialValue("numFoldedPlayers", 0);
         self::setGameStateInitialValue("numAllInPlayers", 0);
@@ -2525,6 +2528,27 @@ class texasholdem extends Table
             $this->cards->moveAllCardsInLocation("turn", "deck");
             $this->cards->moveAllCardsInLocation("river", "deck");
     
+            // Deal with rounds-limited gamemodes
+            if ($this->getGameStateValue('gameEndVariant') == 2) {
+                switch($this->getGameStateValue('handsNumberLimit')) {
+                    case 1:
+                        $max_hands_number = 5;
+                        break;
+                    case 2:
+                        $max_hands_number = 10;
+                        break;
+                    case 3:
+                        $max_hands_number = 20;
+                        break;
+                    default:
+                        $max_hands_number = 10;
+                        break;
+                }
+                if ($this->getGameStateValue('roundNumber') >= $max_hands_number) {
+                    $this->gamestate->nextState("endGame");
+                }
+            }
+            
             // Shuffle deck
             $this->cards->shuffle('deck');
     

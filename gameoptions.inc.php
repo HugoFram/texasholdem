@@ -52,6 +52,42 @@ $game_options = array(
 
     */
 
+    100 => array(
+        'name' => totranslate('Game end'),    
+        'values' => array(
+            1 => array(
+                'name' => totranslate("Winner takes all")
+            ),
+            2 => array(
+                'name' => totranslate("Limited number of hands")
+            )
+        ),
+        'default' => 1
+    ),
+
+    101 => array(
+        'name' => totranslate('Number of hands'),    
+        'values' => array(
+            1 => array(
+                'name' => totranslate("5 hands")
+            ),
+            2 => array(
+                'name' => totranslate("10 hands")
+            ),
+            3 => array(
+                'name' => totranslate("20 hands")
+            )
+        ),
+        'displaycondition' => array( // Note: do not display this option unless these conditions are met
+            array(
+                'type' => 'otheroption',
+                'id' => 100,
+                'value' => array(2)
+            )
+            ),
+        'default' => 2
+    )
+
 );
 
 
