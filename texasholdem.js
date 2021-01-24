@@ -1147,22 +1147,6 @@ function (dojo, declare) {
                     this.raiseDlg.destroy();
                 });
 
-                // dojo.connect($('chooseRaise'), 'onkeydown', this, function(evt) {
-                //     var keycode = (evt.keyCode ? evt.keyCode : evt.which);
-                //     console.log(keycode);
-                //     if (keycode == '13') {
-                //         var raiseAmount = $("raiseAmount").value;
-                //         console.log(raiseAmount);
-                //         console.log(evt.target);
-                //         this.raiseBy(raiseAmount);
-                //         evt.preventDefault();
-                //         this.raiseDlg.destroy();
-                //     } else if (keycode == '27') {
-                //         console.log("Pressed Escape");
-                //         evt.preventDefault();
-                //         this.raiseDlg.destroy();
-                //     }
-                // });
             } else {
                 // Click on chips to define the bet amount
                 var colors = ["white", "blue", "red", "green", "black"];
