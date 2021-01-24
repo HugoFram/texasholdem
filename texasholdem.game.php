@@ -2169,6 +2169,14 @@ class texasholdem extends Table
                     $this->cards->pickCardForLocation("deck", "discard");
                     $this->cards->pickCardsForLocation(3, "deck", "flop");
                     $new_cards = $this->cards->getCardsInLocation("flop");
+                    self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed ${card1} ${card2} ${card3}'), array(
+                        'i18n' => array('revealed_card'),
+                        'revealed_card' => $revealed_card,
+                        'card1' => array_values($new_cards)[0],
+                        'card2' => array_values($new_cards)[1],
+                        'card3' => array_values($new_cards)[2],
+                        'cards' => $new_cards
+                    ));
                     break;
                 case 3:
                     // Burn a card before drawing the turn card
@@ -2176,6 +2184,12 @@ class texasholdem extends Table
                     $this->cards->pickCardForLocation("deck", "discard");
                     $this->cards->pickCardForLocation("deck", "turn");
                     $new_cards = $this->cards->getCardsInLocation("turn");
+                    self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed ${card1}'), array(
+                        'i18n' => array('revealed_card'),
+                        'revealed_card' => $revealed_card,
+                        'card1' => array_values($new_cards)[0],
+                        'cards' => $new_cards
+                    ));
                     break;
                 case 4:
                     // Burn a card before drawing the river card
@@ -2183,14 +2197,15 @@ class texasholdem extends Table
                     $this->cards->pickCardForLocation("deck", "discard");
                     $this->cards->pickCardForLocation("deck", "river");
                     $new_cards = $this->cards->getCardsInLocation("river");
+                    self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed ${card1}'), array(
+                        'i18n' => array('revealed_card'),
+                        'revealed_card' => $revealed_card,
+                        'card1' => array_values($new_cards)[0],
+                        'cards' => $new_cards
+                    ));
                     break;
             }
             self::setGameStateValue("roundStage", $round_stage);
-            self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed'), array(
-                'i18n' => array('revealed_card'),
-                'revealed_card' => $revealed_card,
-                'cards' => $new_cards
-            ));
 
             // Set the small blind player active at the start of each betting round
             if (count($current_players_bet) - self::getGameStateValue("numEliminatedPlayers") <= 2) {
@@ -2234,7 +2249,6 @@ class texasholdem extends Table
 
         if (count($non_folded_players) > 1) {
             // At least two players still not folded
-            $hand_values = array();
             foreach($non_folded_players as $player_id => $player) {
                 // Combine cards from hand and from the table to make a 7 cards hand
                 $player_hand = array_filter($cards_in_hand, function($card) use ($player_id) {return $card["location_arg"] == $player_id;});
@@ -2275,6 +2289,7 @@ class texasholdem extends Table
             // Announce the combo of each player
             foreach($non_folded_players as $player_id => $player) {
                 $combo_value = $players_best_combo[$player_id]["comboValue"];
+                $player_hand = $players_best_combo[$player_id]["hand"];
                 switch($players_best_combo[$player_id]["comboId"]) {
                     case 0:
                         $combo_name = "nothing (Top card: " . $this->values_label[$combo_value + 2] . ")";
@@ -2314,10 +2329,15 @@ class texasholdem extends Table
                         break;
                 }
                 $players_best_combo[$player_id]["comboName"] = $combo_name;
-                self::notifyAllPlayers("announceCombo", clienttranslate('${player_name} has ${combo_name}'), array(
+                self::notifyAllPlayers("announceCombo", clienttranslate('${player_name} has ${combo_name} with ${card1} ${card2} ${card3} ${card4} ${card5}'), array(
                     'i18n' => array('combo_name'),
                     'player_name' => $player["player_name"],
                     'combo_name' => $combo_name,
+                    'card1' => $player_hand[0],
+                    'card2' => $player_hand[1],
+                    'card3' => $player_hand[2],
+                    'card4' => $player_hand[3],
+                    'card5' => $player_hand[4],
                     'player_id' => $player_id,
                     'player_color' => $player["player_color"],
                     'player_best_combo' => $players_best_combo[$player_id]

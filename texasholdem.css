@@ -615,6 +615,11 @@
     transform: rotate(15deg);
 }
 
+.logcard {
+    zoom: 0.3;
+    display: inline-block;
+}
+
 .tabletokens {
     width: 95px;
     height: 180px;

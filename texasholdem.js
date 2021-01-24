@@ -832,6 +832,43 @@ function (dojo, declare) {
             }, this, function(result) {}, function(is_error) {});
         },
 
+        /** Override this function to inject html into log items. This is a built-in BGA method.  */
+
+        /* @Override */
+        format_string_recursive : function(log, args) {
+            try {
+                if (log && args && !args.processed) {
+                    args.processed = true;
+                    
+
+                    // list of special keys we want to replace with images
+                    var keys = ['card1','card2','card3','card4','card5'];
+                    
+                    for (var i in keys) {
+                        var key = keys[i];
+                        if (args[key]) {
+                            args[key] = this.buildCardThumbnail(args[key]);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(log,args,"Exception thrown", e.stack);
+            }
+            return this.inherited(arguments);
+        },
+
+        buildCardThumbnail: function(card) {
+            var cardValue = card.type_arg;
+            var cardSuit = card.type;
+
+            return this.format_block('jstpl_card', {
+                CARD_LOCATION_CLASS: "logcard",
+                CARD_VISIBILITY_CLASS: "cardvisible",
+                BACKGROUND_POSITION_LEFT_PERCENTAGE: -100 * (cardValue - 2),
+                BACKGROUND_POSITION_TOP_PERCENTAGE: -100 * (cardSuit - 1)
+            });
+        },
+
         ///////////////////////////////////////////////////
         //// Player's action
         
@@ -2273,7 +2310,7 @@ function (dojo, declare) {
             var comboName = notif.args.combo_name;
 
             // Highlight cards constituting the combo
-            dojo.query(".card.cardvisible").forEach(card => {
+            dojo.query(".card.cardvisible:not(.logcard)").forEach(card => {
                 var cardValue = (-parseInt(getComputedStyle(card).backgroundPositionX.slice(0, -1)) / 100) + 2;
                 var cardSuit = (-parseInt(getComputedStyle(card).backgroundPositionY.slice(0, -1)) / 100) + 1;
                 if (comboCards.filter(card => (card.type_arg == cardValue && card.type == cardSuit)).length > 0) {
@@ -2309,7 +2346,7 @@ function (dojo, declare) {
             var comboName = notif.args.combo_name;
 
             // Highlight cards constituting the combo
-            dojo.query(".card.cardvisible").forEach(card => {
+            dojo.query(".card.cardvisible:not(.logcard)").forEach(card => {
                 var cardValue = (-parseInt(getComputedStyle(card).backgroundPositionX.slice(0, -1)) / 100) + 2;
                 var cardSuit = (-parseInt(getComputedStyle(card).backgroundPositionY.slice(0, -1)) / 100) + 1;
                 if (comboCards.filter(card => (card.type_arg == cardValue && card.type == cardSuit)).length > 0) {
@@ -2414,7 +2451,7 @@ function (dojo, declare) {
         notif_discardAllCards: function(notif) {
             console.log('notif_discardAllCards');
 
-            dojo.query(".card").forEach(node => {
+            dojo.query(".card:not(.logcard)").forEach(node => {
                 this.fadeOutAndDestroy(node);
             });
 
