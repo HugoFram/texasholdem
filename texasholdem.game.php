@@ -122,7 +122,7 @@ class texasholdem extends Table
         //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
-        self::initStat('player', 'turns_number', 1);
+        self::initStat('player', 'turns_number', 0);
         self::initStat('player', 'hands_won', 0);
         self::initStat('player', 'times_folded', 0);
         self::initStat('player', 'checks', 0);
@@ -1896,11 +1896,13 @@ class texasholdem extends Table
         $sql = "UPDATE player SET is_fold = 0, is_all_in = 0";
         self::DbQuery($sql);
 
-        // Deal two cards to each player
+        // Deal two cards to each player and increase turn number player stat
         $players = self::getCollectionFromDb("SELECT player_id, player_eliminated, wants_autoblinds FROM player");
         foreach ($players as $player_id => $player) {
             if (!$player["player_eliminated"]) {
                 $cards = $this->cards->pickCards(2, 'deck', $player_id);
+                // Increment stats
+                self::incStat(1, "turns_number", $player_id);
             }
         }
 
@@ -2428,17 +2430,53 @@ class texasholdem extends Table
                     $winner_gain = (int)floor($pot_value / count($same_rank_players));
                     $gain_remainder += $pot_value / count($same_rank_players) - floor($pot_value / count($same_rank_players));
 
-                    self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} ${shares_or_wins} the ${pot_name} with ${combo_name} and gets ${winner_gain}'), array(
-                        'i18n' => array('pot_name', 'combo_name', 'shares_or_wins'),
-                        'winner_name' => $players[$winner_id]["player_name"],
-                        'shares_or_wins' => $shares_or_wins,
-                        'pot_name' => $pot_name,
-                        'combo_name' => $players_best_combo[$winner_id]["comboName"],
-                        'winner_gain' => $winner_gain,
-                        'winner_id' => $winner_id,
-                        'winner_color' => $players[$winner_id]["player_color"],
-                        'winner_best_combo' => $players_best_combo[$winner_id]
-                    ));
+                    // Announce kicker in case several players have the same best main combo
+                    $winner_best_combo = $players_best_combo[$winner_id];
+                    $same_combo_players = array_filter($players_best_combo, function($player_best_combo) use($winner_best_combo) {
+                        return $player_best_combo["comboId"] == $winner_best_combo["comboId"] && 
+                                $player_best_combo["comboValue"] == $winner_best_combo["comboValue"] && 
+                                $player_best_combo["kickerValue"] != $winner_best_combo["kickerValue"];
+                    });
+                    $same_combo_players[$winner_id] = $winner_best_combo;
+                    if (count($same_combo_players) > 1) {
+                        // Several players have the same combo
+                        $same_combo_player_names = "";
+                        $i = 0;
+                        // Build list of player names with the same combo
+                        foreach ($same_combo_players as $player_id => $player) {
+                            $same_combo_player_names .= $players[$player_id]["player_name"];
+                            if ($i < count($same_combo_players) - 2) {
+                                $same_combo_player_names .= ", ";
+                            } else if ($i == count($same_combo_players) - 2) {
+                                $same_combo_player_names .= clienttranslate(" and ");
+                            }
+                            $i++;
+                        }
+                        self::notifyAllPlayers("announceWinner", clienttranslate('${same_combo_player_names} both have ${combo_name} but ${winner_name} has a better kicker. He/she ${shares_or_wins} the ${pot_name} and gets ${winner_gain}.'), array(
+                            'i18n' => array('pot_name', 'combo_name', 'shares_or_wins'),
+                            'same_combo_player_names' => $same_combo_player_names,
+                            'winner_name' => $players[$winner_id]["player_name"],
+                            'shares_or_wins' => $shares_or_wins,
+                            'pot_name' => $pot_name,
+                            'combo_name' => $players_best_combo[$winner_id]["comboName"],
+                            'winner_gain' => $winner_gain,
+                            'winner_id' => $winner_id,
+                            'winner_color' => $players[$winner_id]["player_color"],
+                            'winner_best_combo' => $players_best_combo[$winner_id]
+                        ));
+                    } else {
+                        self::notifyAllPlayers("announceWinner", clienttranslate('${winner_name} ${shares_or_wins} the ${pot_name} with ${combo_name} and gets ${winner_gain}'), array(
+                            'i18n' => array('pot_name', 'combo_name', 'shares_or_wins'),
+                            'winner_name' => $players[$winner_id]["player_name"],
+                            'shares_or_wins' => $shares_or_wins,
+                            'pot_name' => $pot_name,
+                            'combo_name' => $players_best_combo[$winner_id]["comboName"],
+                            'winner_gain' => $winner_gain,
+                            'winner_id' => $winner_id,
+                            'winner_color' => $players[$winner_id]["player_color"],
+                            'winner_best_combo' => $players_best_combo[$winner_id]
+                        ));
+                    }
 
                     self::incStat(1, "hands_won", $winner_id);
 
