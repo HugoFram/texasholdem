@@ -817,7 +817,7 @@ class texasholdem extends Table
             $token_added = FALSE;
             foreach (array_reverse($colors) as $color) {
                 if ($remaining_value >= $this->token_values[$color] && $token_diff[$color] < $from_tokens[$color]) {
-                    self::trace("Remaining value: ${remaining_value}, " . ($from_tokens[$color] - $token_diff[$color]) . " ${color} tokens remaining in source. Moving 1 from ${from} to ${to}");
+                    self::trace("Remaining value: ${remaining_value}, " . ($from_tokens[$color] - $token_diff[$color]) . " ${color} chips remaining in source. Moving 1 from ${from} to ${to}");
                     $token_diff[$color]++;
                     $remaining_value -= $this->token_values[$color];
                     $token_added = TRUE;
@@ -833,7 +833,7 @@ class texasholdem extends Table
                     // Exchange a token from source with the corresponding value in tokens of the lowest value
                     $from_tokens[$color]--;
                     $num_small_tokens = (int)floor($this->token_values[$color] / $this->token_values[$colors[0]]);
-                    self::notifyAllPlayers("changeRequired", clienttranslate('The current tokens in ${source_name} cannot make ${value}. A ${color} token is exchanged against ${num_small_tokens} ${small_color} tokens.'), array(
+                    self::notifyAllPlayers("changeRequired", clienttranslate('The current chips in ${source_name} cannot make ${value}. A ${color} chip is exchanged against ${num_small_tokens} ${small_color} chips.'), array(
                         'i18n' => array('source_name', 'color', 'small_color'),
                         'source_name' => $source_name,
                         'from' => $from,
@@ -1193,7 +1193,7 @@ class texasholdem extends Table
         }
 
         if ($additional_bet > 0) {
-            self::notifyPlayer($player_id, "betPlaced", clienttranslate('No token should be bet for a check action. Moving back ${additional_bet} to your stock.'), array(
+            self::notifyPlayer($player_id, "betPlaced", clienttranslate('No chip should be bet for a check action. Moving back ${additional_bet} to your stock.'), array(
                 'player_id' => $player_id,
                 'additional_bet' => $additional_bet,
                 'diff_stock' => array_map(function($token_num) {return -$token_num;}, $diff_stock),
@@ -1522,7 +1522,7 @@ class texasholdem extends Table
         $diff_stock = $bet_computation["diff_stock"];
 
         if ($additional_bet != 0) {
-            self::notifyPlayer($player_id, "betPlaced", clienttranslate('No token should be bet or taken back for a fold action. Moving back ${additional_bet} to your stock.'), array(
+            self::notifyPlayer($player_id, "betPlaced", clienttranslate('No chip should be bet or taken back for a fold action. Moving back ${additional_bet} to your stock.'), array(
                 'player_id' => $player_id,
                 'additional_bet' => $additional_bet,
                 'diff_stock' => array_map(function($token_num) {return -$token_num;}, $diff_stock),
@@ -1660,7 +1660,7 @@ class texasholdem extends Table
                 if ($token_number > 0) {
                     // Given token => decrement stock
                     if ($token_number > $current_tokens["player_stock_token_${color}"]) {
-                        throw new feException(_("You cannot give ${token_number} ${color} tokens because you only have " . $current_tokens["player_stock_token_${color}"]));
+                        throw new feException(_("You cannot give ${token_number} ${color} chips because you only have " . $current_tokens["player_stock_token_${color}"]));
                     } else {
                         $sql .= "player_stock_token_${color} = " . ($current_tokens["player_stock_token_${color}"] - $token_number) . ", ";
                         $diff_stock[$color] = -1 * (int)$token_number;
@@ -1684,7 +1684,7 @@ class texasholdem extends Table
         }
         $sql .= " WHERE player_id = '" . $player_id. "'";
         if ($valueReceived != $valueGiven) {
-            throw new feException(_("The value of tokens given is different than the value of received tokens"));
+            throw new feException(_("The value of chips given is different than the value of received tokens"));
         } else {
             self::DbQuery($sql);
             self::notifyAllPlayers("makeChange", clienttranslate('${player_name} makes some change'), array(
@@ -2550,7 +2550,7 @@ class texasholdem extends Table
             }
         }
 
-        self::notifyAllPlayers("updateScores", clienttranslate('Scores are updated with the new player token stocks'), array(
+        self::notifyAllPlayers("updateScores", clienttranslate('Scores are updated with the new player chip stocks'), array(
             'players_tokens_value' => $players_tokens_value
         ));
 

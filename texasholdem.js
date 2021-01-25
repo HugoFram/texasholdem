@@ -1889,7 +1889,7 @@ function (dojo, declare) {
                     
                     // Token goes from player's stock to the betting area
                     if (tokenDiff < 0) {
-                        console.log("Token goes from player's stock to the betting area");
+                        console.log("Chip goes from player's stock to the betting area");
                         for (var i = 0; i > tokenDiff; i--) {
                             currentStock--;
                             currentBet++;
@@ -1933,7 +1933,7 @@ function (dojo, declare) {
                         }
                     // Token goes from player's betting area to the stock
                     } else if (tokenDiff > 0) {
-                        console.log("Token goes from player's betting area to the stock");
+                        console.log("Chip goes from player's betting area to the stock");
                         for (var i = 0; i < tokenDiff; i++) {
                             currentStock++;
                             currentBet--;
