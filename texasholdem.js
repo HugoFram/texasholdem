@@ -57,127 +57,134 @@ function (dojo, declare) {
             {
                 var player = gamedatas.players[player_id];
 
-                // TODO: Setting up players boards if needed
+                if (player.player_eliminated == 0) {
+                    var tokenColors = ["white", "blue", "red", "green", "black"];
 
-                var tokenColors = ["white", "blue", "red", "green", "black"];
+                    var playerBoardStockTokens = "";
+                    var playerBoardBetTokens = "";
 
-                var playerBoardStockTokens = "";
-                var playerBoardBetTokens = "";
-
-                tokenColors.forEach(color => {
-                    var stockTokens, betTokens;
-                    switch(color) {
-                        case "white": 
-                            stockTokens = player.stock_white;
-                            betTokens = player.bet_white;
-                            break;
-                        case "blue": 
-                            stockTokens = player.stock_blue;
-                            betTokens = player.bet_blue;
-                            break;
-                        case "red": 
-                            stockTokens = player.stock_red;
-                            betTokens = player.bet_red;
-                            break;
-                        case "green": 
-                            stockTokens = player.stock_green;
-                            betTokens = player.bet_green;
-                            break;
-                        case "black": 
-                            stockTokens = player.stock_black;
-                            betTokens = player.bet_black;
-                            break;
-                        default:
-                            stockTokens = 0;
-                            break;
-                    }
-
-                    // Stock tokens
-                    dojo.place(this.format_block('jstpl_player_stock_token', {
-                        TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
-                        TOKEN_NUM: stockTokens
-                    }), 'token' + color + '_' + player_id, "first");
-                    if (stockTokens > 0) {
-                        if (dojo.hasClass('token' + color + '_' + player_id, "tokenhidden")) {
-                            dojo.removeClass('token' + color + '_' + player_id, "tokenhidden");
+                    tokenColors.forEach(color => {
+                        var stockTokens, betTokens;
+                        switch(color) {
+                            case "white": 
+                                stockTokens = player.stock_white;
+                                betTokens = player.bet_white;
+                                break;
+                            case "blue": 
+                                stockTokens = player.stock_blue;
+                                betTokens = player.bet_blue;
+                                break;
+                            case "red": 
+                                stockTokens = player.stock_red;
+                                betTokens = player.bet_red;
+                                break;
+                            case "green": 
+                                stockTokens = player.stock_green;
+                                betTokens = player.bet_green;
+                                break;
+                            case "black": 
+                                stockTokens = player.stock_black;
+                                betTokens = player.bet_black;
+                                break;
+                            default:
+                                stockTokens = 0;
+                                break;
                         }
-                    } else {
-                        dojo.addClass('token' + color + '_' + player_id, "tokenhidden");
-                    }
-                    playerBoardStockTokens += this.format_block('jstpl_player_board_token', {
-                            type: "stock",
-                            color: color,
-                            player_id: player_id,
-                            num_tokens: stockTokens
-                        });
 
-                    // Bet tokens
-                    dojo.place(this.format_block('jstpl_player_bet_token', {
-                        TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
-                        TOKEN_NUM: betTokens
-                    }), 'bettoken' + color + '_' + player_id, "first");
-                    if (betTokens > 0) {
-                        if (dojo.hasClass('bettoken' + color + '_' + player_id, "tokenhidden")) {
-                            dojo.removeClass('bettoken' + color + '_' + player_id, "tokenhidden");
+                        // Stock tokens
+                        dojo.place(this.format_block('jstpl_player_stock_token', {
+                            TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
+                            TOKEN_NUM: stockTokens
+                        }), 'token' + color + '_' + player_id, "first");
+                        if (stockTokens > 0) {
+                            if (dojo.hasClass('token' + color + '_' + player_id, "tokenhidden")) {
+                                dojo.removeClass('token' + color + '_' + player_id, "tokenhidden");
+                            }
+                        } else {
+                            dojo.addClass('token' + color + '_' + player_id, "tokenhidden");
                         }
+                        playerBoardStockTokens += this.format_block('jstpl_player_board_token', {
+                                type: "stock",
+                                color: color,
+                                player_id: player_id,
+                                num_tokens: stockTokens
+                            });
+
+                        // Bet tokens
+                        dojo.place(this.format_block('jstpl_player_bet_token', {
+                            TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
+                            TOKEN_NUM: betTokens
+                        }), 'bettoken' + color + '_' + player_id, "first");
+                        if (betTokens > 0) {
+                            if (dojo.hasClass('bettoken' + color + '_' + player_id, "tokenhidden")) {
+                                dojo.removeClass('bettoken' + color + '_' + player_id, "tokenhidden");
+                            }
+                        } else {
+                            dojo.addClass('bettoken' + color + '_' + player_id, "tokenhidden");
+                        }
+                        playerBoardBetTokens += this.format_block('jstpl_player_board_token', {
+                                type: "bet",
+                                color: color,
+                                player_id: player_id,
+                                num_tokens: betTokens
+                            });
+                    });
+
+                    // Player board tokens
+                    dojo.place(this.format_block('jstpl_player_board_tokens', {
+                        player_id: player_id,
+                        STOCK_TOKENS: playerBoardStockTokens,
+                        BET_TOKENS: playerBoardBetTokens
+                    }), ('player_board_' + player_id));
+
+                    if (player_id == this.player_id) {
+                        // Add relevant onclick event to all immediate children of the element with id playertabletokens_{player_id}
+                        dojo.query('#playertabletokens_' + player_id + ' > *').connect('onclick', this, 'onStockTokenClicked');
+                        // Add relevant onclick event to all immediate children of the element with id bettingarea_{player_id}
+                        dojo.query('#bettingarea_' + player_id + ' > *').connect('onclick', this, 'onBetTokenClicked');
+                    
+                        // Autoblinds slider
+                        if (player.wants_autoblinds == 1) {
+                            $("autoblinds").checked = true;
+                        }
+
+                        // Betmode slider
+                        if (player.wants_manualbet == 1) {
+                            $("betmode").checked = true;
+                        }
+                    }
+
+                    // Compute total values
+                    this.updateTotal("stock", player_id);
+                    this.updateTotal("bet", player_id);
+                    var playerbettotal = $("playerbettotal_" + player_id);
+                    var playerstocktotal = $("playerstocktotal_" + player_id);
+                    if (parseInt(player.eliminated)) {
+                        this.fadeOutAndDestroy(playerbettotal, 500);
+                        this.fadeOutAndDestroy(playerstocktotal, 500);
+                    }
+
+                    // Add totals tooltips
+                    if (player_id == this.player_id) {
+                        this.addTooltip(playerstocktotal.id, _("This is the amount you still have in stock"), '');
+                        this.addTooltip(playerbettotal.id, _("This is the amount you have bet for this betting round"), '');
                     } else {
-                        dojo.addClass('bettoken' + color + '_' + player_id, "tokenhidden");
-                    }
-                    playerBoardBetTokens += this.format_block('jstpl_player_board_token', {
-                            type: "bet",
-                            color: color,
-                            player_id: player_id,
-                            num_tokens: betTokens
-                        });
-                });
-
-                // Player board tokens
-                dojo.place(this.format_block('jstpl_player_board_tokens', {
-                    player_id: player_id,
-                    STOCK_TOKENS: playerBoardStockTokens,
-                    BET_TOKENS: playerBoardBetTokens
-                }), ('player_board_' + player_id));
-
-                if (player_id == this.player_id) {
-                    // Add relevant onclick event to all immediate children of the element with id playertabletokens_{player_id}
-                    dojo.query('#playertabletokens_' + player_id + ' > *').connect('onclick', this, 'onStockTokenClicked');
-                    // Add relevant onclick event to all immediate children of the element with id bettingarea_{player_id}
-                    dojo.query('#bettingarea_' + player_id + ' > *').connect('onclick', this, 'onBetTokenClicked');
-                
-                    // Autoblinds slider
-                    if (player.wants_autoblinds == 1) {
-                        $("autoblinds").checked = true;
+                        this.addTooltip(playerstocktotal.id, _("This is the amount " + player.name + " still has in stock"), '');
+                        this.addTooltip(playerbettotal.id, _("This is the amount " + player.name + " has bet for this betting round"), '');
                     }
 
-                    // Betmode slider
-                    if (player.wants_manualbet == 1) {
-                        $("betmode").checked = true;
-                    }
-                }
-
-                // Compute total values
-                this.updateTotal("stock", player_id);
-                this.updateTotal("bet", player_id);
-                var playerbettotal = $("playerbettotal_" + player_id);
-                var playerstocktotal = $("playerstocktotal_" + player_id);
-                if (parseInt(player.eliminated)) {
-                    this.fadeOutAndDestroy(playerbettotal, 500);
-                    this.fadeOutAndDestroy(playerstocktotal, 500);
-                }
-
-                // Add totals tooltips
-                if (player_id == this.player_id) {
-                    this.addTooltip(playerstocktotal.id, _("This is the amount you still have in stock"), '');
-                    this.addTooltip(playerbettotal.id, _("This is the amount you have bet for this betting round"), '');
+                    // Add tooltips to tokens
+                    this.updateTooltips("pot", null);
+                    this.updateTooltips("stock", player_id);
+                    this.updateTooltips("bet", player_id);
                 } else {
-                    this.addTooltip(playerstocktotal.id, _("This is the amount " + player.name + " still has in stock"), '');
-                    this.addTooltip(playerbettotal.id, _("This is the amount " + player.name + " has bet for this betting round"), '');
+                    dojo.destroy("dealer_button_" + player_id);
+                    dojo.destroy("bettingarea_" + player_id);
+                    dojo.destroy("playerbettotal_" + player_id);
+                    dojo.destroy("playerstocktotal_" + player_id);
+                    dojo.destroy("playertablecards_" + player_id);
+                    dojo.destroy("playertabletokens_" + player_id);
                 }
-
-                // Add tooltips to tokens
-                this.updateTooltips("pot", null);
-                this.updateTooltips("stock", player_id);
-                this.updateTooltips("bet", player_id);
             }
 
             // Add tooltips to option sliders
@@ -643,7 +650,7 @@ function (dojo, declare) {
                             } else if (tokenNumber == 0) {
                                 this.addTooltip(
                                     token.id, 
-                                    _("There is no " + color + " chip in your betting area"), 
+                                    _("There is no " + color + " chip"), 
                                     ''
                                 );
                             }
@@ -2475,10 +2482,16 @@ function (dojo, declare) {
         notif_eliminatePlayer: function(notif) {
             console.log('notif_eliminatePlayer');
 
-            var playerbettotal = $("playerbettotal_" + notif.args.eliminated_player);
-            var playerstocktotal = $("playerstocktotal_" + notif.args.eliminated_player);
+            var playerId = notif.args.eliminated_player;
+
+            var playerbettotal = $("playerbettotal_" + playerId);
+            var playerstocktotal = $("playerstocktotal_" + playerId);
+            var playerbettokens = $("bettingarea_" + playerId);
+            var playerstocktokens = $("playertabletokens_" + playerId);
             this.fadeOutAndDestroy(playerbettotal, 500);
             this.fadeOutAndDestroy(playerstocktotal, 500);
+            this.fadeOutAndDestroy(playerbettokens, 500);
+            this.fadeOutAndDestroy(playerstocktokens, 500);
         },
 
         notif_changeActivePlayer: function(notif) {

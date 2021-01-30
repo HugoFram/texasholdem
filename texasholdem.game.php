@@ -205,7 +205,7 @@ class texasholdem extends Table
     
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $sql = "SELECT player_id id, player_score score, is_fold, wants_autoblinds, wants_manualbet, player_stock_token_white stock_white, 
+        $sql = "SELECT player_id id, player_score score, is_fold, player_eliminated, wants_autoblinds, wants_manualbet, player_stock_token_white stock_white, 
             player_stock_token_blue stock_blue, player_stock_token_red stock_red, player_stock_token_green stock_green,
             player_stock_token_black stock_black, player_bet_token_white bet_white, player_bet_token_blue bet_blue,
             player_bet_token_red bet_red, player_bet_token_green bet_green, player_bet_token_black bet_black FROM player ";
