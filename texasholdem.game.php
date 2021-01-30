@@ -2469,7 +2469,7 @@ class texasholdem extends Table
                                 $player_best_combo["kickerValue"] != $winner_best_combo["kickerValue"];
                     });
                     $same_combo_players[$winner_id] = $winner_best_combo;
-                    if (count($same_combo_players) > 1) {
+                    if (count($same_combo_players) > 1 && count($same_rank_players) <= 1) {
                         // Several players have the same combo
                         $same_combo_player_names = "";
                         $i = 0;
