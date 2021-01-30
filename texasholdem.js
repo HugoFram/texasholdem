@@ -152,6 +152,11 @@ function (dojo, declare) {
                         if (player.wants_manualbet == 1) {
                             $("betmode").checked = true;
                         }
+
+                        // Showhand slider
+                        if (player.wants_showhand == 1) {
+                            $("doshowhand").checked = true;
+                        }
                     }
 
                     // Compute total values
@@ -190,6 +195,7 @@ function (dojo, declare) {
             // Add tooltips to option sliders
             this.addTooltip("autoblinds", _("This option lets you define if you want your blinds to be placed automatically or if you prefer to place them manually by clicking on your chips for more immersion"), '');
             this.addTooltip("betmode", _("This option lets you define if you want to choose the amount of your raises by entering a number in a pop-up window or by manually placing chips in your betting area by clicking on them"), '');
+            this.addTooltip("doshowhand", _("This option lets you define if you want to have the option to reveal your hand when all other players have folded"), '');
 
             // Add blinds and hand number info
             var blindsLevelText = _("Blinds level: ") + gamedatas.smallblind + "/" + gamedatas.bigblind;
@@ -295,6 +301,9 @@ function (dojo, declare) {
 
             // Connect betmode check box
             dojo.query('#betmode').connect('change', this, 'onBetmodeChange');
+
+            // Connect doshowhand check box
+            dojo.query('#doshowhand').connect('change', this, 'onDoshowhandChange');
 
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -430,6 +439,35 @@ function (dojo, declare) {
                             this.addActionButton('change', _('Make change'), 'onMakeChange');; 
                         }
 
+                        break;
+                    case 'chooseShowHand':
+                        var actionText = $("pagemaintitletext");
+
+                        // Add a timer to the continue button since there is no decision to take
+                        var seconds = 10;
+
+                        actionText.textContent = _("Would you like to show your hand?") + " (" + seconds + ")";
+                        this.addActionButton('showHandYes', _('Yes'), 'onShowHand');
+                        this.addActionButton('showHandNo', _('No'), 'onShowHand');
+
+
+                        // Reduce the seconds every second, and if we reach 0 click the button
+                        if (this.isCurrentPlayerActive())
+                        {
+                            var passInterval = window.setInterval(function() {
+                                if (dojo.query("#showHandYes").length == 0) {
+                                    clearInterval(passInterval);
+                                }
+                                else {
+                                    seconds -= 1;
+                                    actionText.textContent = _("Would you like to show your hand?") + " (" + seconds + ")";
+                                    if (seconds == -1) {
+                                        clearInterval(passInterval);
+                                        document.getElementById("showHandNo").click();
+                                    }
+                                }
+                            }, 1000);
+                        }
                         break;
 
                 }
@@ -1210,6 +1248,19 @@ function (dojo, declare) {
              }, this, function(result) {}, function(is_error) {});
         },
 
+        onShowHand: function(evt) {
+            // Check that this action is possible (see "possibleactions" in states.inc.php)
+            if(!this.checkAction('endHand')) return;
+
+            // Preventing default browser reaction
+            dojo.stopEvent(evt);
+
+            this.ajaxcall("/texasholdem/texasholdem/showHand.html", { 
+                lock: true, 
+                show_hand: evt.target.id == "showHandYes" ? 1 : 0
+             }, this, function(result) {}, function(is_error) {});
+        },
+
         onAllIn: function() {
             // Check that this action is possible (see "possibleactions" in states.inc.php)
             if(!this.checkAction('placeBet')) return;
@@ -1517,6 +1568,14 @@ function (dojo, declare) {
                 tokens: valuesString
              }, this, function(result) {}, function(is_error) {});
         },
+
+        onDoshowhandChange: function(event) {
+            this.ajaxcall("/texasholdem/texasholdem/doshowhand.html", { 
+                lock: true, 
+                playerId: this.player_id,
+                doShowHand: event.target.checked ? 1 : 0,
+             }, this, function(result) {}, function(is_error) {});
+        },
         
         ///////////////////////////////////////////////////
         //// Reaction to cometD notifications
@@ -1560,6 +1619,8 @@ function (dojo, declare) {
             this.notifqueue.setSynchronous('betPlaced', 2000);
             dojo.subscribe('fold', this, "notif_fold");
             this.notifqueue.setSynchronous('fold', 1000);
+            dojo.subscribe('showHand', this, "notif_showHand");
+            this.notifqueue.setSynchronous('showHand', 3000);
 
             dojo.subscribe('makeChange', this, "notif_makeChange");
             this.notifqueue.setSynchronous('makeChange', 2000);
@@ -1590,6 +1651,7 @@ function (dojo, declare) {
 
             dojo.subscribe('autoblindsChange', this, "notif_autoblindsChange");
             dojo.subscribe('betmodeChange', this, "notif_betmodeChange");
+            dojo.subscribe('doshowhandChange', this, "notif_doshowhandChange");
             dojo.subscribe('announceAction', this, "notif_announceAction");
         },  
         
@@ -2029,6 +2091,46 @@ function (dojo, declare) {
             });
             anim1.play();
             anim2.play();
+        },
+
+        notif_showHand: function(notif) {
+            console.log("notif_showHand");
+
+            if (notif.args.player_id != this.player_id) {
+                var playerHand = notif.args.hand;
+                var cardLeft = playerHand[0];
+                var cardRight = playerHand[1];
+
+                // Place visible cards behind the facedown cards
+                dojo.place(this.format_block('jstpl_card', {
+                    CARD_LOCATION_CLASS: "cardinhand cardinhandleft",
+                    CARD_VISIBILITY_CLASS: "cardvisible flipped-card behind",
+                    BACKGROUND_POSITION_LEFT_PERCENTAGE: -100 * (cardLeft.type_arg - 2),
+                    BACKGROUND_POSITION_TOP_PERCENTAGE: -100 * (cardLeft.type - 1)
+                }), 'playertablecards_' + notif.args.player_id);
+                dojo.place(this.format_block('jstpl_card', {
+                    CARD_LOCATION_CLASS: "cardinhand cardinhandright",
+                    CARD_VISIBILITY_CLASS: "cardvisible flipped-card",
+                    BACKGROUND_POSITION_LEFT_PERCENTAGE: -100 * (cardRight.type_arg - 2),
+                    BACKGROUND_POSITION_TOP_PERCENTAGE: -100 * (cardRight.type - 1)
+                }), 'playertablecards_' + notif.args.player_id);
+
+                // Add the flip-card class to flip both the face down and visble cards
+                dojo.addClass('playertablecards_' + notif.args.player_id, "flip-card");
+
+                // Remove the facedown cards
+                dojo.query(".cardinhand.cardhidden").forEach(node => {
+                    var anim = dojo.fadeOut({
+                        node: node,
+                        delay: 1000,
+                        duration: 10
+                    });
+                    dojo.connect(anim, "onEnd", function(node2) {
+                        dojo.destroy(node);
+                    });
+                    anim.play();
+                });
+            }
         },
 
         notif_makeChange: function(notif) {
@@ -2540,6 +2642,12 @@ function (dojo, declare) {
             console.log('notif_betmodeChange');
             this.showMessage(_("Bet mode change applied"), "info");
         },
+
+        notif_doshowhandChange: function(notif) {
+            console.log('notif_doshowhandChange');
+            this.showMessage(_("Show hand option change applied"), "info");
+        },
+
 
         notif_announceAction: function(notif) {
             console.log('notif_announceAction');

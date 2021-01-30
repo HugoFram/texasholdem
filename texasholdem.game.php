@@ -86,7 +86,8 @@ class texasholdem extends Table
         $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar, player_score,
             player_stock_token_white, player_stock_token_blue, player_stock_token_red, player_stock_token_green,
             player_stock_token_black, player_bet_token_white, player_bet_token_blue,
-            player_bet_token_red, player_bet_token_green, player_bet_token_black, is_fold, is_all_in, wants_autoblinds, wants_manualbet) VALUES ";
+            player_bet_token_red, player_bet_token_green, player_bet_token_black, is_fold, is_all_in, wants_autoblinds, 
+            wants_manualbet, wants_showhand) VALUES ";
         $values = array();
         $initial_score = 100;
         $initial_white_tokens = 10;
@@ -99,13 +100,14 @@ class texasholdem extends Table
         $initial_is_all_in = 0;
         $initial_wants_autoblinds = 1;
         $initial_wants_manualbet = 0;
+        $initial_wants_showhand = 1;
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
             $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."',".
                 $initial_score.",".$initial_white_tokens.",".$initial_blue_tokens.",".$initial_red_tokens.",".$initial_green_tokens.",".$initial_black_tokens.",".
                 $initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_is_fold.",".$initial_is_all_in.
-                ",".$initial_wants_autoblinds.",".$initial_wants_manualbet.")";
+                ",".$initial_wants_autoblinds.",".$initial_wants_manualbet.",".$initial_wants_showhand.")";
         }
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
@@ -205,7 +207,8 @@ class texasholdem extends Table
     
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $sql = "SELECT player_id id, player_score score, is_fold, player_eliminated, wants_autoblinds, wants_manualbet, player_stock_token_white stock_white, 
+        $sql = "SELECT player_id id, player_score score, is_fold, player_eliminated, wants_autoblinds, wants_manualbet, 
+            wants_showhand, player_stock_token_white stock_white, 
             player_stock_token_blue stock_blue, player_stock_token_red stock_red, player_stock_token_green stock_green,
             player_stock_token_black stock_black, player_bet_token_white bet_white, player_bet_token_blue bet_blue,
             player_bet_token_red bet_red, player_bet_token_green bet_green, player_bet_token_black bet_black FROM player ";
@@ -1548,6 +1551,24 @@ class texasholdem extends Table
         $this->gamestate->nextState('fold');
     }
 
+    function showHand($show_hand) {
+        self::checkAction("endHand");
+
+        if ($show_hand == 1) {
+            $player_id = self::getActivePlayerId();
+            $hand = array_values($this->cards->getCardsInLocation("hand", $player_id));
+            self::notifyAllPlayers("showHand", clienttranslate('${player_name} decides to show her/his hand ${card1} ${card2}'), array(
+                'player_name' => self::getActivePlayerName(),
+                'card1' => $hand[0],
+                'card2' => $hand[1],
+                'player_id' => $player_id,
+                'hand' => $hand
+            ));
+        }
+
+        $this->gamestate->nextState('endHand');
+    }
+
     function allIn($tokens) {
         self::checkAction("placeBet");
         $player_id = self::getActivePlayerId();
@@ -1752,6 +1773,13 @@ class texasholdem extends Table
         }
 
         self::notifyPlayer($player_id, "betmodeChange", '', array());
+    }
+
+    function changeDoShowHand($player_id, $is_checked) {
+        self::trace("Do show hand for player ${player_id}: " . ($is_checked == 1 ? "enabled" : "disabled"));
+        $sql = "UPDATE player SET wants_showhand = ${is_checked} WHERE player_id = ${player_id}";
+        self::DbQuery($sql);
+        self::notifyPlayer($player_id, "doshowhandChange", '', array());
     }
     
 //////////////////////////////////////////////////////////////////////////////
@@ -2136,7 +2164,7 @@ class texasholdem extends Table
 
         // Place all tokens in the betting area to the pot
         $sql = "SELECT player_id, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
-            player_bet_token_green, player_bet_token_black, is_fold, is_all_in, player_eliminated FROM player";
+            player_bet_token_green, player_bet_token_black, is_fold, is_all_in, player_eliminated, wants_showhand FROM player";
         $current_players_bet = self::getCollectionFromDb($sql);
 
         $sql = "SELECT token_color, token_number FROM token";
@@ -2179,7 +2207,19 @@ class texasholdem extends Table
         } else if (($num_folded_players + $num_eliminated_players) >= (count($current_players_bet) - 1)) {
             // Only one player still not folded
             self::notifyAllPlayers("allFolded", clienttranslate('There is only one player that has not folded. This ends the hand.'), array());
-            $this->gamestate->nextState("endHand");
+            
+            $non_folded_player = array_values(array_filter($current_players_bet, function($player) {return !$player["is_fold"] && !$player["player_eliminated"];}))[0];
+            // Check if the non-folded player wants to be asked if he wants to show his hand
+            if ($non_folded_player["wants_showhand"]) {
+                $this->gamestate->changeActivePlayer($non_folded_player["player_id"]);
+                self::notifyAllPlayers("changeActivePlayer", clienttranslate('${player_name} is now the active player.'), array(
+                    'player_name' => self::getActivePlayerName(),
+                    'player_id' => $non_folded_player["player_id"]
+                ));
+                $this->gamestate->nextState("chooseShowHand");
+            } else {
+                $this->gamestate->nextState("endHand");
+            }
         } else {
             // More than one player still not folded
 
@@ -2867,6 +2907,13 @@ class texasholdem extends Table
             // ! important ! Use DBPREFIX_<table_name> for all tables
 
             $sql = "ALTER TABLE DBPREFIX_player ADD wants_manualbet BOOLEAN DEFAULT false;";
+            self::applyDbUpgradeToAllDB( $sql );
+        }
+
+        if( $from_version <= 2101290100 ) {
+            // ! important ! Use DBPREFIX_<table_name> for all tables
+
+            $sql = "ALTER TABLE DBPREFIX_player ADD wants_showhand BOOLEAN DEFAULT false;";
             self::applyDbUpgradeToAllDB( $sql );
         }
 

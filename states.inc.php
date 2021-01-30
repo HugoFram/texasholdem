@@ -137,16 +137,25 @@ $machinestates = array(
         "description" => "",
         "type" => "game",
         "action" => "stNextPlayer",
-        "transitions" => array( "nextPlayer" => 40, "endBetRound" => 31 )
-    ), 
+        "transitions" => array("nextPlayer" => 40, "endBetRound" => 31)
+    ),
 
     31 => array(
         "name" => "endBetRound",
         "description" => "",
         "type" => "game",
         "action" => "stEndBet",
-        "transitions" => array( "nextBetRound" => 30, "endHand" => 25 )
+        "transitions" => array("nextBetRound" => 30, "chooseShowHand" => 32, "endHand" => 25)
     ),
+
+    32 => array(
+        "name" => "chooseShowHand",
+        "description" => clienttranslate('${actplayer} decides if she/he wants to reveal her/his hand'),
+        "descriptionmyturn" => clienttranslate('Do you want to reveal your hand ${you}?'),
+        "type" => "activeplayer",
+        "possibleactions" => array("endHand"),
+        "transitions" => array("endHand" => 25, "zombiePass" => 98)
+    ), 
 
     25 => array(
         "name" => "endHand",

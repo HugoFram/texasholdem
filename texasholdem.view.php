@@ -108,6 +108,7 @@
 
         $this->tpl['AUTOBLINDS_DESCRIPTION'] = self::_("Place blinds automatically");
         $this->tpl['BETMODE_DESCRIPTION'] = self::_("Choose raise amount by clicking on chips");
+        $this->tpl['DOSHOWHAND_DESCRIPTION'] = self::_("Ask to reveal hand if all other players are folded");
         $this->tpl['BLIND_LEVEL_TEXT'] = self::_("Current blind level: 1/2");
         $this->tpl['HAND_NUMBER_TEXT'] = self::_("Number of hands played: 0");
         $this->tpl['TOKEN_VALUE_WHITE'] = $this->game->token_values["white"];

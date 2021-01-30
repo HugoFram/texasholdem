@@ -233,6 +233,17 @@
       self::ajaxResponse();
     }
 
+    public function showHand() {
+      self::setAjaxMode();
+
+      // Retrieve arguments
+      // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+      $show_hand = self::getArg("show_hand", AT_posint, true);
+
+      $this->game->showHand($show_hand);
+      self::ajaxResponse();
+    }
+
     public function allIn() {
       self::setAjaxMode();     
 
@@ -325,6 +336,21 @@
         }
 
         $this->game->changeBetmode($player_id, $is_checked, $tokens);
+
+        self::ajaxResponse();
+    }
+
+    public function doshowhand() {
+      self::setAjaxMode();     
+
+        // Retrieve arguments
+        // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+        // playerId: integer for the id of the player who clicked the slider
+        // checked: integer, 0 = disable autoblinds, 1 = enable autoblinds
+        $player_id = self::getArg("playerId", AT_int, true);
+        $is_checked = self::getArg("doShowHand", AT_int, true);
+
+        $this->game->changeDoShowHand($player_id, $is_checked);
 
         self::ajaxResponse();
     }

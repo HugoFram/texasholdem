@@ -136,6 +136,10 @@
     <input type="checkbox" class="betmode" name="betmode" id="betmode">
     <label for = "betmode" class="label">{BETMODE_DESCRIPTION}</label>
 </div>
+<div class="slider-checkbox">
+    <input type="checkbox" class="doshowhand" name="doshowhand" id="doshowhand">
+    <label for = "doshowhand" class="label">{DOSHOWHAND_DESCRIPTION}</label>
+</div>
 <p class="label" id = "blind_level"></p>
 <p class="label" id = "hand_number"></p>
 <script type="text/javascript">
