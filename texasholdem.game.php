@@ -1179,11 +1179,11 @@ class texasholdem extends Table
 
         $bet_computation = self::computeBet($tokens, $player_id);
         $additional_bet = $bet_computation["additional_bet"];
-        $total_player_bet = $bet_computation["total_player_bet"];
+        $current_player_bet = $bet_computation["current_player_bet"];
         $diff_stock = $bet_computation["diff_stock"];
 
         if ($current_round_stage == 1) {
-            if ($current_bet_level != 2 * $blind_value || $total_player_bet != 2 * $blind_value) {
+            if ($current_bet_level != 2 * $blind_value || $current_player_bet != 2 * $blind_value) {
                 throw new BgaUserException(_("You cannot check at this stage"));
             }
         } else {
@@ -1568,54 +1568,82 @@ class texasholdem extends Table
 
         $bet_computation = self::computeBet($tokens, $player_id);
         $additional_bet = $bet_computation["additional_bet"];
+        $current_player_bet = $bet_computation["current_player_bet"];
         $diff_stock = $bet_computation["diff_stock"];
         $total_player_bet = $bet_computation["total_player_bet"]; // Value of tokens that will be in the betting area after the current place bet action
         $sql = $bet_computation["token_update_sql"];
-        self::DbQuery($sql);
 
         $players_score = self::getCollectionFromDb("SELECT player_id, player_score FROM player");
 
-        if ($total_player_bet > $current_bet_level) {
-            // All in to raise the bet
-            $raise_amount = $total_player_bet - $current_bet_level;
+        $player_tokens = self::getPlayersTokens()[$player_id];
 
-            // Check that the player raises by a sufficient amount
-            if ($raise_amount >= $minimum_raise) {
-                self::notifyAllPlayers("betPlaced", clienttranslate( '${player_name} raises by ${raise_amount}' ), array(
-                    'player_id' => $player_id,
+        // Assess if the player is allowed to go all in and display relevant notifications for the different use cases
+        if (($player_tokens["stock"] + $current_player_bet) <= $current_bet_level) {
+            // Case of All in to call the bet
+            if ($player_tokens["stock"] + $current_player_bet == $current_bet_level) {
+                // The player has just enough chips to call the current bet level
+                self::notifyAllPlayers("allIn", clienttranslate('${player_name} goes all in to call the current bet level by adding ${all_in_value} to her/his bet.'), array(
                     'player_name' => $player_name,
-                    'additional_bet' => $additional_bet,
+                    'all_in_value' => $player_tokens["stock"]
+                ));
+            } else {
+                // The player does not have enough chips to call the current bet level
+                self::notifyAllPlayers("allIn", clienttranslate('${player_name} does not have enough stock to place the big blind. She/he is all in with ${all_in_value} added to the bet.'), array(
+                    'player_name' => $player_name,
+                    'all_in_value' => $player_tokens["stock"]
+                ));
+            }
+        } else {
+            // Case of All in to raise the bet
+            $raise_amount = ($player_tokens["stock"] + $current_player_bet) - $current_bet_level;
+            
+            if ($raise_amount < $minimum_raise) {
+                // Not enough stock to raise => Forbidden action
+                throw new BgaUserException(_("You cannot go all in because you need need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
+            } else {
+                // Enough stock to raise
+
+                self::notifyAllPlayers("allIn", clienttranslate('${player_name} goes all in to raise by ${raise_amount}'), array(
+                    'player_name' => $player_name,
+                    'raise_amount' => $raise_amount
+                ));
+                
+                // Update current bet level
+                self::setGameStateValue("currentBetLevel", $current_bet_level + $raise_amount);
+                self::setGameStateValue("minimumRaise", $raise_amount);
+            }
+        }
+
+        // Move player's chips if necessary
+        if ($additional_bet == 0) {
+            // The player has not moved any chip during this turn to the betting area before clicking the All in button
+            // => Need to move all his chips to the betting area
+            self::moveTokens("stock_${player_id}", "bet_${player_id}", $player_tokens["stock"]);
+        } else {
+            // The player has moved some chips during this turn to the betting area before clicking the All in button
+            
+            if ($additional_bet != $player_tokens["stock"]) {
+                // The player has not moved ALL his chips to the betting area before clicking the All in button
+                // => Need to move the rest
+
+                // Move back the chips on the current player's client
+                self::notifyPlayer($player_id, "betPlaced", '', array(
+                    'player_id' => $player_id,
+                    'diff_stock' => array_map(function($token_num) {return -$token_num;}, $diff_stock),
+                    'show_all' => TRUE
+                ));
+                // Move all chips from the current player's stock to the betting area
+                self::moveTokens("stock_${player_id}", "bet_${player_id}", $player_tokens["stock"]);
+            } else {
+                // The player has already moved ALL his chips to the betting area
+                // => No additional chip move is required for the current player's client
+
+                self::notifyAllPlayers("betPlaced", '', array(
+                    'player_id' => $player_id,
                     'diff_stock' => $diff_stock,
-                    'raise_amount' => $raise_amount,
                     'show_all' => FALSE
                 ));
-    
-                // Update current bet level
-                self::setGameStateValue("currentBetLevel", $total_player_bet);
-                self::setGameStateValue("minimumRaise", $raise_amount);
-            } else {
-                throw new BgaUserException(_("You cannot go all in because you need need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
             }
-        } else if ($total_player_bet == $current_bet_level) {
-            // All in to call (sufficient stock)
-            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} is all in with ${all_in_value} added to the bet'), array(
-                'player_id' => $player_id,
-                'player_name' => $player_name,
-                'additional_bet' => $additional_bet,
-                'diff_stock' => $diff_stock,
-                'all_in_value' => $additional_bet,
-                'show_all' => FALSE
-            ));
-        } else {
-            // Forced all in (unsufficient stock)
-            self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} does not have enough stock to match the bet. She/he is all in with ${all_in_value} added to the bet.'), array(
-                'player_id' => $player_id,
-                'player_name' => $player_name,
-                'additional_bet' => $additional_bet,
-                'diff_stock' => $diff_stock,
-                'all_in_value' => $additional_bet,
-                'show_all' => FALSE
-            ));
         }
 
         // Increment the number of all in players
@@ -1851,7 +1879,7 @@ class texasholdem extends Table
         }
 
         // All in
-        if ($player_tokens["stock"] <= $current_bet_level || ($player_tokens["stock"] - $current_bet_level) >= $minimum_raise) {
+        if (($player_tokens["stock"] + $player_tokens["bet"]) <= $current_bet_level || ($player_tokens["stock"] + $player_tokens["bet"] - $current_bet_level) >= $minimum_raise) {
             $possible_actions["all_in"] = TRUE;
         } else {
             $possible_actions["all_in"] = FALSE;

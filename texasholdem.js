@@ -1223,13 +1223,8 @@ function (dojo, declare) {
                 var currentBet = parseInt(betToken.firstElementChild.textContent);
 
                 // After the All In, all token are placed in the betting area
-                valuesString += 0 + ";"; // No token left in stock
-                valuesString += (currentStock + currentBet).toString() + ";"; // All in betting area
-
-                // Simulate clicks on stock token
-                for (var i = 0; i < currentStock; i++) {
-                    stockToken.click();
-                }
+                valuesString += currentStock + ";"; // No token left in stock
+                valuesString += currentBet + ";"; // All in betting area
             });
 
             this.ajaxcall("/texasholdem/texasholdem/allIn.html", { 
