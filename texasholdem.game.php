@@ -1887,6 +1887,9 @@ class texasholdem extends Table
 
         // Fold
         $possible_actions["fold"] = TRUE;
+
+        // Make Change
+        $possible_actions["change"] = TRUE;
         
         return $possible_actions;
     }

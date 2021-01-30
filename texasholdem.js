@@ -417,8 +417,11 @@ function (dojo, declare) {
                         }
                         if (args.bet) this.addActionButton('bet', _('Choose bet'), 'onRaise', null, false, "red");
                         if (args.fold) this.addActionButton('fold', _('Fold'), 'onFold', null, false, "gray");
-                        if (args.all_in) this.addActionButton('all_in', _('All in'), 'onAllIn', null, false, "red"); 
-                        this.addActionButton('change', _('Make change'), 'onMakeChange');
+                        if (args.all_in) this.addActionButton('all_in', _('All in'), 'onAllIn', null, false, "red");
+                        // It only makes sense to do change if the bets are manually placed
+                        if ($("betmode").checked) {
+                            this.addActionButton('change', _('Make change'), 'onMakeChange');; 
+                        }
 
                         break;
 
@@ -1469,14 +1472,21 @@ function (dojo, declare) {
         onBetmodeChange: function(event) {
             if (this.isCurrentPlayerActive()) {
                 // Update choose raise button
-            if (event.target.checked) {
-                dojo.html.set($('raise'), _('Confirm raise'));
-                this.removeTooltip('raise');
-                this.addTooltip('raise', 'You need can move chips to your betting area by clicking on them', _('This will raise by the amount of chips you currently have in your betting area'));
-            } else {
-                dojo.html.set($('raise'), _('Choose raise'));
-                this.addTooltip('raise', '', _('This will open a sub-window to let you choose a raise amount'));
-            }
+                if (event.target.checked) {
+                    dojo.html.set($('raise'), _('Confirm raise'));
+                    this.removeTooltip('raise');
+                    this.addTooltip('raise', 'You need can move chips to your betting area by clicking on them', _('This will raise by the amount of chips you currently have in your betting area'));
+                } else {
+                    dojo.html.set($('raise'), _('Choose raise'));
+                    this.addTooltip('raise', '', _('This will open a sub-window to let you choose a raise amount'));
+                }
+
+                // Add or remove Change button
+                if (event.target.checked) {
+                    this.addActionButton('change', _('Make change'), 'onMakeChange');
+                } else {
+                    dojo.destroy('change');
+                }
             }
 
             // If the player has already moved chips to the betting area during the 
