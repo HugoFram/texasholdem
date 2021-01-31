@@ -1110,7 +1110,7 @@ class texasholdem extends Table
         $big_blind = 2 * $blind_value;
         if ($additional_bet != $big_blind) {
             if ($additional_bet < $big_blind && $is_all_in) {
-                // The player has placed all his tokens but that's not sufficient for the small blind
+                // The player has placed all his tokens but that's not sufficient for the big blind
                 self::DbQuery($sql);
                 self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} does not have enough stock to place the big blind. She/he is all in with ${all_in_value} added to the bet.'), array(
                     'player_id' => $player_id,
@@ -1153,7 +1153,7 @@ class texasholdem extends Table
                 }
             }
         } else {
-            // Notify other player that the player placed the small blind
+            // Notify other player that the player placed the big blind
             self::DbQuery($sql);
             self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${additional_bet} for the big blind'), array(
                 'player_id' => $player_id,
@@ -1163,9 +1163,8 @@ class texasholdem extends Table
                 'show_all' => FALSE
             ));
         }
-        if ($additional_bet > self::getGameStateValue("currentBetLevel")) {
-            self::setGameStateValue("currentBetLevel", $additional_bet);
-        }
+        // No matter if the big blind player had enough to place the big blind, the bet level becomes the big blind
+        self::setGameStateValue("currentBetLevel", $big_blind);
 
         // Increment the number of all in players if the player bet all his stock
         if ($additional_bet > 0 && $is_all_in) {
