@@ -66,7 +66,7 @@ $gameinfos = array(
 // Note: if you are NOT using any tie breaker, leave the empty string.
 //
 // Example: 'tie_breaker_description' => totranslate( "Number of remaining cards in hand" ),
-'tie_breaker_description' => "",
+'tie_breaker_description' => totranslate("Order of player elimination"),
 
 // If in the game, all losers are equal (no score to rank them or explicit in the rules that losers are not ranked between them), set this to true 
 // The game end result will display "Winner" for the 1st player and "Loser" for all other players
@@ -134,6 +134,8 @@ $gameinfos = array(
 //    totranslate("This wonderful game is about geometric shapes!"),
 //    totranslate("It was awarded best triangle game of the year in 2005 and nominated for the Spiel des Jahres."),
 //    ...
+    totranslate("This is an adaptation of Poker Texas Hold'em No Limit."),
+    totranslate("It can either be played in a winner-takes-all mode where the game ends when there is only one player left and the blinds progressively increase over time to accelerate the game, or in a hands limited mode where the winner is the player with the most stock after a certain number of hands played.")
 ),
 
 // Games categories

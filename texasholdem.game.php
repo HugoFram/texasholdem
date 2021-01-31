@@ -54,6 +54,7 @@ class texasholdem extends Table
 
             "gameEndVariant" => 100,
             "handsNumberLimit" => 101,
+            "blindsIncreaseFrequency" => 102,
         ) );
 
         $this->cards = self::getNew("module.common.deck");
@@ -1980,11 +1981,28 @@ class texasholdem extends Table
         }
 
         // Update blinds if necessary
-        // small blind = initial small blind * 2 ^ (max(#eliminated players, floor(#turns / max(10, 2*#players))))
+        // small blind = initial small blind * 2 ^ (max(#eliminated players, floor(#turns / max(update_freq, 2*#players))))
+        switch($this->getGameStateValue('blindsIncreaseFrequency')) {
+            case 1:
+                $num_hands_before_blinds_increase = 2;
+                break;
+            case 2:
+                $num_hands_before_blinds_increase = 5;
+                break;
+            case 3:
+                $num_hands_before_blinds_increase = 10;
+                break;
+            case 4:
+                $num_hands_before_blinds_increase = 20;
+                break;
+            default:
+                $num_hands_before_blinds_increase = 5;
+                break;
+        }
         $num_turns = self::getGameStateValue("roundNumber");
         $num_eliminated_players = self::getGameStateValue("numEliminatedPlayers");
         $current_small_blind = self::getGameStateValue("smallBlindValue");
-        $new_small_blind = 1 * pow(2, max($num_eliminated_players, floor($num_turns / max(10, 2*count($players)))));
+        $new_small_blind = 1 * pow(2, max($num_eliminated_players, floor($num_turns / $num_hands_before_blinds_increase)));
         if ($new_small_blind != $current_small_blind) {
             self::notifyAllPlayers("increaseBlinds", clienttranslate('The blinds are increased (small blind: ${small_blind}, big blind: ${big_blind})'), array(
                 'small_blind' => $new_small_blind,

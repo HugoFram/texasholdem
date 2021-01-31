@@ -86,6 +86,30 @@ $game_options = array(
             )
             ),
         'default' => 2
+        ),
+
+    102 => array(
+        'name' => totranslate('Blinds increase frequency'),    
+        'values' => array(
+            1 => array(
+                'name' => totranslate("Very fast - every 2 hands"),
+                'description' => totranslate("Blinds double every 2 hands or when a player is eliminated")
+            ),
+            2 => array(
+                'name' => totranslate("Fast - every 5 hands"),
+                'description' => totranslate("Blinds double every 5 hands or when a player is eliminated")
+            ),
+            3 => array(
+                'name' => totranslate("Normal - every 10 hands"),
+                'description' => totranslate("Blinds double every 10 hands or when a player is eliminated")
+            ),
+            4 => array(
+                'name' => totranslate("Slow - every 20 hands"),
+                'description' => totranslate("Blinds double every 20 hands or when a player is eliminated"),
+                'nobeginner' => TRUE
+            )
+        ),
+        'default' => 2
     )
 
 );
