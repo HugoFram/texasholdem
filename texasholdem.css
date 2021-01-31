@@ -401,7 +401,7 @@
 .token {
     position: absolute;
     width: 50px;
-    height: 50px;
+    height: 24px;
     z-index: 100;
 }
 .token:not(.tokenhidden):not(.tokendisabled) {
@@ -417,31 +417,35 @@
 .tokenwhite:not(.bettoken):not(.changetoken) {
     background-image: url("img/token_white50.png");
     left: 0px;
-    top: 40px;
+    top: 70px;
 }
 .tokenblue:not(.bettoken):not(.changetoken) {
     background-image: url("img/token_blue50.png");
     left: 0px;
-    top: 95px;
+    top: 140px;
 }
 .tokenred:not(.bettoken):not(.changetoken) {
     background-image: url("img/token_red50.png");
     left: 45px;
-    top: 10px;
+    top: 45px;
 }
 .tokengreen:not(.bettoken):not(.changetoken) {
     background-image: url("img/token_green50.png");
     left: 45px;
-    top: 65px;
+    top: 110px;
 }
 .tokenblack:not(.bettoken):not(.changetoken) {
     background-image: url("img/token_black50.png");
     left: 45px;
-    top: 120px;
+    top: 165px;
 }
 
 .bettoken {
-    top: 5px;
+    top: 30px;
+}
+
+.changetoken {
+    height: 50px;
 }
 
 .tokenwhite.bettoken {
@@ -465,25 +469,49 @@
     left: 220px;
 }
 
-.tokenwhite.changetoken {
-    background-image: url("img/token_white50.png");
+.tokenwhite.changetoken.changetoken-vertical {
+    background-image: url("img/token_white_flat50.png");
     top: 5px;
 }
-.tokenblue.changetoken {
-    background-image: url("img/token_blue50.png");
+.tokenblue.changetoken.changetoken-vertical {
+    background-image: url("img/token_blue_flat50.png");
     top: 60px;
 }
-.tokenred.changetoken {
-    background-image: url("img/token_red50.png");
+.tokenred.changetoken.changetoken-vertical {
+    background-image: url("img/token_red_flat50.png");
     top: 115px;
 }
-.tokengreen.changetoken {
-    background-image: url("img/token_green50.png");
+.tokengreen.changetoken.changetoken-vertical {
+    background-image: url("img/token_green_flat50.png");
     top: 170px;
 }
-.tokenblack.changetoken {
-    background-image: url("img/token_black50.png");
+.tokenblack.changetoken.changetoken-vertical {
+    background-image: url("img/token_black_flat50.png");
     top: 225px;
+}
+
+.tokenwhite.changetoken.changetoken-horizontal {
+    background-image: url("img/token_white_flat50.png");
+    left: 0px;
+}
+.tokenblue.changetoken.changetoken-horizontal {
+    background-image: url("img/token_blue_flat50.png");
+    left: 55px;
+}
+.tokenred.changetoken.changetoken-horizontal {
+    background-image: url("img/token_red_flat50.png");
+    left: 110px;
+}
+.tokengreen.changetoken.changetoken-horizontal {
+    background-image: url("img/token_green_flat50.png");
+    left: 165px;
+}
+.tokenblack.changetoken.changetoken-horizontal {
+    background-image: url("img/token_black_flat50.png");
+    left: 220px;
+}
+.changetoken-horizontal {
+    top: 5px;
 }
 
 .tokennumber {
@@ -719,12 +747,12 @@
 
 .changemodal {
     width: 451px;
-    height: 370px;
+    height: 400px;
 }
 
 .changemodalmain {
     width: 451px; /* 1 more pixel for the border */ 
-    height: 320px;
+    height: 350px;
     border: solid 1px;
     border-radius: 15px;
 }
@@ -732,14 +760,14 @@
 .changemodalleftpane {
     float: left;
     width: 150px;
-    height: 320px;
+    height: 350px;
     border-right: solid 1px;
 }
 
 .changemodalrightpane {
     float: left;
-    width: 300px;
-    height: 320px;
+    width: 298px;
+    height: 350px;
 }
 
 .changegivensection {
@@ -750,7 +778,7 @@
 
 .changereceivedsection {
     width: 300px;
-    height: 235px;
+    height: 265px;
 }
 
 .highlighted-border {

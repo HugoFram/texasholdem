@@ -52,6 +52,34 @@ function (dojo, declare) {
             // Get token values
             this.tokenValues = gamedatas.tokenvalues;
 
+            // Display tokens bet at previous round stages
+            var tableTokens = gamedatas.tokensontable;
+            for (var i in tableTokens) {
+                var color = tableTokens[i].token_color;
+                var tokenNum  = tableTokens[i].token_number;
+
+                dojo.place(this.format_block('jstpl_table_token', {
+                    TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
+                    TOKEN_NUM: tokenNum
+                }), 'token' + color + '_table', "first");
+
+                if (tokenNum > 0) {
+                    if (dojo.hasClass('token' + color + '_table', "tokenhidden")) {
+                        dojo.removeClass('token' + color + '_table', "tokenhidden");
+                    }
+                    var pileSize = Math.min(tokenNum, 10);
+                    for (var i = 2; i <= pileSize; i++) {
+                        dojo.place(this.format_block('jstpl_pile_token', {
+                            TEXT_CLASS: "token" + color,
+                            TOKEN_ID: "token" + color + "_table_pile_" + i,
+                            TOKEN_TRANSLATE: -(i-1)*5
+                        }), 'token' + color + '_table');
+                    }
+                } else {
+                    dojo.addClass('token' + color + '_table', "tokenhidden");
+                }
+            }
+
             // Setting up player boards
             for( var player_id in gamedatas.players )
             {
@@ -100,15 +128,17 @@ function (dojo, declare) {
                             if (dojo.hasClass('token' + color + '_' + player_id, "tokenhidden")) {
                                 dojo.removeClass('token' + color + '_' + player_id, "tokenhidden");
                             }
+                            var pileSize = Math.min(stockTokens, 10);
+                            for (var i = 2; i <= pileSize; i++) {
+                                dojo.place(this.format_block('jstpl_pile_token', {
+                                    TEXT_CLASS: "token" + color,
+                                    TOKEN_ID: "token" + color + "_" + player_id + "_pile_" + i,
+                                    TOKEN_TRANSLATE: -(i-1)*5
+                                }), 'token' + color + '_' + player_id);
+                            }
                         } else {
                             dojo.addClass('token' + color + '_' + player_id, "tokenhidden");
                         }
-                        playerBoardStockTokens += this.format_block('jstpl_player_board_token', {
-                                type: "stock",
-                                color: color,
-                                player_id: player_id,
-                                num_tokens: stockTokens
-                            });
 
                         // Bet tokens
                         dojo.place(this.format_block('jstpl_player_bet_token', {
@@ -119,23 +149,18 @@ function (dojo, declare) {
                             if (dojo.hasClass('bettoken' + color + '_' + player_id, "tokenhidden")) {
                                 dojo.removeClass('bettoken' + color + '_' + player_id, "tokenhidden");
                             }
+                            var pileSize = Math.min(betTokens, 5);
+                            for (var i = 2; i <= pileSize; i++) {
+                                dojo.place(this.format_block('jstpl_pile_token', {
+                                    TEXT_CLASS: "token" + color + " bettoken",
+                                    TOKEN_ID: "bettoken" + color + "_" + player_id + "_pile_" + i,
+                                    TOKEN_TRANSLATE: -(i-1)*5
+                                }), 'bettoken' + color + '_' + player_id);
+                            }
                         } else {
                             dojo.addClass('bettoken' + color + '_' + player_id, "tokenhidden");
                         }
-                        playerBoardBetTokens += this.format_block('jstpl_player_board_token', {
-                                type: "bet",
-                                color: color,
-                                player_id: player_id,
-                                num_tokens: betTokens
-                            });
                     });
-
-                    // Player board tokens
-                    dojo.place(this.format_block('jstpl_player_board_tokens', {
-                        player_id: player_id,
-                        STOCK_TOKENS: playerBoardStockTokens,
-                        BET_TOKENS: playerBoardBetTokens
-                    }), ('player_board_' + player_id));
 
                     if (player_id == this.player_id) {
                         // Add relevant onclick event to all immediate children of the element with id playertabletokens_{player_id}
@@ -210,28 +235,6 @@ function (dojo, declare) {
             // Place the dealer button
             var dealerButton = $("dealer_button_" + gamedatas.dealer);
             dojo.removeClass(dealerButton, "dealer-button-hidden");
-            
-            // TODO: Set up your game interface here, according to "gamedatas"
-
-            // Display tokens bet at previous round stages
-            var tableTokens = gamedatas.tokensontable;
-            for (var i in tableTokens) {
-                var color = tableTokens[i].token_color;
-                var tokenNum  = tableTokens[i].token_number;
-
-                dojo.place(this.format_block('jstpl_table_token', {
-                    TEXT_CLASS: color == "white" ? "tokennumberdark" : "tokennumberlight",
-                    TOKEN_NUM: tokenNum
-                }), 'token' + color + '_table', "first");
-
-                if (tokenNum > 0) {
-                    if (dojo.hasClass('token' + color + '_table', "tokenhidden")) {
-                        dojo.removeClass('token' + color + '_table', "tokenhidden");
-                    }
-                } else {
-                    dojo.addClass('token' + color + '_table', "tokenhidden");
-                }
-            }
 
             // Compute total values
             this.updateTotal("pot", null);
@@ -551,25 +554,6 @@ function (dojo, declare) {
                     dojo.html.set($("playerbettotal_" + sourceArg), totalValue);
                     break;
             }
-        },
-
-        updatePlayerBoardTokens: function(source, playerId) {
-            var colors = ["white", "blue", "red", "green", "black"];
-            
-            colors.forEach((color) => {
-                // Retrieve HTML elements corresponding to tokens in both the player's stock and his betting area
-                if (source == "stock") {
-                    // Stock 
-                    var tableToken = $("token" + color + "_" + playerId);
-                    var boardTokenNum = $("panelstocktokencount_" + color + "_" + playerId);
-                    dojo.html.set(boardTokenNum, "x" + parseInt(tableToken.firstElementChild.textContent));
-                } else if (source == "bet") {
-                    // Bet
-                    tableToken = $("bettoken" + color + "_" + playerId);
-                    boardTokenNum = $("panelbettokencount_" + color + "_" + playerId);
-                    dojo.html.set(boardTokenNum, "x" + parseInt(tableToken.firstElementChild.textContent));
-                }
-            }, this);
         },
 
         updateTooltips: function(source, sourceArg) {
@@ -995,26 +979,53 @@ function (dojo, declare) {
                     dojo.addClass(stockToken.id, "tokenhidden");
                 }
                 // 3) Place the visual of a token on top of the token stock pile
-                dojo.place('<div class = "token token' + color + ' behind" id = "slidingstocktoken_' + color + '_' + currentStock + '"></div>', "playertabletokens_" + this.player_id);
                 // 4) Slide the token from the stock to the betting area
-                var anim = this.slideToObject('slidingstocktoken_' + color + '_' + currentStock, betToken.id);
+                if (currentStock >= 10) {
+                    // Source pile is still full after the move of this chip
+                    // => Create a new chip
+                    dojo.place(this.format_block('jstpl_pile_token', {
+                        TEXT_CLASS: "token" + color,
+                        TOKEN_ID: 'slidingstocktoken_' + color + '_' + currentStock,
+                        TOKEN_TRANSLATE: -(10-1)*5
+                    }), 'token' + color + '_' + this.player_id);
+                    var anim = this.slideToObject('slidingstocktoken_' + color + '_' + currentStock, betToken.id);
+                } else {
+                    // Source pile decreases after the move of this chip
+                    // => use an existing chip div
+                    if (currentStock > 0) {
+                        // Not last chip of the source pile
+                        // => Move the innerdiv chip
+                        var anim = this.slideToObject("token" + color + "_" + this.player_id + "_pile_" + (currentStock+1), betToken.id);
+                    } else {
+                        // Last chip of the source pile
+                        // => Move the outerdiv chip
+                        dojo.place('<div class = "token token' + color + ' behind" id = "slidingstocktoken_' + color + '_' + currentStock + '"></div>', "playertabletokens_" + this.player_id);
+                        var anim = this.slideToObject('slidingstocktoken_' + color + '_' + currentStock, betToken.id);
+                    }
+                }
                 dojo.connect(anim, 'onEnd', this, function(node) {
                     // 5) Destroy token visual used for the animation
                     dojo.destroy(node);
                     // 6) Increment the number from the betting area
-                    dojo.html.set(betToken.firstElementChild, parseInt(betToken.firstElementChild.textContent) + 1);
+                    var newBetNum = parseInt(betToken.firstElementChild.textContent) + 1;
+                    dojo.html.set(betToken.firstElementChild, newBetNum);
+                    if (newBetNum > 1 && newBetNum < 6) {
+                        dojo.place(this.format_block('jstpl_pile_token', {
+                            TEXT_CLASS: "token" + color + " bettoken",
+                            TOKEN_ID: "bettoken" + color + "_" + this.player_id + "_pile_" + newBetNum,
+                            TOKEN_TRANSLATE: -(newBetNum-1)*5
+                        }), 'bettoken' + color + '_' + this.player_id);
+                    }
                     // 7) Unhide the betting area token if it the first token of that color
                     if (dojo.hasClass(betToken.id, "tokenhidden")) {
                         dojo.removeClass(betToken.id, "tokenhidden");
                     }
                     // 8) Update bet total
                     this.updateTotal("bet", this.player_id);
-                    this.updatePlayerBoardTokens("bet", this.player_id);
                     this.updateTooltips("bet", this.player_id);
                 });
                 anim.play();
             }
-            this.updatePlayerBoardTokens("stock", this.player_id);
         },
 
         onBetTokenClicked: function(event) {
@@ -1047,26 +1058,53 @@ function (dojo, declare) {
                     dojo.addClass(betToken.id, "tokenhidden");
                 }
                 // 3) Place the visual of a token on top of the token betting area pile
-                dojo.place('<div class = "token token' + color + ' bettoken behind" id = "slidingbettoken_' + color + '_' + currentBet + '"></div>', "bettingarea_" + this.player_id);
                 // 4) Slide the token from the betting area to the stock
-                var anim = this.slideToObject('slidingbettoken_' + color + '_' + currentBet, stockToken.id);
+                if (currentBet >= 5) {
+                    // Source pile is still full after the move of this chip
+                    // => Create a new chip
+                    dojo.place(this.format_block('jstpl_pile_token', {
+                        TEXT_CLASS: "token" + color,
+                        TOKEN_ID: 'slidingbettoken_' + color + '_' + currentBet,
+                        TOKEN_TRANSLATE: -(5-1)*5
+                    }), 'bettoken' + color + '_' + this.player_id);
+                    var anim = this.slideToObject('slidingbettoken_' + color + '_' + currentBet, stockToken.id);
+                } else {
+                    // Source pile decreases after the move of this chip
+                    // => use an existing chip div
+                    if (currentBet > 0) {
+                        // Not last chip of the source pile
+                        // => Move the innerdiv chip
+                        var anim = this.slideToObject("bettoken" + color + "_" + this.player_id + "_pile_" + (currentBet+1), stockToken.id);
+                    } else {
+                        // Last chip of the source pile
+                        // => Move the outerdiv chip
+                        dojo.place('<div class = "token token' + color + ' bettoken behind" id = "slidingbettoken_' + color + '_' + currentBet + '"></div>', "bettingarea_" + this.player_id);
+                        var anim = this.slideToObject('slidingbettoken_' + color + '_' + currentBet, stockToken.id);
+                    }
+                }
                 dojo.connect(anim, 'onEnd', this, function(node) {
                     // 5) Destroy token visual used for the animation
                     dojo.destroy(node);
                     // 6) Increment the number from the stock
-                    dojo.html.set(stockToken.firstElementChild, parseInt(stockToken.firstElementChild.textContent) + 1);
+                    var newStockNum = parseInt(stockToken.firstElementChild.textContent) + 1;
+                    dojo.html.set(stockToken.firstElementChild, newStockNum);                    
+                    if (newStockNum > 1 && newStockNum <= 10) {
+                        dojo.place(this.format_block('jstpl_pile_token', {
+                            TEXT_CLASS: "token" + color,
+                            TOKEN_ID: "token" + color + "_" + this.player_id + "_pile_" + newStockNum,
+                            TOKEN_TRANSLATE: -(newStockNum-1)*5
+                        }), 'token' + color + '_' + this.player_id);
+                    }
                     // 7) Unhide the stock token if it the first token of that color
                     if (dojo.hasClass(stockToken.id, "tokenhidden")) {
                         dojo.removeClass(stockToken.id, "tokenhidden");
                     }
                     // 8) Update stock total
                     this.updateTotal("stock", this.player_id);
-                    this.updatePlayerBoardTokens("stock", this.player_id);
                     this.updateTooltips("stock", this.player_id);
                 });
                 anim.play();
             }
-            this.updatePlayerBoardTokens("bet", this.player_id);
         },
 
         onPlaceSmallBlind: function() {
@@ -1315,7 +1353,7 @@ function (dojo, declare) {
                 stockValue = parseInt(stockToken.firstElementChild.textContent);
                 changeStockHtml += this.format_block('jstpl_change_token', {
                     TOKEN_COLOR: color,
-                    TOKEN_CLASS: stockValue == 0 ? "tokendisabled changetoken" : "changetoken",
+                    TOKEN_CLASS: stockValue == 0 ? "tokendisabled changetoken changetoken-vertical" : "changetoken changetoken-vertical",
                     TOKEN_ID: "changeyourstock_" + color,
                     TEXT_CLASS: color == "black" ? "tokennumberlight" : "tokennumberdark",
                     TOKEN_NUM: stockValue
@@ -1326,7 +1364,7 @@ function (dojo, declare) {
             colors.forEach(color => {
                 changeGivenHtml += this.format_block('jstpl_change_token', {
                     TOKEN_COLOR: color,
-                    TOKEN_CLASS: "tokendisabled bettoken",
+                    TOKEN_CLASS: "tokendisabled bettoken changetoken changetoken-horizontal",
                     TOKEN_ID: "changegiventokens_" + color,
                     TEXT_CLASS: color == "black" ? "tokennumberlight" : "tokennumberdark",
                     TOKEN_NUM: 0
@@ -1341,7 +1379,7 @@ function (dojo, declare) {
                 TOKENS: colors.reduce((changeReceivedTokensHtml, color) => {
                     changeReceivedTokensHtml += this.format_block('jstpl_change_token', {
                         TOKEN_COLOR: color,
-                        TOKEN_CLASS: "tokendisabled bettoken",
+                        TOKEN_CLASS: "tokendisabled changetoken changetoken-horizontal",
                         TOKEN_ID: "changereceivedtokenslowest_" + color,
                         TEXT_CLASS: color == "black" ? "tokennumberlight" : "tokennumberdark",
                         TOKEN_NUM: 0
@@ -1355,7 +1393,7 @@ function (dojo, declare) {
                 TOKENS: colors.reduce((changeReceivedTokensHtml, color) => {
                     changeReceivedTokensHtml += this.format_block('jstpl_change_token', {
                         TOKEN_COLOR: color,
-                        TOKEN_CLASS: "tokendisabled bettoken",
+                        TOKEN_CLASS: "tokendisabled changetoken changetoken-horizontal",
                         TOKEN_ID: "changereceivedtokensmixed_" + color,
                         TEXT_CLASS: color == "black" ? "tokennumberlight" : "tokennumberdark",
                         TOKEN_NUM: 0
@@ -1369,7 +1407,7 @@ function (dojo, declare) {
                 TOKENS: colors.reduce((changeReceivedTokensHtml, color) => {
                     changeReceivedTokensHtml += this.format_block('jstpl_change_token', {
                         TOKEN_COLOR: color,
-                        TOKEN_CLASS: "tokendisabled bettoken",
+                        TOKEN_CLASS: "tokendisabled changetoken changetoken-horizontal",
                         TOKEN_ID: "changereceivedtokenshighest_" + color,
                         TEXT_CLASS: color == "black" ? "tokennumberlight" : "tokennumberdark",
                         TOKEN_NUM: 0
@@ -1446,11 +1484,11 @@ function (dojo, declare) {
             if (type == "stock") {
                 var sourceToken = $('changeyourstock_' + color);
                 var destinationToken =  $('changegiventokens_' + color);
-                var slidingTokenClass = "token token" + color + " changetoken behind";
+                var slidingTokenClass = "token token" + color + " changetoken changetoken-vertical behind";
             } else {
                 var sourceToken = $('changegiventokens_' + color);
                 var destinationToken =  $('changeyourstock_' + color);
-                var slidingTokenClass = "token token" + color + " bettoken behind";
+                var slidingTokenClass = "token token" + color + " changetoken changetoken-horizontal behind";
             }
 
             // Retrieve current number of tokens of that color in the source area
@@ -1468,7 +1506,6 @@ function (dojo, declare) {
                 }
                 // 2) Place the visual of a token on top of the token source area
                 dojo.place('<div class = "' + slidingTokenClass + '" id = "sliding' + type + 'token_' + color + '_' + currentSource + '"></div>', sourceToken.parentElement.id);
-                // 3) Slide the token from the source area to the destination area
                 var anim = this.slideToObject("sliding" + type + "token_" + color + "_" + currentSource, destinationToken.id);
                 dojo.connect(anim, 'onEnd', function(node) {
                     // 4) Destroy token visual used for the animation
@@ -1622,7 +1659,7 @@ function (dojo, declare) {
             this.notifqueue.setSynchronous('dealCardsPlayer', 1000);
 
             dojo.subscribe('moveTokens', this, "notif_moveTokens");
-            this.notifqueue.setSynchronous('moveTokens', 2000);
+            this.notifqueue.setSynchronous('moveTokens');
             dojo.subscribe('changeRequired', this, "notif_changeRequired");
             this.notifqueue.setSynchronous('changeRequired', 2000);
 
@@ -1639,7 +1676,6 @@ function (dojo, declare) {
             dojo.subscribe('revealNextCard', this, "notif_revealNextCard");
             this.notifqueue.setSynchronous('revealNextCard', 3000);
 
-            dojo.subscribe('moveBetToPot', this, "notif_moveBetToPot");
             this.notifqueue.setSynchronous('moveBetToPot', 3000);
             dojo.subscribe('revealHands', this, "notif_revealHands");
             this.notifqueue.setSynchronous('revealHands', 3000);
@@ -1648,8 +1684,6 @@ function (dojo, declare) {
 
             dojo.subscribe('announceWinner', this, "notif_announceWinner");
             this.notifqueue.setSynchronous('announceWinner', 6000);
-            dojo.subscribe('movePotToStock', this, "notif_movePotToStock");
-            this.notifqueue.setSynchronous('movePotToStock', 3000);
 
             dojo.subscribe('updateScores', this, "notif_updateScores");
             dojo.subscribe('discardAllCards', this, "notif_discardAllCards");
@@ -1758,7 +1792,13 @@ function (dojo, declare) {
         },
 
         notif_moveTokens: function(notif) {
-            console.log('notif_moveTokens');
+            console.log('notif_moveTokens'); 
+            
+            if (notif.args.duration != null) {
+                this.notifqueue.setSynchronousDuration(notif.args.duration);
+            } else {
+                this.notifqueue.setSynchronousDuration(2000);
+            }
 
             var from = notif.args.from;
             var to = notif.args.to;
@@ -1777,32 +1817,38 @@ function (dojo, declare) {
                     sourceToken = $("token" + color + "_table");
                     slidingTokenClass = "token token" + color + " behind";
                     sourceTotalName = "pot";
+                    maxSourcePileSize = 10;
                 } else if (from.includes("stock")) {
                     fromPlayerId = from.replace("stock_", "");
                     sourceToken = $("token" + color + "_" + fromPlayerId);
                     playerTable = $("playertablecards_" + fromPlayerId).parentElement;
                     slidingTokenClass = "token token" + color + " behind";
                     sourceTotalName = "stock";
+                    maxSourcePileSize = 10;
                 } else if (from.includes("bet")) {
                     fromPlayerId = from.replace("bet_", "");
                     sourceToken = $("bettoken" + color + "_" + fromPlayerId);
                     playerTable = $("playertablecards_" + fromPlayerId).parentElement;
                     slidingTokenClass = "token token" + color + " bettoken behind";
                     sourceTotalName = "bet";
+                    maxSourcePileSize = 5;
                 }
                 // Retrieve HTML elements corresponding to tokens in the destination
                 if (to == "pot") {
                     toPlayerId = null;
                     destinationToken = $("token" + color + "_table");
                     destinationTotalName = "pot";
+                    maxDestinationPileSize = 10;
                 } else if (to.includes("stock")) {
                     toPlayerId = to.replace("stock_", "");
                     destinationToken = $("token" + color + "_" + toPlayerId);
                     destinationTotalName = "stock";
+                    maxDestinationPileSize = 10;
                 } else if (to.includes("bet")) {
                     toPlayerId = to.replace("bet_", "");
                     destinationToken = $("bettoken" + color + "_" + toPlayerId);
                     destinationTotalName = "bet";
+                    maxDestinationPileSize = 5;
                 }
 
                 // Extract number of token from HTML element
@@ -1815,7 +1861,6 @@ function (dojo, declare) {
                     dojo.place('<div class = "' + slidingTokenClass + '" id = "slidingtoken_' + color + '_' + from + '_' + to + '_' + i + '"></div>', sourceToken.parentElement.id);
                     // 2) Slide the token from the pot to the player's stock
                     var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, sourceToken, destinationToken);
-
                     var anim = dojo.fx.slideTo({
                             node: 'slidingtoken_' + color + '_' + from + '_' + to + '_' + i,
                             top: targetTopValue.toString(),
@@ -1823,42 +1868,61 @@ function (dojo, declare) {
                             units: "px",
                             duration: 500 + i * 70
                     });
-                    dojo.connect(anim, 'onEnd', this, function(node) {
-                        // 3) Destroy token visual used for the animation
-                        dojo.destroy(node);
-                        // 4) Set the number of destination tokens expected for this color at the end of all token animations
-                        dojo.html.set(destinationToken.firstElementChild, notif.args.to_tokens[color]);
-                        // 5) Update destination total
-                        this.updateTotal(destinationTotalName, toPlayerId);
-                        if (destinationTotalName == "stock" || destinationTotalName == "bet") {
-                            this.updatePlayerBoardTokens(destinationTotalName, toPlayerId);
-                            this.updateTooltips(destinationTotalName, toPlayerId);
-                        } else {
-                            this.updateTooltips("pot", null);
-                        }
-                        // 6) Unhide the player's stock token if it is the first token of that color
-                        if (dojo.hasClass(destinationToken.id, "tokenhidden") && notif.args.to_tokens[color] > 0) {
-                            dojo.removeClass(destinationToken.id, "tokenhidden");
-                        }
-                        // 7)  Set the number of source tokens expected for this color at the end of all token animations
-                        dojo.html.set(sourceToken.firstElementChild, notif.args.from_tokens[color]);
-                        // 8) Update source total
-                        this.updateTotal(sourceTotalName, fromPlayerId);
-                        if (sourceTotalName == "stock" || sourceTotalName == "bet") {
-                            this.updatePlayerBoardTokens(sourceTotalName, fromPlayerId);
-                            this.updateTooltips(sourceTotalName, fromPlayerId);
-                        } else {
-                            this.updateTooltips("pot", null);
-                        }
-                        // 9) Hide source token if it was the last token of that color
-                        if (!dojo.hasClass(sourceToken.id, "tokenhidden") && notif.args.from_tokens[color] == 0) {
-                            dojo.addClass(sourceToken.id, "tokenhidden");
-                        }
-                        // 10) Unhide source token if it has at least one token of that color at the end of the animation
-                        if (dojo.hasClass(sourceToken.id, "tokenhidden") && notif.args.from_tokens[color] > 0) {
-                            dojo.removeClass(sourceToken.id, "tokenhidden");
-                        }
-                    });
+                    if (i >= (numLoops - 1)) {
+                        dojo.connect(anim, 'onEnd', this, function(node) {
+                            // 3) Destroy token visual used for the animation
+                            dojo.destroy(node);
+                            // 4) Set the number of destination tokens expected for this color at the end of all token animations
+                            dojo.html.set(destinationToken.firstElementChild, notif.args.to_tokens[color]);
+                            var currentPileSize = destinationToken.children.length;
+                            var endPileSize = Math.min(notif.args.to_tokens[color], maxDestinationPileSize);
+                            for (var j = currentPileSize+1; j <= endPileSize; j++) {
+                                dojo.place(this.format_block('jstpl_pile_token', {
+                                    TEXT_CLASS: "token" + color,
+                                    TOKEN_ID: destinationToken.id + "_pile_" + j,
+                                    TOKEN_TRANSLATE: -(j-1)*5
+                                }), destinationToken.id);
+                            }
+                            // 5) Update destination total
+                            this.updateTotal(destinationTotalName, toPlayerId);
+                            if (destinationTotalName == "stock" || destinationTotalName == "bet") {
+                                this.updateTooltips(destinationTotalName, toPlayerId);
+                            } else {
+                                this.updateTooltips("pot", null);
+                            }
+                            // 6) Unhide the player's stock token if it is the first token of that color
+                            if (dojo.hasClass(destinationToken.id, "tokenhidden") && notif.args.to_tokens[color] > 0) {
+                                dojo.removeClass(destinationToken.id, "tokenhidden");
+                            }
+                            // 7)  Set the number of source tokens expected for this color at the end of all token animations
+                            dojo.html.set(sourceToken.firstElementChild, notif.args.from_tokens[color]);
+                            var currentPileSize = sourceToken.children.length;
+                            var endPileSize = Math.min(notif.args.from_tokens[color], maxSourcePileSize);
+                            for (var j = currentPileSize; j > endPileSize; j--) {
+                                dojo.destroy(sourceToken.id + "_pile_" + j);
+                            }
+                            // 8) Update source total
+                            this.updateTotal(sourceTotalName, fromPlayerId);
+                            if (sourceTotalName == "stock" || sourceTotalName == "bet") {
+                                this.updateTooltips(sourceTotalName, fromPlayerId);
+                            } else {
+                                this.updateTooltips("pot", null);
+                            }
+                            // 9) Hide source token if it was the last token of that color
+                            if (!dojo.hasClass(sourceToken.id, "tokenhidden") && notif.args.from_tokens[color] == 0) {
+                                dojo.addClass(sourceToken.id, "tokenhidden");
+                            }
+                            // 10) Unhide source token if it has at least one token of that color at the end of the animation
+                            if (dojo.hasClass(sourceToken.id, "tokenhidden") && notif.args.from_tokens[color] > 0) {
+                                dojo.removeClass(sourceToken.id, "tokenhidden");
+                            }
+                        });
+                    } else {
+                        dojo.connect(anim, 'onEnd', this, function(node) {
+                            // 3) Destroy token visual used for the animation
+                            dojo.destroy(node);
+                        });
+                    }
                     anim.play();
                 }
             });
@@ -1878,18 +1942,21 @@ function (dojo, declare) {
                 sourceReceivedToken = $("token" + smallColor + "_table");
                 playerTable = null;
                 slidingTokenClass = "token token" + bigColor + " behind";
+                maxPileSize = 10;
             } else if (from.includes("stock")) {
                 fromPlayerId = from.replace("stock_", "");
                 sourceGivenToken = $("token" + bigColor + "_" + fromPlayerId);
                 sourceReceivedToken = $("token" + smallColor + "_" + fromPlayerId);
                 playerTable = $("playertablecards_" + fromPlayerId).parentElement;
                 slidingTokenClass = "token token" + bigColor + " behind";
+                maxPileSize = 10;
             } else if (from.includes("bet")) {
                 fromPlayerId = from.replace("bet_", "");
                 sourceGivenToken = $("bettoken" + bigColor + "_" + fromPlayerId);
                 sourceReceivedToken = $("bettoken" + smallColor + "_" + fromPlayerId);
                 playerTable = $("playertablecards_" + fromPlayerId).parentElement;
                 slidingTokenClass = "token token" + bigColor + " bettoken behind";
+                maxPileSize = 5;
             }
             var changeGivenToken = $("changetoken" + bigColor);
             var changeReceivedToken = $("changetoken" + smallColor);
@@ -1901,18 +1968,50 @@ function (dojo, declare) {
             if (currentGivenTokens - 1 <= 0) {
                 dojo.addClass(sourceGivenToken.id, "tokenhidden");
             }
-            // Place the visual of a token on top of the source of change token pile
-            dojo.place('<div class = "' + slidingTokenClass + '" id = "slidingtoken_' + bigColor + '"></div>', sourceGivenToken.parentElement.id);
-            // Slide the token from the source of change to the change area
-            var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, sourceGivenToken, changeGivenToken);
-
-            var anim = dojo.fx.slideTo({
-                    node: 'slidingtoken_' + bigColor,
-                    top: targetTopValue.toString(),
-                    left: targetLeftValue.toString(),
-                    units: "px",
-                    duration: 1000
-            });
+            if ((currentGivenTokens - 1) >= maxPileSize) {
+                // Source pile is still full after the move of this chip
+                // => Create a new chip
+                dojo.place(this.format_block('jstpl_pile_token', {
+                    TEXT_CLASS: "token" + color,
+                    TOKEN_ID: 'slidingtoken_' + color + '_' + (currentGivenTokens - 1),
+                    TOKEN_TRANSLATE: -(maxPileSize-1)*5
+                }), sourceGivenToken.id);
+                var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, sourceGivenToken, changeGivenToken);
+                    var anim = dojo.fx.slideTo({
+                            node: 'slidingtoken_' + color + '_' + (currentGivenTokens - 1),
+                            top: targetTopValue.toString(),
+                            left: targetLeftValue.toString(),
+                            units: "px",
+                            duration: 1000
+                    });
+            } else {
+                // Source pile decreases after the move of this chip
+                // => use an existing chip div
+                if ((currentGivenTokens - 1) > 0) {
+                    // Not last chip of the source pile
+                    // => Move the innerdiv chip
+                    var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, sourceGivenToken, changeGivenToken);
+                    var anim = dojo.fx.slideTo({
+                            node: sourceGivenToken.id + "_pile_" + (currentGivenTokens),
+                            top: targetTopValue.toString(),
+                            left: targetLeftValue.toString(),
+                            units: "px",
+                            duration: 1000
+                    });
+                } else {
+                    // Last chip of the source pile
+                    // => Move the outerdiv chip
+                    dojo.place('<div class = "' + slidingTokenClass + '" id = "slidingtoken_' + bigColor + '"></div>', sourceGivenToken.parentElement.id);
+                    var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, sourceGivenToken, changeGivenToken);
+                    var anim = dojo.fx.slideTo({
+                            node: 'slidingtoken_' + bigColor,
+                            top: targetTopValue.toString(),
+                            left: targetLeftValue.toString(),
+                            units: "px",
+                            duration: 1000
+                    });
+                }
+            }
             dojo.connect(anim, 'onEnd', function(node) {
                 // Destroy token visual used for the animation
                 dojo.destroy(node);
@@ -1924,7 +2023,7 @@ function (dojo, declare) {
                 currentReceivedTokens++;
                 // Move a token from the change area to the source of change
                 // Place the visual of a token on top of the token change area pile
-                dojo.place('<div class = "token token' + smallColor + ' changetoken behind" id = "slidingchangetoken_' + smallColor + '_' + currentReceivedTokens + '"></div>', "changetable");
+                dojo.place('<div class = "token token' + smallColor + ' changetoken changetoken-vertical behind" id = "slidingchangetoken_' + smallColor + '_' + currentReceivedTokens + '"></div>', "changetable");
                 // Slide the token from the change area to the source of change
                     // Identify target and source absolute position in the DOM
                 var sourcePos = dojo.position(changeReceivedToken.id);
@@ -1939,16 +2038,34 @@ function (dojo, declare) {
                         units: "px",
                         duration: 1000 + i * 70 * (20 / (20 + numSmallTokens))
                 });
-                dojo.connect(anim, 'onEnd', function(node) {
-                    // Destroy token visual used for the animation
-                    dojo.destroy(node);
-                    // Increment the number from the source of change
-                    dojo.html.set(sourceReceivedToken.firstElementChild, currentReceivedTokens);
-                    // Unhide the source of change token if it the first token of that color
-                    if (dojo.hasClass(sourceReceivedToken.id, "tokenhidden")) {
-                        dojo.removeClass(sourceReceivedToken.id, "tokenhidden");
-                    }
-                });
+                if (numSmallTokens >= (numSmallTokens-1)) {
+                    dojo.connect(anim, 'onEnd', this, function(node) {
+                        // Destroy token visual used for the animation
+                        dojo.destroy(node);
+                        // Increment the number from the source of change
+                        dojo.html.set(sourceReceivedToken.firstElementChild, currentReceivedTokens);
+                        
+                        var currentPileSize = sourceReceivedToken.children.length;
+                        var endPileSize = Math.min(currentReceivedTokens, maxPileSize);
+                        for (var j = currentPileSize; j <= endPileSize; j++) {
+                            dojo.place(this.format_block('jstpl_pile_token', {
+                                TEXT_CLASS: "token" + smallColor,
+                                TOKEN_ID: sourceReceivedToken.id + "_pile_" + j,
+                                TOKEN_TRANSLATE: -(j-1)*5
+                            }), sourceReceivedToken.id);
+                        }
+                        // Unhide the source of change token if it the first token of that color
+                        if (dojo.hasClass(sourceReceivedToken.id, "tokenhidden")) {
+                            dojo.removeClass(sourceReceivedToken.id, "tokenhidden");
+                        }
+                    });
+                } else {
+                    dojo.connect(anim, 'onEnd', this, function(node) {
+                        // Destroy token visual used for the animation
+                        dojo.destroy(node);
+                    });
+                }
+                
                 anim.play();
             }
 
@@ -1983,31 +2100,71 @@ function (dojo, declare) {
                             dojo.html.set(stockToken.firstElementChild, currentStock);
                             // 2) Update stock total
                             this.updateTotal("stock", notif.args.player_id);
-                            this.updatePlayerBoardTokens("stock", notif.args.player_id);
                             this.updateTooltips("stock", notif.args.player_id);
                             if (currentStock <= 0) {
                                 dojo.addClass(stockToken.id, "tokenhidden");
                             }
                             // 3) Place the visual of a token on top of the token stock pile
-                            dojo.place('<div class = "token token' + color + ' behind" id = "slidingstocktoken_' + color + '_' + currentStock + '"></div>', "playertabletokens_" + notif.args.player_id);
                             // 4) Slide the token from the stock to the betting area
-                            var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, stockToken, betToken);
-
-                            var anim = dojo.fx.slideTo({
-                                    node: 'slidingstocktoken_' + color + '_' + currentStock,
-                                    top: targetTopValue.toString(),
-                                    left: targetLeftValue.toString(),
-                                    units: "px",
-                                    duration: 500 - i * 70 * (20 / (20 - tokenDiff))
-                            });
+                            if (currentStock >= 10) {
+                                // Source pile is still full after the move of this chip
+                                // => Create a new chip
+                                dojo.place(this.format_block('jstpl_pile_token', {
+                                    TEXT_CLASS: "token" + color,
+                                    TOKEN_ID: 'slidingstocktoken_' + color + '_' + currentStock,
+                                    TOKEN_TRANSLATE: -(10-1)*5
+                                }), 'token' + color + '_' + notif.args.player_id);
+                                var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, stockToken, betToken);
+                                var anim = dojo.fx.slideTo({
+                                        node: 'slidingstocktoken_' + color + '_' + currentStock,
+                                        top: targetTopValue.toString(),
+                                        left: targetLeftValue.toString(),
+                                        units: "px",
+                                        duration: 500 - i * 70 * (20 / (20 - tokenDiff))
+                                });
+                            } else {
+                                // Source pile decreases after the move of this chip
+                                // => use an existing chip div
+                                if (currentStock > 0) {
+                                    // Not last chip of the source pile
+                                    // => Move the innerdiv chip
+                                    var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, stockToken, betToken);
+                                    var anim = dojo.fx.slideTo({
+                                            node: "token" + color + "_" + notif.args.player_id + "_pile_" + (currentStock+1),
+                                            top: targetTopValue.toString(),
+                                            left: targetLeftValue.toString(),
+                                            units: "px",
+                                            duration: 500 - i * 70 * (20 / (20 - tokenDiff))
+                                    });
+                                } else {
+                                    // Last chip of the source pile
+                                    // => Move the outerdiv chip
+                                    dojo.place('<div class = "token token' + color + ' behind" id = "slidingstocktoken_' + color + '_' + currentStock + '"></div>', "playertabletokens_" + notif.args.player_id);
+                                    var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, stockToken, betToken);
+                                    var anim = dojo.fx.slideTo({
+                                            node: 'slidingstocktoken_' + color + '_' + currentStock,
+                                            top: targetTopValue.toString(),
+                                            left: targetLeftValue.toString(),
+                                            units: "px",
+                                            duration: 500 - i * 70 * (20 / (20 - tokenDiff))
+                                    });
+                                }
+                            }
                             dojo.connect(anim, 'onEnd', this, function(node) {
                                 // 5) Destroy token visual used for the animation
                                 dojo.destroy(node);
                                 // 6) Increment the number from the betting area
-                                dojo.html.set(betToken.firstElementChild, currentBet);
+                                var newBetNum = parseInt(betToken.firstElementChild.textContent) + 1;
+                                dojo.html.set(betToken.firstElementChild, newBetNum);
+                                if (newBetNum > 1 && newBetNum < 6) {
+                                    dojo.place(this.format_block('jstpl_pile_token', {
+                                        TEXT_CLASS: "token" + color + " bettoken",
+                                        TOKEN_ID: "bettoken" + color + "_" + notif.args.player_id + "_pile_" + newBetNum,
+                                        TOKEN_TRANSLATE: -(newBetNum-1)*5
+                                    }), 'bettoken' + color + '_' + notif.args.player_id);
+                                }
                                 // 7) Update bet total
                                 this.updateTotal("bet", notif.args.player_id);
-                                this.updatePlayerBoardTokens("bet", notif.args.player_id);
                                 this.updateTooltips("bet", notif.args.player_id);
                                 // 8) Unhide the betting area token if it the first token of that color
                                 if (dojo.hasClass(betToken.id, "tokenhidden")) {
@@ -2027,30 +2184,71 @@ function (dojo, declare) {
                             dojo.html.set(betToken.firstElementChild, currentBet);
                             // 2) Update bet total
                             this.updateTotal("bet", notif.args.player_id);
-                            this.updatePlayerBoardTokens("bet", notif.args.player_id);
                             this.updateTooltips("bet", notif.args.player_id);
                             if (currentBet <= 0) {
                                 dojo.addClass(betToken.id, "tokenhidden");
                             }
                             // 3) Place the visual of a token on top of the token betting area pile
-                            dojo.place('<div class = "token token' + color + ' bettoken behind" id = "slidingbettoken_' + color + '_' + currentBet + '"></div>', "bettingarea_" + notif.args.player_id);
                             // 4) Slide the token from the betting area to the stock
-                            var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, betToken, stockToken);
-                            var anim = dojo.fx.slideTo({
-                                    node: 'slidingbettoken_' + color + '_' + currentBet,
-                                    top: targetTopValue.toString(),
-                                    left: targetLeftValue.toString(),
-                                    units: "px",
-                                    duration: 500 + i * 70 * (20 / (20 + tokenDiff))
-                            });
+                            if (currentBet >= 5) {
+                                // Source pile is still full after the move of this chip
+                                // => Create a new chip
+                                dojo.place(this.format_block('jstpl_pile_token', {
+                                    TEXT_CLASS: "token" + color,
+                                    TOKEN_ID: 'slidingbettoken_' + color + '_' + currentBet,
+                                    TOKEN_TRANSLATE: -(5-1)*5
+                                }), 'bettoken' + color + '_' + notif.args.player_id);
+                                var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, betToken, stockToken);
+                                var anim = dojo.fx.slideTo({
+                                        node: 'slidingbettoken_' + color + '_' + currentBet,
+                                        top: targetTopValue.toString(),
+                                        left: targetLeftValue.toString(),
+                                        units: "px",
+                                        duration: 500 + i * 70 * (20 / (20 + tokenDiff))
+                                });
+                            } else {
+                                // Source pile decreases after the move of this chip
+                                // => use an existing chip div
+                                if (currentBet > 0) {
+                                    // Not last chip of the source pile
+                                    // => Move the innerdiv chip
+                                    var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, betToken, stockToken);
+                                    var anim = dojo.fx.slideTo({
+                                            node: "bettoken" + color + "_" + notif.args.player_id + "_pile_" + (currentBet+1),
+                                            top: targetTopValue.toString(),
+                                            left: targetLeftValue.toString(),
+                                            units: "px",
+                                            duration: 500 + i * 70 * (20 / (20 + tokenDiff))
+                                    });
+                                } else {
+                                    // Last chip of the source pile
+                                    // => Move the outerdiv chip
+                                    dojo.place('<div class = "token token' + color + ' bettoken behind" id = "slidingbettoken_' + color + '_' + currentBet + '"></div>', "bettingarea_" + notif.args.player_id);
+                                    var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, betToken, stockToken);
+                                    var anim = dojo.fx.slideTo({
+                                            node: 'slidingbettoken_' + color + '_' + currentBet,
+                                            top: targetTopValue.toString(),
+                                            left: targetLeftValue.toString(),
+                                            units: "px",
+                                            duration: 500 + i * 70 * (20 / (20 + tokenDiff))
+                                    });
+                                }
+                            }
                             dojo.connect(anim, 'onEnd', this, function(node) {
                                 // 5) Destroy token visual used for the animation
                                 dojo.destroy(node);
                                 // 6) Increment the number from the player's stock
-                                dojo.html.set(stockToken.firstElementChild, currentStock);
+                                var newStockNum = parseInt(stockToken.firstElementChild.textContent) + 1;
+                                dojo.html.set(stockToken.firstElementChild, newStockNum);                    
+                                if (newStockNum > 1 && newStockNum <= 10) {
+                                    dojo.place(this.format_block('jstpl_pile_token', {
+                                        TEXT_CLASS: "token" + color,
+                                        TOKEN_ID: "token" + color + "_" + notif.args.player_id + "_pile_" + newStockNum,
+                                        TOKEN_TRANSLATE: -(newStockNum-1)*5
+                                    }), 'token' + color + '_' + notif.args.player_id);
+                                }
                                 // 7) Update stock total
                                 this.updateTotal("stock", notif.args.player_id);
-                                this.updatePlayerBoardTokens("stock", notif.args.player_id);
                                 this.updateTooltips("stock", notif.args.player_id);
                                 // 8) Unhide the stock token if it the first token of that color
                                 if (dojo.hasClass(stockToken.id, "tokenhidden")) {
@@ -2175,20 +2373,57 @@ function (dojo, declare) {
                             dojo.addClass(stockToken.id, "tokenhidden");
                         }
                         // 2) Place the visual of a token on top of the token stock pile
-                        dojo.place('<div class = "token token' + color + ' behind" id = "slidingstocktoken_' + color + '_' + currentStock + '"></div>', "playertabletokens_" + notif.args.player_id);
                         // 3) Slide the token from the stock to the change area
-                        var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, stockToken, changeToken);
+                        if (currentStock >= 10) {
+                            // Source pile is still full after the move of this chip
+                            // => Create a new chip
+                            dojo.place(this.format_block('jstpl_pile_token', {
+                                TEXT_CLASS: "token" + color,
+                                TOKEN_ID: 'slidingstocktoken_' + color + '_' + currentStock,
+                                TOKEN_TRANSLATE: -(10-1)*5
+                            }), 'token' + color + '_' + notif.args.player_id);
+                            var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, stockToken, changeToken);
+                            var anim = dojo.fx.slideTo({
+                                    node: 'slidingstocktoken_' + color + '_' + currentStock,
+                                    top: targetTopValue.toString(),
+                                    left: targetLeftValue.toString(),
+                                    units: "px",
+                                    duration: 1000 - i * 70 * (20 / (20 - tokenDiff))
+                            });
+                        } else {
+                            // Source pile decreases after the move of this chip
+                            // => use an existing chip div
+                            if (currentStock > 0) {
+                                // Not last chip of the source pile
+                                // => Move the innerdiv chip
+                                var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, stockToken, changeToken);
+                                var anim = dojo.fx.slideTo({
+                                        node: "token" + color + "_" + notif.args.player_id + "_pile_" + (currentStock+1),
+                                        top: targetTopValue.toString(),
+                                        left: targetLeftValue.toString(),
+                                        units: "px",
+                                        duration: 1000 - i * 70 * (20 / (20 - tokenDiff))
+                                });
+                            } else {
+                                // Last chip of the source pile
+                                // => Move the outerdiv chip
+                                dojo.place('<div class = "token token' + color + ' behind" id = "slidingstocktoken_' + color + '_' + currentStock + '"></div>', "playertabletokens_" + notif.args.player_id);
+                                var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, stockToken, changeToken);
+                                var anim = dojo.fx.slideTo({
+                                        node: 'slidingstocktoken_' + color + '_' + currentStock,
+                                        top: targetTopValue.toString(),
+                                        left: targetLeftValue.toString(),
+                                        units: "px",
+                                        duration: 1000 - i * 70 * (20 / (20 - tokenDiff))
+                                });
+                            }
+                        }
 
-                        var anim = dojo.fx.slideTo({
-                                node: 'slidingstocktoken_' + color + '_' + currentStock,
-                                top: targetTopValue.toString(),
-                                left: targetLeftValue.toString(),
-                                units: "px",
-                                duration: 1000 - i * 70 * (20 / (20 - tokenDiff))
-                        });
-                        dojo.connect(anim, 'onEnd', function(node) {
+                        dojo.connect(anim, 'onEnd', this, function(node) {
                             // 4) Destroy token visual used for the animation
                             dojo.destroy(node);
+                            // 5) Update tooltips
+                            this.updateTooltips("stock", notif.args.player_id);
                         });
                         anim.play();
                     }
@@ -2198,7 +2433,7 @@ function (dojo, declare) {
                         currentStock++;
                         // Move a token from the change area to the player's stock
                         // 1) Place the visual of a token on top of the token change area pile
-                        dojo.place('<div class = "token token' + color + ' changetoken behind" id = "slidingchangetoken_' + color + '_' + currentStock + '"></div>', "changetable");
+                        dojo.place('<div class = "token token' + color + ' changetoken changetoken-vertical behind" id = "slidingchangetoken_' + color + '_' + currentStock + '"></div>', "changetable");
                         // 2) Slide the token from the change area to the player's stock
                             // 2.1) Identify target and source absolute position in the DOM
                         var sourcePos = dojo.position(changeToken.id);
@@ -2217,76 +2452,25 @@ function (dojo, declare) {
                             // 3) Destroy token visual used for the animation
                             dojo.destroy(node);
                             // 4) Increment the number from the player's stock
-                            dojo.html.set(stockToken.firstElementChild, currentStock);
-                            this.updatePlayerBoardTokens("stock", notif.args.player_id);
+                            var newStockNum = parseInt(stockToken.firstElementChild.textContent) + 1;
+                            dojo.html.set(stockToken.firstElementChild, newStockNum);                    
+                            if (newStockNum > 1 && newStockNum <= 10) {
+                                dojo.place(this.format_block('jstpl_pile_token', {
+                                    TEXT_CLASS: "token" + color,
+                                    TOKEN_ID: "token" + color + "_" + notif.args.player_id + "_pile_" + newStockNum,
+                                    TOKEN_TRANSLATE: -(newStockNum-1)*5
+                                }), 'token' + color + '_' + notif.args.player_id);
+                            }
                             // 5) Unhide the stock token if it the first token of that color
                             if (dojo.hasClass(stockToken.id, "tokenhidden")) {
                                 dojo.removeClass(stockToken.id, "tokenhidden");
                             }
+                            // 6) Update tooltips
+                            this.updateTooltips("stock", notif.args.player_id);
                         });
                         anim.play();
                     }
                 }
-                // Update player board stock tokens
-                this.updatePlayerBoardTokens("stock", notif.args.player_id);
-            });
-        },
-
-        notif_moveBetToPot: function(notif) {
-            console.log('notif_moveBetToPot');
-
-            // Loop over each player's betting area
-            dojo.query(".bettokens").forEach(bettingArea => {
-                var playerId =  bettingArea.id.replace(/bettingarea_/, "");
-
-                var playerTable = $("playertablecards_" + playerId).parentElement;
-                var colors = ["white", "blue", "red", "green", "black"];
-            
-                colors.forEach(color => {
-                    // Retrieve HTML elements corresponding to tokens in the player's betting area
-                    var betToken = $("bettoken" + color + "_" + playerId);
-                    var tableToken = $("token" + color + "_table");
-                    // Extract number of token from HTML element
-                    var numLoops = parseInt(betToken.firstElementChild.textContent);
-                    numLoops = Math.min(10, numLoops); // Cap the number of token animated to 10
-
-                    // Animate tokens slide from betting area to table tokens
-                    for (var i = 0; i < numLoops; i++) {
-                        // 1) Place the visual of a token on top of the token bet pile
-                        dojo.place('<div class = "token token' + color + ' bettoken behind" id = "slidingbettoken_' + color + '_' + playerId + '_' + i + '"></div>', "bettingarea_" + playerId);
-                        // 2) Slide the token from the betting area to the pot
-                        var [targetTopValue, targetLeftValue] = this.getSlideTopAndLeftProperties(playerTable, betToken, tableToken);
-
-                        var anim = dojo.fx.slideTo({
-                                node: 'slidingbettoken_' + color + '_' + playerId + '_' + i,
-                                top: targetTopValue.toString(),
-                                left: targetLeftValue.toString(),
-                                units: "px",
-                                duration: 500 + i * 70
-                        });
-                        dojo.connect(anim, 'onEnd', this, function(node) {
-                            // 3) Destroy token visual used for the animation
-                            dojo.destroy(node);
-                            // 4) Set the number of table tokens expected for this color at the end of all token animations
-                            dojo.html.set(tableToken.firstElementChild, notif.args.end_pot[color]);
-                            // 5) Update pot total
-                            this.updateTotal("pot");
-                            this.updateTooltips("pot", null);
-                            // 6) Unhide the table token if it the first token of that color
-                            if (dojo.hasClass(tableToken.id, "tokenhidden")) {
-                                dojo.removeClass(tableToken.id, "tokenhidden");
-                            }
-                            // 7) Hide betting area token and set its number to 0 (value expected at the end of all token animations)
-                            dojo.html.set(betToken.firstElementChild, 0);
-                            dojo.addClass(betToken.id, "tokenhidden");
-                            // 8) Update bet total
-                            this.updateTotal("bet", playerId);
-                            this.updatePlayerBoardTokens("bet", playerId);
-                            this.updateTooltips("bet", playerId);
-                        });
-                        anim.play();
-                    }
-                });
             });
         },
 
@@ -2494,66 +2678,6 @@ function (dojo, declare) {
                 dojo.fadeOut({node: playerTable}),
                 dojo.fadeIn({node: playerTable})
             ]).play();
-        },
-
-        notif_movePotToStock: function(notif) {
-            console.log('notif_movePotToStock');
-
-            var playerId = notif.args.winner_id;
-
-            var playerTable = $("playertablecards_" + playerId).parentElement;
-            var colors = ["white", "blue", "red", "green", "black"];
-        
-            colors.forEach(color => {
-                // Retrieve HTML elements corresponding to tokens in the player's stock
-                var stockToken = $("token" + color + "_" + playerId);
-                var tableToken = $("token" + color + "_table");
-                // Extract number of token from HTML element
-                var numLoops = parseInt(tableToken.firstElementChild.textContent);
-                numLoops = Math.min(10, numLoops); // Cap the number of token animated to 10
-
-                // Animate tokens slide from table tokens to player's stock
-                for (var i = 0; i < numLoops; i++) {
-                    // 1) Place the visual of a token on top of the token bet pile
-                    dojo.place('<div class = "token token' + color + ' behind" id = "slidingtabletoken_' + color + '_' + playerId + '_' + i + '"></div>', "previousroundtokens");
-                    // 2) Slide the token from the pot to the player's stock
-                        // 2.1) Identify target and source absolute position in the DOM
-                    var sourcePos = dojo.position(tableToken.id);
-                    var targetPos = dojo.position(stockToken.id);
-                        // 2.2) Compute the value of the left and top properties based on the translation to do
-                    var targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(tableToken.id, "top");
-                    var targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(tableToken.id, "left");
-
-                    var anim = dojo.fx.slideTo({
-                            node: 'slidingtabletoken_' + color + '_' + playerId + '_' + i,
-                            top: targetTopValue.toString(),
-                            left: targetLeftValue.toString(),
-                            units: "px",
-                            duration: 500 + i * 70
-                    });
-                    dojo.connect(anim, 'onEnd', this, function(node) {
-                        // 3) Destroy token visual used for the animation
-                        dojo.destroy(node);
-                        // 4) Set the number of table tokens expected for this color at the end of all token animations
-                        dojo.html.set(stockToken.firstElementChild, notif.args.end_player_stock[color]);
-                        // 8) Update stock total
-                        this.updateTotal("stock", playerId);
-                        this.updatePlayerBoardTokens("stock", playerId);
-                        this.updateTooltips("stock", playerId);
-                        // 9) Unhide the player's stock token if it the first token of that color
-                        if (dojo.hasClass(stockToken.id, "tokenhidden")) {
-                            dojo.removeClass(stockToken.id, "tokenhidden");
-                        }
-                        // 10) Hide table token and set its number to 0 (value expected at the end of all token animations)
-                        dojo.html.set(tableToken.firstElementChild, 0);
-                        dojo.addClass(tableToken.id, "tokenhidden");
-                        // 11) Update pot total
-                        this.updateTotal("pot");
-                        this.updateTooltips("pot", null);
-                    });
-                    anim.play();
-                }
-            });
         },
 
         notif_updateScores: function(notif) {

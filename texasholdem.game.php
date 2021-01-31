@@ -745,7 +745,7 @@ class texasholdem extends Table
         );
     }
 
-    function moveTokens($from, $to, $value) {
+    function moveTokens($from, $to, $value, $log = TRUE, $duration = 2000) {
         // Get current state of pot and players token
         $sql = "SELECT player_id, player_name, player_stock_token_white, player_stock_token_blue, player_stock_token_red, 
             player_stock_token_green, player_stock_token_black, player_bet_token_white, player_bet_token_blue, 
@@ -785,7 +785,10 @@ class texasholdem extends Table
         if ($to == "pot") {
             $to_player_id = NULL;
             $sql = "SELECT token_color, token_number FROM token";
-            $to_tokens = self::getCollectionFromDb($sql);
+            $pot_tokens = self::getCollectionFromDb($sql);
+            foreach ($colors as $color) {
+                $to_tokens[$color] = $pot_tokens[$color]["token_number"];
+            }
             $destination_name = "the pot";
         } else if (strpos($to, "stock") !== false) {
             $to_player_id = str_replace("stock_", "", $to);
@@ -922,17 +925,29 @@ class texasholdem extends Table
 
         // Notify the client to move the tokens
         if ($value > 0) {
-            self::notifyAllPlayers("moveTokens", clienttranslate('${value} is moved from ${source_name} to ${destination_name}'), array(
-                'i18n' => array('source_name', 'destination_name'),
-                'value' => $value,
-                'source_name' => $source_name,
-                'destination_name' => $destination_name,
-                'from' => $from,
-                'to' => $to,
-                'from_tokens' => $from_tokens,
-                'to_tokens' => $to_tokens,
-                'token_diff' => $token_diff
-            ));
+            if ($log) {
+                self::notifyAllPlayers("moveTokens", clienttranslate('${value} is moved from ${source_name} to ${destination_name}'), array(
+                    'i18n' => array('source_name', 'destination_name'),
+                    'value' => $value,
+                    'source_name' => $source_name,
+                    'destination_name' => $destination_name,
+                    'from' => $from,
+                    'to' => $to,
+                    'from_tokens' => $from_tokens,
+                    'to_tokens' => $to_tokens,
+                    'token_diff' => $token_diff,
+                    'duration' => $duration
+                ));
+            } else {
+                self::notifyAllPlayers("moveTokens", '', array(
+                    'from' => $from,
+                    'to' => $to,
+                    'from_tokens' => $from_tokens,
+                    'to_tokens' => $to_tokens,
+                    'token_diff' => $token_diff,
+                    'duration' => $duration
+                ));
+            }
         }
     }
 
@@ -2161,54 +2176,34 @@ class texasholdem extends Table
         $num_folded_players = self::getGameStateValue("numFoldedPlayers");
         $num_all_in_players = self::getGameStateValue("numAllInPlayers");
         $num_eliminated_players = self::getGameStateValue("numEliminatedPlayers");
+        $sql = "SELECT player_id, player_eliminated, is_fold, is_all_in, wants_showhand FROM player";
+        $players = self::getCollectionFromDb($sql);
 
-        // Place all tokens in the betting area to the pot
-        $sql = "SELECT player_id, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
-            player_bet_token_green, player_bet_token_black, is_fold, is_all_in, player_eliminated, wants_showhand FROM player";
-        $current_players_bet = self::getCollectionFromDb($sql);
+        $players_tokens = self::getPlayersTokens();
 
-        $sql = "SELECT token_color, token_number FROM token";
-        $current_pot = self::getCollectionFromDb($sql, true);
-        $end_pot = array();
-
-        $sql_pot = "";
-        $sql_bet = "UPDATE player SET ";
-        $num_colors_checked = 0;
         $additional_pot = 0;
-        foreach($current_pot as $color => $token_number) {
-            $added_tokens = 0;
-            foreach($current_players_bet as $player_id => $bet_tokens) {
-                $added_tokens += $bet_tokens["player_bet_token_".$color];
+        foreach($players_tokens as $player_id => $player_tokens) {
+            if ($player_tokens["bet"] > 0) {
+                $additional_pot += $player_tokens["bet"];
+                self::moveTokens("bet_${player_id}", "pot", $player_tokens["bet"], FALSE, 0);
             }
-            $end_pot[$color] = $added_tokens + $token_number; // Number of tokens in the pot after movement
-            $additional_pot += $this->token_values[$color] * $added_tokens;
-            $sql_pot = "UPDATE token SET token_number = " . $end_pot[$color] . " WHERE token_color = '" . $color . "'";
-            self::DbQuery($sql_pot);
-            $sql_bet .= "player_bet_token_" . $color . " = 0";
-            // Don't add a comma for the last item
-            if ($num_colors_checked < (count($current_pot) - 1)) {
-                $sql_bet .= ", ";
-            }
-            $num_colors_checked++;
         }
-        self::DbQuery($sql_bet);
 
         // Only move bets to pot if there are any bet (otherwise it would pause during 3 seconds for nothing)
         if ($additional_pot > 0) {
             self::notifyAllPlayers("moveBetToPot", clienttranslate('${additional_pot} is added to the pot'), array(
                 'additional_pot' => $additional_pot,
-                'end_pot' => $end_pot
             ));
         }
 
         if ($round_stage >= 4) {
             // All cards already shown
             $this->gamestate->nextState("endHand");
-        } else if (($num_folded_players + $num_eliminated_players) >= (count($current_players_bet) - 1)) {
+        } else if (($num_folded_players + $num_eliminated_players) >= (count($players) - 1)) {
             // Only one player still not folded
             self::notifyAllPlayers("allFolded", clienttranslate('There is only one player that has not folded. This ends the hand.'), array());
             
-            $non_folded_player = array_values(array_filter($current_players_bet, function($player) {return !$player["is_fold"] && !$player["player_eliminated"];}))[0];
+            $non_folded_player = array_values(array_filter($players, function($player) {return !$player["is_fold"] && !$player["player_eliminated"];}))[0];
             // Check if the non-folded player wants to be asked if he wants to show his hand
             if ($non_folded_player["wants_showhand"]) {
                 $this->gamestate->changeActivePlayer($non_folded_player["player_id"]);
@@ -2224,7 +2219,7 @@ class texasholdem extends Table
             // More than one player still not folded
 
             // Showdown in case all players are all in
-            if (self::getGameStateValue("areHandsRevealed") == 0 && $num_all_in_players >= (count($current_players_bet) - $num_folded_players - $num_eliminated_players - 1)) {
+            if (self::getGameStateValue("areHandsRevealed") == 0 && $num_all_in_players >= (count($players) - $num_folded_players - $num_eliminated_players - 1)) {
                 $cards_in_hand = $this->cards->getCardsInLocation("hand");
                 $sql = "SELECT player_id, player_name, player_color, is_fold, is_all_in, player_eliminated, player_score FROM player WHERE is_fold = 0 AND player_eliminated = 0";
                 $non_folded_players = self::getCollectionFromDb($sql);
@@ -2284,19 +2279,19 @@ class texasholdem extends Table
             self::setGameStateValue("roundStage", $round_stage);
 
             // Set the small blind player active at the start of each betting round
-            if (count($current_players_bet) - self::getGameStateValue("numEliminatedPlayers") <= 2) {
+            if (count($players) - self::getGameStateValue("numEliminatedPlayers") <= 2) {
                 // In headsup the first player to talk after the flop is the big blind
                 $player_id = self::getPlayerAfter(self::getGameStateValue("smallBlindPlayer"));
-                if (($num_folded_players + $num_all_in_players + $num_eliminated_players) <= (count($current_players_bet) - 1)) {
-                    while (($current_players_bet[$player_id]["is_fold"] || $current_players_bet[$player_id]["is_all_in"] || $current_players_bet[$player_id]["player_eliminated"])) {
+                if (($num_folded_players + $num_all_in_players + $num_eliminated_players) <= (count($players) - 1)) {
+                    while (($players[$player_id]["is_fold"] || $players[$player_id]["is_all_in"] || $players[$player_id]["player_eliminated"])) {
                         // Skip player if he has folded or is already all in or eliminated (if he quited during the round)
                         $player_id = self::getPlayerAfter($player_id);
                     }
                 }
             } else {
                 $player_id = self::getGameStateValue("smallBlindPlayer");
-                if (($num_folded_players + $num_all_in_players + $num_eliminated_players) <= (count($current_players_bet) - 1)) {
-                    while (($current_players_bet[$player_id]["is_fold"] || $current_players_bet[$player_id]["is_all_in"] || $current_players_bet[$player_id]["player_eliminated"])) {
+                if (($num_folded_players + $num_all_in_players + $num_eliminated_players) <= (count($players) - 1)) {
+                    while (($players[$player_id]["is_fold"] || $players[$player_id]["is_all_in"] || $players[$player_id]["player_eliminated"])) {
                         // Skip player if he has folded or is already all in or eliminated (if he quited during the round)
                         $player_id = self::getPlayerAfter($player_id);
                     }
@@ -2555,7 +2550,7 @@ class texasholdem extends Table
                 }
 
                 // If the pot cannot be evenly split, the remainder goes to the player in the earliest position from the Dealer
-                $gain_remainder = (int)$gain_remainder;
+                $gain_remainder = (int)round($gain_remainder);
                 if ($gain_remainder > 0) {
                     $earliest_player_id = self::getGameStateValue("smallBlindPlayer");
                     while (!array_key_exists($earliest_player_id, $same_rank_players)) {

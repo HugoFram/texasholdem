@@ -111,12 +111,6 @@
         $this->tpl['DOSHOWHAND_DESCRIPTION'] = self::_("Ask to reveal hand if all other players are folded");
         $this->tpl['BLIND_LEVEL_TEXT'] = self::_("Current blind level: 1/2");
         $this->tpl['HAND_NUMBER_TEXT'] = self::_("Number of hands played: 0");
-        $this->tpl['TOKEN_VALUE_WHITE'] = $this->game->token_values["white"];
-        $this->tpl['TOKEN_VALUE_BLUE'] = $this->game->token_values["blue"];
-        $this->tpl['TOKEN_VALUE_RED'] = $this->game->token_values["red"];
-        $this->tpl['TOKEN_VALUE_GREEN'] = $this->game->token_values["green"];
-        $this->tpl['TOKEN_VALUE_BLACK'] = $this->game->token_values["black"];
-        $this->tpl['CURRENCY'] = self::_("$");
 
         /*********** Do not change anything below this line  ************/
   	}
