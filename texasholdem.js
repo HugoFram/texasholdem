@@ -1530,13 +1530,24 @@ function (dojo, declare) {
         onBetmodeChange: function(event) {
             if (this.isCurrentPlayerActive()) {
                 // Update choose raise button
-                if (event.target.checked) {
-                    dojo.html.set($('raise'), _('Confirm raise'));
-                    this.removeTooltip('raise');
-                    this.addTooltip('raise', 'You need can move chips to your betting area by clicking on them', _('This will raise by the amount of chips you currently have in your betting area'));
+                if ($('raise')) {
+                    if (event.target.checked) {
+                        dojo.html.set($('raise'), _('Confirm raise'));
+                        this.removeTooltip('raise');
+                        this.addTooltip('raise', 'You need can move chips to your betting area by clicking on them', _('This will raise by the amount of chips you currently have in your betting area'));
+                    } else {
+                        dojo.html.set($('raise'), _('Choose raise'));
+                        this.addTooltip('raise', '', _('This will open a sub-window to let you choose a raise amount'));
+                    }
                 } else {
-                    dojo.html.set($('raise'), _('Choose raise'));
-                    this.addTooltip('raise', '', _('This will open a sub-window to let you choose a raise amount'));
+                    if (event.target.checked) {
+                        dojo.html.set($('bet'), _('Confirm bet'));
+                        this.removeTooltip('bet');
+                        this.addTooltip('bet', 'You need can move chips to your betting area by clicking on them', _('This will raise by the amount of chips you currently have in your betting area'));
+                    } else {
+                        dojo.html.set($('bet'), _('Choose bet'));
+                        this.addTooltip('bet', '', _('This will open a sub-window to let you choose a raise amount'));
+                    }
                 }
 
                 // Add or remove Change button
