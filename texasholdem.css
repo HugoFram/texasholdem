@@ -107,10 +107,19 @@
         right: 10px;
     }
     
-    .playerbettotal.orientation_SW, .playerbettotal.orientation_S, .playerbettotal.orientation_SE,
-    .playerbettotal.orientation_W, .playerbettotal.orientation_E {
+    .playerbettotal.orientation_SW, .playerbettotal.orientation_S, .playerbettotal.orientation_SE {
         top: -95px;
         left: 10px;
+    }
+
+    .playerbettotal.orientation_W {
+        top: 40px;
+        right: -110px;
+    }
+
+    .playerbettotal.orientation_E {
+        top: 170px;
+        left: -110px;
     }
     
     .playertable_S {
@@ -126,10 +135,9 @@
     }
     
     .playertable_W {
-        left: -150px;
+        left: -180px;
         bottom: 50%;
         margin-bottom: -110px; /* (height + 2 * margin) / 2 */
-        transform: rotate(90deg);
     }
     
     .playertable_NW {
@@ -151,16 +159,43 @@
     }
     
     .playertable_E {
-        right: -150px;
+        right: -180px;
         bottom: 50%;
         margin-bottom: -110px;
-        transform: rotate(-90deg);
     }
     
     .playertable_SE {
         left: 75%;
         bottom: -130px;
         margin-left: -135px;
+    }
+
+    .bettokens.orientation_NW, .bettokens.orientation_N, .bettokens.orientation_NE {
+        bottom: -65px;
+        left: 0px;
+        width: 250px;
+        height: 60px;
+    }
+    
+    .bettokens.orientation_SW, .bettokens.orientation_S, .bettokens.orientation_SE {
+        top: -65px;
+        left: 0px;
+        width: 250px;
+        height: 60px;
+    }
+    
+    .bettokens.orientation_E {
+        left: -65px;
+        top: 0px;
+        width: 60px;
+        height: 210px;
+    }
+
+    .bettokens.orientation_W {
+        right: -65px;
+        top: 0px;
+        width: 60px;
+        height: 210px;
     }
     
     .playingarea {
@@ -172,22 +207,118 @@
         margin-left: -350px;
         margin-top: -100px;
     }
+
+    .orientation_S .bettoken, .orientation_SW .bettoken,.orientation_NW .bettoken, .orientation_N .bettoken,
+    .orientation_NE .bettoken, .orientation_SE .bettoken {
+        top: 30px;
+    }
+    
+    .orientation_E .bettoken {
+        left: 10px;
+    }
+
+    .orientation_W .bettoken {
+        right: 10px;
+    }
+    
+    .orientation_S .tokenwhite.bettoken, .orientation_SW .tokenwhite.bettoken, .orientation_NW .tokenwhite.bettoken,
+    .orientation_N .tokenwhite.bettoken, .orientation_NE .tokenwhite.bettoken, .orientation_SE .tokenwhite.bettoken {
+        background-image: url("img/token_white50.png");
+        left: 0px;
+    }
+    .orientation_S .tokenblue.bettoken, .orientation_SW .tokenblue.bettoken, .orientation_NW .tokenblue.bettoken,
+    .orientation_N .tokenblue.bettoken, .orientation_NE .tokenblue.bettoken, .orientation_SE .tokenblue.bettoken {
+        background-image: url("img/token_blue50.png");
+        left: 55px;
+    }
+    .orientation_S .tokenred.bettoken, .orientation_SW .tokenred.bettoken, .orientation_NW .tokenred.bettoken,
+    .orientation_N .tokenred.bettoken, .orientation_NE .tokenred.bettoken, .orientation_SE .tokenred.bettoken {
+        background-image: url("img/token_red50.png");
+        left: 110px;
+    }
+    .orientation_S .tokengreen.bettoken, .orientation_SW .tokengreen.bettoken, .orientation_NW .tokengreen.bettoken,
+    .orientation_N .tokengreen.bettoken, .orientation_NE .tokengreen.bettoken, .orientation_SE .tokengreen.bettoken {
+        background-image: url("img/token_green50.png");
+        left: 165px;
+    }
+    .orientation_S .tokenblack.bettoken, .orientation_SW .tokenblack.bettoken, .orientation_NW .tokenblack.bettoken,
+    .orientation_N .tokenblack.bettoken, .orientation_NE .tokenblack.bettoken, .orientation_SE .tokenblack.bettoken {
+        background-image: url("img/token_black50.png");
+        left: 220px;
+    }
+
+    .orientation_E .tokenwhite.bettoken, .orientation_W .tokenwhite.bettoken {
+        background-image: url("img/token_white50.png");
+        top: 30px;
+    }
+    .orientation_E .tokenblue.bettoken, .orientation_W .tokenblue.bettoken {
+        background-image: url("img/token_blue50.png");
+        top: 70px;
+    }
+    .orientation_E .tokenred.bettoken, .orientation_W .tokenred.bettoken {
+        background-image: url("img/token_red50.png");
+        top: 110px;
+    }
+    .orientation_E .tokengreen.bettoken, .orientation_W .tokengreen.bettoken {
+        background-image: url("img/token_green50.png");
+        top: 150px;
+    }
+    .orientation_E .tokenblack.bettoken, .orientation_W .tokenblack.bettoken {
+        background-image: url("img/token_black50.png");
+        top: 190px;
+    }
     
     .dealer-button {
         position: absolute;
         height: 50px;
         width: 50px;
         background-image: url("img/dealer_button50.png");
-        left: 110px;
     }
 
     .dealer-button.orientation_NW, .dealer-button.orientation_N, .dealer-button.orientation_NE {
+        left: 110px;
         bottom: -105px;
     }
 
-    .dealer-button.orientation_SW, .dealer-button.orientation_S, .dealer-button.orientation_SE, 
-    .dealer-button.orientation_W, .dealer-button.orientation_E {
+    .dealer-button.orientation_SW, .dealer-button.orientation_S, .dealer-button.orientation_SE {
+        left: 110px;
         top: -105px;
+    }
+
+    .dealer-button.orientation_E {
+        top: 80px;
+        left: -105px;
+    }
+
+    .dealer-button.orientation_W {
+        top: 80px;
+        right: -105px;
+    }
+
+    .combotext {
+        position: absolute;
+        width: 250px;
+        height: 15px;
+        left: 50%;
+        margin-left: -130px;
+        margin-top: -7px;
+        font-weight: bold;
+        font-size: 15px;
+    
+        background-color: #302115;
+        border-radius: 30px;
+        border: solid 3px;
+        border-color: #666666;
+        color: #DDDDDD;
+    }
+    
+    .playertable_SW .combotext, .playertable_W .combotext, .playertable_E .combotext,
+    .playertable_SE .combotext, .playertable_S .combotext {
+        top: -20px;
+    }
+    
+    .playertable_NW .combotext, .playertable_N .combotext, .playertable_NE .combotext {
+        bottom: -30px;
     }
 }
 
@@ -232,11 +363,19 @@
         right: 10px;
     }
     
-    .playerbettotal.orientation_SW, .playerbettotal.orientation_S, .playerbettotal.orientation_SE,
-    .playerbettotal.orientation_W, .playerbettotal.orientation_E,
-    .playerbettotal.orientation_NW, .playerbettotal.orientation_NE {
+    .playerbettotal.orientation_S {
         top: -75px;
         left: 10px;
+    }
+
+    .playerbettotal.orientation_SW,.playerbettotal.orientation_W, .playerbettotal.orientation_NW {
+        top: 40px;
+        right: -110px;
+    }
+
+    .playerbettotal.orientation_NE, .playerbettotal.orientation_E, .playerbettotal.orientation_SE {
+        top: 170px;
+        left: -110px;
     }
     
     .playertable_S {
@@ -247,23 +386,20 @@
     
     .playertable_SW {
         bottom: 25%;
-        left: -100px;
+        left: -180px;
         margin-bottom: -110px;
-        transform: rotate(90deg);
     }
     
     .playertable_W {
-        left: -100px;
+        left: -180px;
         bottom: 50%;
         margin-bottom: -110px; /* (height + 2 * margin) / 2 */
-        transform: rotate(90deg);
     }
     
     .playertable_NW {
         bottom: 75%;
-        left: -100px;
+        left: -180px;
         margin-bottom: -110px;
-        transform: rotate(90deg);
     }
     
     .playertable_N {
@@ -273,24 +409,49 @@
     }
     
     .playertable_NE {
-        right: -100px;
+        right: -180px;
         bottom: 75%;
         margin-bottom: -110px;
-        transform: rotate(-90deg);
     }
     
     .playertable_E {
-        right: -100px;
+        right: -180px;
         bottom: 50%;
         margin-bottom: -110px;
-        transform: rotate(-90deg);
     }
     
     .playertable_SE {
-        right: -100px;
+        right: -180px;
         bottom: 25%;
         margin-bottom: -110px;
-        transform: rotate(-90deg);
+    }
+
+    .bettokens.orientation_N {
+        bottom: -65px;
+        left: 0px;
+        width: 250px;
+        height: 60px;
+    }
+    
+    .bettokens.orientation_S {
+        top: -65px;
+        left: 0px;
+        width: 250px;
+        height: 60px;
+    }
+    
+    .bettokens.orientation_NE, .bettokens.orientation_E, .bettokens.orientation_SE {
+        left: -65px;
+        top: 0px;
+        width: 60px;
+        height: 210px;
+    }
+
+    .bettokens.orientation_SW, .bettokens.orientation_W, .bettokens.orientation_NW {
+        right: -65px;
+        top: 0px;
+        width: 60px;
+        height: 210px;
     }
     
     .playingarea {
@@ -303,6 +464,65 @@
         margin-top: -100px;
         transform: rotate(90deg);
     }
+
+    .orientation_S .bettoken, .orientation_N .bettoken {
+        top: 30px;
+    }
+    
+    .orientation_SW .bettoken, .orientation_W .bettoken, .orientation_NW .bettoken {
+        right: 10px;
+    }
+
+    .orientation_NE .bettoken, .orientation_E .bettoken, .orientation_SE .bettoken {
+        left: 10px;
+    }
+    
+    .orientation_S .tokenwhite.bettoken, .orientation_N .tokenwhite.bettoken  {
+        background-image: url("img/token_white50.png");
+        left: 0px;
+    }
+    .orientation_S .tokenblue.bettoken, .orientation_N .tokenblue.bettoken {
+        background-image: url("img/token_blue50.png");
+        left: 55px;
+    }
+    .orientation_S .tokenred.bettoken, .orientation_N .tokenred.bettoken {
+        background-image: url("img/token_red50.png");
+        left: 110px;
+    }
+    .orientation_S .tokengreen.bettoken, .orientation_N .tokengreen.bettoken {
+        background-image: url("img/token_green50.png");
+        left: 165px;
+    }
+    .orientation_S .tokenblack.bettoken, .orientation_N .tokenblack.bettoken {
+        background-image: url("img/token_black50.png");
+        left: 220px;
+    }
+
+    .orientation_SW .tokenwhite.bettoken, .orientation_W .tokenwhite.bettoken, .orientation_NW .tokenwhite.bettoken, 
+    .orientation_NE .tokenwhite.bettoken, .orientation_E .tokenwhite.bettoken, .orientation_SE .tokenwhite.bettoken {
+        background-image: url("img/token_white50.png");
+        top: 30px;
+    }
+    .orientation_SW .tokenblue.bettoken, .orientation_W .tokenblue.bettoken, .orientation_NW .tokenblue.bettoken, 
+    .orientation_NE .tokenblue.bettoken, .orientation_E .tokenblue.bettoken, .orientation_SE .tokenblue.bettoken {
+        background-image: url("img/token_blue50.png");
+        top: 70px;
+    }
+    .orientation_SW .tokenred.bettoken, .orientation_W .tokenred.bettoken, .orientation_NW .tokenred.bettoken, 
+    .orientation_NE .tokenred.bettoken, .orientation_E .tokenred.bettoken, .orientation_SE .tokenred.bettoken {
+        background-image: url("img/token_red50.png");
+        top: 110px;
+    }
+    .orientation_SW .tokengreen.bettoken, .orientation_W .tokengreen.bettoken, .orientation_NW .tokengreen.bettoken, 
+    .orientation_NE .tokengreen.bettoken, .orientation_E .tokengreen.bettoken, .orientation_SE .tokengreen.bettoken {
+        background-image: url("img/token_green50.png");
+        top: 150px;
+    }
+    .orientation_SW .tokenblack.bettoken, .orientation_W .tokenblack.bettoken, .orientation_NW .tokenblack.bettoken, 
+    .orientation_NE .tokenblack.bettoken, .orientation_E .tokenblack.bettoken, .orientation_SE .tokenblack.bettoken {
+        background-image: url("img/token_black50.png");
+        top: 190px;
+    }
     
     .dealer-button {
         position: absolute;
@@ -312,6 +532,32 @@
         top: 50%;
         left: 110px;
         z-index: 97;
+    }
+
+    .combotext {
+        position: absolute;
+        width: 250px;
+        height: 15px;
+        left: 50%;
+        margin-left: -128px;
+        margin-top: -7px;
+        font-weight: bold;
+        font-size: 15px;
+    
+        background-color: #302115;
+        border-radius: 30px;
+        border: solid 3px;
+        border-color: #666666;
+        color: #DDDDDD;
+    }
+    
+    .playertable_SW .combotext, .playertable_W .combotext, .playertable_NW .combotext,
+    .playertable_NE .combotext, .playertable_E .combotext, .playertable_SE .combotext, .playertable_S .combotext {
+        top: -20px;
+    }
+    
+    .playertable_N .combotext {
+        bottom: -30px;
     }
 }
 
@@ -383,19 +629,7 @@
 
 .bettokens {
     position: absolute;
-    left: 0px;
-    width: 250px;
-    height: 60px;
     margin: 5px 0px 5px 0px;
-}
-
-.bettokens.orientation_NW, .bettokens.orientation_N, .bettokens.orientation_NE {
-    bottom: -65px;
-}
-
-.bettokens.orientation_SW, .bettokens.orientation_S, .bettokens.orientation_SE,
-.bettokens.orientation_W, .bettokens.orientation_E {
-    top: -65px;
 }
 
 .token {
@@ -440,33 +674,8 @@
     top: 165px;
 }
 
-.bettoken {
-    top: 30px;
-}
-
 .changetoken {
     height: 50px;
-}
-
-.tokenwhite.bettoken {
-    background-image: url("img/token_white50.png");
-    left: 0px;
-}
-.tokenblue.bettoken {
-    background-image: url("img/token_blue50.png");
-    left: 55px;
-}
-.tokenred.bettoken {
-    background-image: url("img/token_red50.png");
-    left: 110px;
-}
-.tokengreen.bettoken {
-    background-image: url("img/token_green50.png");
-    left: 165px;
-}
-.tokenblack.bettoken {
-    background-image: url("img/token_black50.png");
-    left: 220px;
 }
 
 .tokenwhite.changetoken.changetoken-vertical {
@@ -711,24 +920,6 @@
 .flipped-card.cardinhandright {
     transform: rotateZ(15deg) rotateY(180deg);
     left: 45px;
-}
-
-.combotext {
-    position: absolute;
-    width: 250px;
-    height: 15px;
-    top: 50%;
-    left: 50%;
-    margin-left: -125px;
-    margin-top: -7px;
-    font-weight: bold;
-    font-size: 15px;
-
-    background-color: #302115;
-    border-radius: 30px;
-    border: solid 3px;
-    border-color: #666666;
-    color: #DDDDDD;
 }
 
 .changetokens-horizontal {

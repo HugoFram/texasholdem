@@ -492,32 +492,8 @@ function (dojo, declare) {
             var targetPos = dojo.position(dest.id);
 
             var screenWidth = window.screen.width;
-            var targetTopValue, targetLeftValue;
-            if (screenWidth < 1400) {
-                if (playerTable == null || dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_NW") || dojo.hasClass(playerTable, "playertable_W")) {
-                    targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(source.id, "top");
-                    targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "left");
-                } else if (dojo.hasClass(playerTable, "playertable_S") || dojo.hasClass(playerTable, "playertable_N")) {
-                    targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "top");
-                    targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "left");
-                } else if (dojo.hasClass(playerTable, "playertable_E") || dojo.hasClass(playerTable, "playertable_NE") || dojo.hasClass(playerTable, "playertable_SE")) {
-                    targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "top");
-                    targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(source.id, "left");
-                }
-            } else {
-                if (playerTable == null || dojo.hasClass(playerTable, "playertable_SW") || dojo.hasClass(playerTable, "playertable_S") || 
-                    dojo.hasClass(playerTable, "playertable_SE") || dojo.hasClass(playerTable, "playertable_NW") || 
-                    dojo.hasClass(playerTable, "playertable_N") || dojo.hasClass(playerTable, "playertable_NE")) {
-                    targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "top");
-                    targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "left");
-                } else if (dojo.hasClass(playerTable, "playertable_W")) {
-                    targetTopValue = -(targetPos.x - sourcePos.x) + dojo.getStyle(source.id, "top");
-                    targetLeftValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "left");
-                } else if (dojo.hasClass(playerTable, "playertable_E")) {
-                    targetTopValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "top");
-                    targetLeftValue = -(targetPos.y - sourcePos.y) + dojo.getStyle(source.id, "left");
-                }
-            }
+            var targetTopValue = targetPos.y - sourcePos.y + dojo.getStyle(source.id, "top");
+            var targetLeftValue = targetPos.x - sourcePos.x + dojo.getStyle(source.id, "left");
 
             return [targetTopValue, targetLeftValue];
         },
@@ -2609,6 +2585,7 @@ function (dojo, declare) {
             var playerColor = notif.args.player_color;
             var comboCards = notif.args.player_best_combo.hand;
             var comboName = notif.args.combo_name;
+            var playerTable = $("bettingarea_" + playerId).parentElement;
 
             // Highlight cards constituting the combo
             dojo.query(".card.cardvisible:not(.logcard)").forEach(card => {
@@ -2634,7 +2611,7 @@ function (dojo, declare) {
             });
 
             // Display text indicating the combo
-            dojo.place('<span class = "combotext" id = "combotext_' + playerId + '">' + comboName + '</span>', "bettingarea_" + playerId);
+            dojo.place('<span class = "combotext" id = "combotext_' + playerId + '">' + comboName + '</span>', playerTable);
 
         },
 
