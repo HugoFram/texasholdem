@@ -2644,11 +2644,6 @@ class texasholdem extends Table
                     'eliminated_player' => $player_id
                 ));
             }
-
-            if ($player["stock"] != 0) {
-                // Increment stats
-                self::incStat(1, "turns_number", $player_id);
-            }
         }
 
         self::notifyAllPlayers("updateScores", clienttranslate('Scores are updated with the new player chip stocks'), array(
