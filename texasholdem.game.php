@@ -56,6 +56,7 @@ class texasholdem extends Table
             "handsNumberLimit" => 101,
             "blindsIncreaseFrequency" => 102,
             "initialStock" => 103,
+            "allInRuleException" => 104,
         ) );
 
         $this->cards = self::getNew("module.common.deck");
@@ -1383,8 +1384,8 @@ class texasholdem extends Table
             throw new feException(_("You are not supposed to raise during the blinds phase"));
         } else if ($total_player_bet > $current_bet_level) {
 
-            // Check that the player raises by a sufficient amount
-            if ($raise_amount >= $minimum_raise) {
+            // Check that the player raises by a sufficient amount (or is all in if the exception rule is enabled)
+            if ($raise_amount >= $minimum_raise || ($this->getGameStateValue('allInRuleException') == 1 && $raise_amount + ($current_bet_level - $current_player_bet) == $player_tokens["stock"])) {
                 if ($current_bet_level == 0) {
                     self::notifyAllPlayers("betPlaced", clienttranslate('${player_name} bets ${raise_amount}'), array(
                         'player_id' => $player_id,
@@ -1407,7 +1408,9 @@ class texasholdem extends Table
     
                 // Update current bet level
                 self::setGameStateValue("currentBetLevel", $total_player_bet);
-                self::setGameStateValue("minimumRaise", $raise_amount);
+                if ($raise_amount > self::getGameStateValue("minimumRaise")) {
+                    self::setGameStateValue("minimumRaise", $raise_amount);
+                }
             } else {
                 throw new BgaUserException(_("You need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
             }
@@ -1469,7 +1472,14 @@ class texasholdem extends Table
         } else {
             if ($raise_amount < $minimum_raise) {
                 // The raise is lower than the minimum possible raise
-                throw new BgaUserException(_("You need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
+                if ($this->getGameStateValue('allInRuleException') == 1 && $raise_amount + ($current_bet_level - $current_player_bet) == $player_tokens["stock"]) {
+                    // The player is all in and the exception rule for all in is enabled => He can raise by less than the minimum raise
+                    self::notifyAllPlayers("allInRaise", clienttranslate('${player_name} has less stock than the minimum raise value. She/he must go all in to raise.'), array(
+                        'player_name' => $player_name
+                    ));
+                } else {
+                    throw new BgaUserException(_("You need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
+                }
             } else if ($raise_amount + ($current_bet_level - $current_player_bet) > $player_tokens["stock"]) {
                 // The player does not have enough stock to raise by the specified amount
                 throw new BgaUserException(_("You need don't have enough chips in stock to raise by ${raise_amount}"));
@@ -1506,7 +1516,7 @@ class texasholdem extends Table
                     ));
                 }
 
-                // The player has enough stock to call
+                // The player has enough stock to raise
                 self::moveTokens("stock_${player_id}", "bet_${player_id}", $current_bet_level + $raise_amount - $current_player_bet);
                 if ($current_bet_level == 0) {
                     self::notifyAllPlayers("raisePlaced", clienttranslate('${player_name} bets ${raise_amount}'), array(
@@ -1520,11 +1530,13 @@ class texasholdem extends Table
                     ));
                 }
                 $additional_bet = $raise_amount;
-                $is_all_in = $player_tokens["stock"] == $raise_amount;
+                $is_all_in = $player_tokens["stock"] == $current_bet_level + $raise_amount - $current_player_bet;
             }
             // Update current bet level
-            self::incGameStateValue("currentBetLevel", $raise_amount);
-            self::setGameStateValue("minimumRaise", $raise_amount);
+            self::incGameStateValue("currentBetLevel", $current_bet_level + $raise_amount - $current_player_bet);
+            if ($raise_amount > self::getGameStateValue("minimumRaise")) {
+                self::setGameStateValue("minimumRaise", $raise_amount);
+            }
         }
 
         // Increment the number of all in players if the player bet all his stock
@@ -1651,7 +1663,7 @@ class texasholdem extends Table
             // Case of All in to raise the bet
             $raise_amount = ($player_tokens["stock"] + $current_player_bet) - $current_bet_level;
             
-            if ($raise_amount < $minimum_raise) {
+            if ($raise_amount < $minimum_raise && $this->getGameStateValue('allInRuleException') != 1) {
                 // Not enough stock to raise => Forbidden action
                 throw new BgaUserException(_("You cannot go all in because you need need to raise by at least ${minimum_raise}. You currently raised by ${raise_amount}."));
             } else {
@@ -1664,7 +1676,9 @@ class texasholdem extends Table
                 
                 // Update current bet level
                 self::setGameStateValue("currentBetLevel", $current_bet_level + $raise_amount);
-                self::setGameStateValue("minimumRaise", $raise_amount);
+                if ($raise_amount > self::getGameStateValue("minimumRaise")) {
+                    self::setGameStateValue("minimumRaise", $raise_amount);
+                }
             }
         }
 
@@ -1940,7 +1954,7 @@ class texasholdem extends Table
         }
 
         // All in
-        if (($player_tokens["stock"] + $player_tokens["bet"]) <= $current_bet_level || ($player_tokens["stock"] + $player_tokens["bet"] - $current_bet_level) >= $minimum_raise) {
+        if ($this->getGameStateValue('allInRuleException') == 1 || ($player_tokens["stock"] + $player_tokens["bet"]) <= $current_bet_level || ($player_tokens["stock"] + $player_tokens["bet"] - $current_bet_level) >= $minimum_raise) {
             $possible_actions["all_in"] = TRUE;
         } else {
             $possible_actions["all_in"] = FALSE;

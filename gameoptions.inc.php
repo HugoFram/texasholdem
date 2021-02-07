@@ -136,6 +136,22 @@ $game_options = array(
             )
         ),
         'default' => 1
+    ),
+
+    104 => array(
+        'name' => totranslate('All in minimum raise exception'),    
+        'values' => array(
+            1 => array(
+                'name' => totranslate("Yes"),
+                'description' => totranslate("The All In action is NOT subject to the minimum raise amount rule. Players can go all in to raise a bet even if they don't have enough chips in stock to raise by the current minimum bet or raise amount.")
+            ),
+            2 => array(
+                'name' => totranslate("No"),
+                'description' => totranslate("The All In action is subject to the minimum raise amount rule. Players can not go all in to raise a bet if they don't have enough chips in stock to raise by the current minimum bet or raise amount."),
+                'nobeginner' => TRUE
+            )
+        ),
+        'default' => 1
     )
 
 );
