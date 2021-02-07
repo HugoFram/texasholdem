@@ -385,7 +385,7 @@
         top: 80px;
         left: 30px;
         font-weight: bold;
-        transform: rotate(90deg);
+        transform: rotate(-90deg);
     }
 
     .playerstocktotal {
