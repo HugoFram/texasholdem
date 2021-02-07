@@ -2020,7 +2020,7 @@ class texasholdem extends Table
         $num_turns = self::getGameStateValue("roundNumber");
         $num_eliminated_players = self::getGameStateValue("numEliminatedPlayers");
         $current_small_blind = self::getGameStateValue("smallBlindValue");
-        $new_small_blind = 1 * pow(2, max($num_eliminated_players, floor($num_turns / $num_hands_before_blinds_increase)));
+        $new_small_blind = 1 * pow(2, max($num_eliminated_players, floor(($num_turns - 1) / $num_hands_before_blinds_increase)));
         if ($new_small_blind != $current_small_blind) {
             self::notifyAllPlayers("increaseBlinds", clienttranslate('The blinds are increased (small blind: ${small_blind}, big blind: ${big_blind})'), array(
                 'small_blind' => $new_small_blind,
