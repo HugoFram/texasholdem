@@ -140,4 +140,13 @@ $game_options = array(
 
 );
 
-
+$game_preferences = array(
+    100 => array(
+			'name' => totranslate('How to display future cards to be revealed'),
+			'needReload' => true, // after user changes this preference game interface would auto-reload
+			'values' => array(
+					1 => array('name' => totranslate('Face-down cards'), 'cssPref' => 'hiddencard_card' ),
+					2 => array('name' => totranslate('Placeholders'), 'cssPref' => 'hiddencard_placeholder' )
+			)
+	)
+);

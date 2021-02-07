@@ -111,19 +111,19 @@
         <div class="total-badge pottotal" id = "pottotal">0</div>
         <div class = "tablecards">
             <div id = "flop1">
-            
+                <span class = "placeholdertext">{FLOP}</span>
             </div>
             <div id = "flop2">
-            
+                <span class = "placeholdertext">{FLOP}</span>
             </div>
             <div id = "flop3">
-            
+                <span class = "placeholdertext">{FLOP}</span>
             </div>
             <div id = "turn">
-            
+                <span class = "placeholdertext">{TURN}</span>
             </div>
             <div id = "river">
-            
+                <span class = "placeholdertext">{RIVER}</span>
             </div>
         </div>
     </div>

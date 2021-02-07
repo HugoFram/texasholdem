@@ -930,6 +930,35 @@
     background-position: 0px 0px;
 }
 
+.hiddencard_placeholder .cardflop.cardhidden, .hiddencard_placeholder .cardturn.cardhidden, .hiddencard_placeholder .cardriver.cardhidden {
+    background-image: none;
+    border-radius: 15px;
+    border: solid 3px lightgoldenrodyellow;
+    box-shadow: none;
+}
+
+.placeholdertext {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-left: -40px;
+    margin-top: -15px;
+    text-align: center;
+    border: none;
+    width: 80px;
+    height: 20px;
+    font-weight: bold;
+    padding: 5px 0px 5px 0px;
+}
+
+.hiddencard_placeholder :not(.flip-card) .placeholdertext {
+    color: lightgoldenrodyellow;
+}
+
+.hiddencard_card .placeholdertext, .hiddencard_placeholder .flip-card .placeholdertext {
+    color: transparent;
+}
+
 .flip-card {
     transform: rotateY(180deg);
 }

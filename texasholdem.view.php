@@ -106,6 +106,9 @@
             ));
         }
 
+        $this->tpl['FLOP'] = self::_("Flop");
+        $this->tpl['TURN'] = self::_("Turn");
+        $this->tpl['RIVER'] = self::_("River");
         $this->tpl['AUTOBLINDS_DESCRIPTION'] = self::_("Place blinds automatically");
         $this->tpl['BETMODE_DESCRIPTION'] = self::_("Choose raise amount by clicking on chips");
         $this->tpl['DOSHOWHAND_DESCRIPTION'] = self::_("Ask to reveal hand if all other players are folded");
