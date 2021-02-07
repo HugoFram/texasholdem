@@ -55,6 +55,7 @@ class texasholdem extends Table
             "gameEndVariant" => 100,
             "handsNumberLimit" => 101,
             "blindsIncreaseFrequency" => 102,
+            "initialStock" => 103,
         ) );
 
         $this->cards = self::getNew("module.common.deck");
@@ -90,12 +91,29 @@ class texasholdem extends Table
             player_bet_token_red, player_bet_token_green, player_bet_token_black, is_fold, is_all_in, wants_autoblinds, 
             wants_manualbet, wants_showhand) VALUES ";
         $values = array();
-        $initial_score = 100;
-        $initial_white_tokens = 10;
-        $initial_blue_tokens = 5;
-        $initial_red_tokens = 4;
-        $initial_green_tokens = 2;
-        $initial_black_tokens = 2;
+        $initialStockOption = $this->getGameStateValue('initialStock');
+        switch ($initialStockOption) {
+            case 1:
+                $initial_score = 100;
+                break;
+            case 2:
+                $initial_score = 200;
+                break;
+            case 3: 
+                $initial_score = 500;
+                break;
+            case 4:
+                $initial_score = 1000;
+                break;
+            default:
+                $initial_score = 100;
+                break;
+        }
+        $initial_white_tokens = 10 * $initial_score / 100;
+        $initial_blue_tokens = 5 * $initial_score / 100;
+        $initial_red_tokens = 4 * $initial_score / 100;
+        $initial_green_tokens = 2 * $initial_score / 100;
+        $initial_black_tokens = 2 * $initial_score / 100;
         $initial_bet_tokens = 0;
         $initial_is_fold = 0;
         $initial_is_all_in = 0;

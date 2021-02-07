@@ -86,30 +86,56 @@ $game_options = array(
             )
             ),
         'default' => 2
-        ),
+    ),
 
     102 => array(
         'name' => totranslate('Blinds increase frequency'),    
         'values' => array(
             1 => array(
                 'name' => totranslate("Very fast - every 2 hands"),
-                'description' => totranslate("Blinds double every 2 hands or when a player is eliminated")
+                'description' => totranslate("Blinds start at 1/2 and double every 2 hands or when a player is eliminated")
             ),
             2 => array(
                 'name' => totranslate("Fast - every 5 hands"),
-                'description' => totranslate("Blinds double every 5 hands or when a player is eliminated")
+                'description' => totranslate("Blinds start at 1/2 and double every 5 hands or when a player is eliminated")
             ),
             3 => array(
                 'name' => totranslate("Normal - every 10 hands"),
-                'description' => totranslate("Blinds double every 10 hands or when a player is eliminated")
+                'description' => totranslate("Blinds start at 1/2 and double every 10 hands or when a player is eliminated")
             ),
             4 => array(
                 'name' => totranslate("Slow - every 20 hands"),
-                'description' => totranslate("Blinds double every 20 hands or when a player is eliminated"),
+                'description' => totranslate("Blinds start at 1/2 and double every 20 hands or when a player is eliminated"),
                 'nobeginner' => TRUE
             )
         ),
         'default' => 2
+    ),
+
+    103 => array(
+        'name' => totranslate('Initial amount of chips'),    
+        'values' => array(
+            1 => array(
+                'name' => totranslate("Default - 100 total value per player"),
+                'description' => totranslate("Each player starts with a total chips value of 100. This is the default option.")
+            ),
+            2 => array(
+                'name' => totranslate("200 total value per player"),
+                'description' => totranslate("Each player starts with a total chips value of 200."),
+                'nobeginner' => TRUE
+            ),
+            3 => array(
+                'name' => totranslate("500 total value per player"),
+                'description' => totranslate("Each player starts with a total chips value of 500."),
+                'nobeginner' => TRUE
+            ),
+            4 => array(
+                'name' => totranslate("1000 total value per player"),
+                'description' => totranslate("Each player starts with a total chips value of 1000."),
+                'nobeginner' => TRUE
+            )
+        ),
+        'default' => 1
     )
 
 );
