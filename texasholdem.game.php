@@ -1533,7 +1533,7 @@ class texasholdem extends Table
                 $is_all_in = $player_tokens["stock"] == $current_bet_level + $raise_amount - $current_player_bet;
             }
             // Update current bet level
-            self::incGameStateValue("currentBetLevel", $current_bet_level + $raise_amount - $current_player_bet);
+            self::incGameStateValue("currentBetLevel", $raise_amount);
             if ($raise_amount > self::getGameStateValue("minimumRaise")) {
                 self::setGameStateValue("minimumRaise", $raise_amount);
             }
