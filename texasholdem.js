@@ -48,6 +48,20 @@ function (dojo, declare) {
         setup: function( gamedatas )
         {
             console.log( "Starting game setup" );
+
+            // Table style
+            var styleColors = ["blue", "red", "green"];
+            var styleIdx = this.prefs[102].value;
+            if (this.prefs[102].value == 1) {
+                styleIdx = Math.floor(Math.random() * 3);
+            } else {
+                styleIdx = styleIdx - 2;
+            }
+            console.log(styleIdx);
+            console.log(styleColors);
+            console.log("table_bga_" + styleColors[styleIdx]);
+            var styleColor = styleColors[styleIdx];
+            dojo.addClass('table', "table-" + styleColor);
             
             // Get token values
             this.tokenValues = gamedatas.tokenvalues;

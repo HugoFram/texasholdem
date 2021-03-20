@@ -70,13 +70,24 @@
 @media (min-width: 1400px) {
     #table {
         position: relative;
-        background-image: url("img/table.png");
         width: 1125px;
         height: 600px;
         margin: 130px;
         display: block;
         margin-left: auto;
         margin-right: auto;
+    }
+
+    #table.table-blue {
+        background-image: url("img/table_bga_blue.png");
+    }
+    
+    #table.table-red {
+        background-image: url("img/table_bga_red.png");
+    }
+    
+    #table.table-green {
+        background-image: url("img/table_bga_green.png");
     }
     
     .changetable {
@@ -349,7 +360,6 @@
 @media (max-width: 1399px) {
     #table {
         position: relative;
-        background-image: url("img/table_vert.png");
         width: 600px;
         height: 1125px;
         margin-top: 90px;
@@ -357,6 +367,18 @@
         display: block;
         margin-left: auto;
         margin-right: auto;
+    }
+
+    #table.table-blue {
+        background-image: url("img/table_bga_blue_vert.png");
+    }
+    
+    #table.table-red {
+        background-image: url("img/table_bga_red_vert.png");
+    }
+    
+    #table.table-green {
+        background-image: url("img/table_bga_green_vert.png");
     }
     
     .changetable {

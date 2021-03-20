@@ -166,12 +166,22 @@ $game_preferences = array(
 			)
     ),
     101 => array(
-        'name' => totranslate('Background style'),
-        'needReload' => true, // after user changes this preference game interface would auto-reload
-        'values' => array(
-                1 => array('name' => totranslate('Dark wood vertical'), 'cssPref' => 'dark-wood-vertical-background'),
-                2 => array('name' => totranslate('Dark wood horizontal'), 'cssPref' => 'dark-wood-horizontal-background'),
-                3 => array('name' => totranslate('Standard BGA background'))
-        )
-)
+            'name' => totranslate('Background style'),
+            'needReload' => true, // after user changes this preference game interface would auto-reload
+            'values' => array(
+                    1 => array('name' => totranslate('Dark wood vertical'), 'cssPref' => 'dark-wood-vertical-background'),
+                    2 => array('name' => totranslate('Dark wood horizontal'), 'cssPref' => 'dark-wood-horizontal-background'),
+                    3 => array('name' => totranslate('Standard BGA background'))
+            )
+    ),
+    102 => array(
+            'name' => totranslate('Table style'),
+            'needReload' => true, // after user changes this preference game interface would auto-reload
+            'values' => array(
+                    1 => array('name' => totranslate('Random')),
+                    2 => array('name' => totranslate('Blue')),
+                    3 => array('name' => totranslate('Red')),
+                    4 => array('name' => totranslate('Green'))
+            )
+    )
 );
