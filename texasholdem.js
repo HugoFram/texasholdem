@@ -1727,6 +1727,7 @@ function (dojo, declare) {
 
         notif_dealCardsPlayer: function(notif) {
             console.log('notif_dealCardsPlayer');
+            this.disableNextMoveSound();
 
             // Display cards in hand
             var hands = notif.args.hands;
@@ -1779,10 +1780,13 @@ function (dojo, declare) {
                 BACKGROUND_POSITION_LEFT_PERCENTAGE: 0,
                 BACKGROUND_POSITION_TOP_PERCENTAGE: 0
             }), 'river');
+
+            playSound('texasholdem_CARDSOUND');
         },
 
         notif_moveTokens: function(notif) {
-            console.log('notif_moveTokens'); 
+            console.log('notif_moveTokens');
+            this.disableNextMoveSound();
             
             if (notif.args.duration != null) {
                 this.notifqueue.setSynchronousDuration(notif.args.duration);
@@ -1916,10 +1920,12 @@ function (dojo, declare) {
                     anim.play();
                 }
             });
+            playSound('texasholdem_COINSOUND');
         },
 
         notif_changeRequired: function(notif) {
             console.log('notif_changeRequired');
+            this.disableNextMoveSound();
 
             var bigColor = notif.args.color; // Color of high value token
             var smallColor = notif.args.small_color; // Color of low value token
@@ -2058,11 +2064,12 @@ function (dojo, declare) {
                 
                 anim.play();
             }
-
+            playSound('texasholdem_COINSOUND');
         },
 
         notif_betPlaced: function(notif) {
             console.log('notif_betPlaced');
+            this.disableNextMoveSound();
 
             // Avoid animating again player's own bet
             if (notif.args.player_id != this.player_id || notif.args.show_all) {
@@ -2250,10 +2257,12 @@ function (dojo, declare) {
                     }
                 });
             }
+            playSound('texasholdem_COINSOUND');
         },
 
         notif_fold: function(notif) {
             console.log('notif_fold');
+            this.disableNextMoveSound();
 
             var playerCards = $("playertablecards_" + notif.args.player_id);
 
@@ -2290,10 +2299,12 @@ function (dojo, declare) {
             });
             anim1.play();
             anim2.play();
+            playSound('texasholdem_CARDSOUND');
         },
 
         notif_showHand: function(notif) {
             console.log("notif_showHand");
+            this.disableNextMoveSound();
 
             if (notif.args.player_id != this.player_id) {
                 var playerHand = notif.args.hand;
@@ -2330,10 +2341,12 @@ function (dojo, declare) {
                     anim.play();
                 });
             }
+            playSound('texasholdem_CARDSOUND');
         },
 
         notif_makeChange: function(notif) {
             console.log('notif_makeChange');
+            this.disableNextMoveSound();
 
             // Close change modal
             if (notif.args.player_id == this.player_id && this.myDlg) {
@@ -2462,10 +2475,12 @@ function (dojo, declare) {
                     }
                 }
             });
+            playSound('texasholdem_COINSOUND');
         },
 
         notif_revealNextCard: function(notif) {
             console.log('notif_revealNextCard');
+            this.disableNextMoveSound();
 
             var roundStage = notif.args.revealed_card;
             var cards = notif.args.cards;
@@ -2543,11 +2558,12 @@ function (dojo, declare) {
                     });
                     break;
             }
-
+            playSound('texasholdem_CARDSOUND');
         },
 
         notif_revealHands: function(notif) {
             console.log('notif_revealHands');
+            this.disableNextMoveSound();
 
             var players = notif.args.players;
             var players_combo = notif.args.players_best_combo;
@@ -2590,6 +2606,7 @@ function (dojo, declare) {
                 });
                 anim.play();
             });
+            playSound('texasholdem_CARDSOUND');
         },
 
         notif_announceCombo: function(notif) {
@@ -2682,6 +2699,7 @@ function (dojo, declare) {
 
         notif_discardAllCards: function(notif) {
             console.log('notif_discardAllCards');
+            this.disableNextMoveSound();
 
             dojo.query(".card:not(.logcard)").forEach(node => {
                 this.fadeOutAndDestroy(node);
@@ -2705,6 +2723,7 @@ function (dojo, declare) {
             dojo.query(".playertablecards").forEach(node => {
                 dojo.removeClass(node, "flip-card");
             });
+            playSound('texasholdem_CARDSOUND');
         },
 
         notif_eliminatePlayer: function(notif) {

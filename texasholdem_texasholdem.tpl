@@ -213,6 +213,11 @@ var jstpl_choose_raise_dialog = ' \
     <a type="button" class = "action-button bgabutton bgabutton_blue" id = "cancelbutton">${CANCEL_BUTTON_LABEL}</a> \
 ';
 
-</script>  
+</script>
+
+<audio id="audiosrc_texasholdem_COINSOUND" src="{GAMETHEMEURL}img/texasholdem_COINSOUND.mp3" preload="none" autobuffer></audio>
+<audio id="audiosrc_o_texasholdem_COINSOUND" src="{GAMETHEMEURL}img/texasholdem_COINSOUND.ogg" preload="none" autobuffer></audio>
+<audio id="audiosrc_texasholdem_CARDSOUND" src="{GAMETHEMEURL}img/texasholdem_CARDSOUND.mp3" preload="none" autobuffer></audio>
+<audio id="audiosrc_o_texasholdem_CARDSOUND" src="{GAMETHEMEURL}img/texasholdem_CARDSOUND.ogg" preload="none" autobuffer></audio>
 
 {OVERALL_GAME_FOOTER}
