@@ -613,6 +613,13 @@
     }
 }
 
+.dark-wood-vertical-background {
+    background-image: url("img/background_1.jpg");
+}
+.dark-wood-horizontal-background {
+    background-image: url("img/background_2.jpg");
+}
+
 .playertablename, .changemodaltitle {
     font-weight: bold;
 }
