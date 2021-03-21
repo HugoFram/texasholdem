@@ -57,6 +57,7 @@ class texasholdem extends Table
             "blindsIncreaseFrequency" => 102,
             "initialStock" => 103,
             "allInRuleException" => 104,
+            "showLastRiverCards" => 105,
         ) );
 
         $this->cards = self::getNew("module.common.deck");
@@ -2252,6 +2253,53 @@ class texasholdem extends Table
             // Only one player still not folded
             self::notifyAllPlayers("allFolded", clienttranslate('There is only one player that has not folded. This ends the hand.'), array());
             
+            // Case where the option to reveal remaining river cards is enabled
+            if ($this->getGameStateValue('showLastRiverCards') == 1) {
+                switch($round_stage) {
+                    case 1:
+                        // Burn a card before drawing the flop cards
+                        $revealed_card = "flop";
+                        $this->cards->pickCardForLocation("deck", "discard");
+                        $this->cards->pickCardsForLocation(3, "deck", "flop");
+                        $new_cards = $this->cards->getCardsInLocation("flop");
+                        self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed ${card1} ${card2} ${card3}'), array(
+                            'i18n' => array('revealed_card'),
+                            'revealed_card' => $revealed_card,
+                            'card1' => array_values($new_cards)[0],
+                            'card2' => array_values($new_cards)[1],
+                            'card3' => array_values($new_cards)[2],
+                            'cards' => $new_cards
+                        ));
+                        // No break statement => will continue with the remaining cases
+                    case 2:
+                        // Burn a card before drawing the turn card
+                        $revealed_card = "turn";
+                        $this->cards->pickCardForLocation("deck", "discard");
+                        $this->cards->pickCardForLocation("deck", "turn");
+                        $new_cards = $this->cards->getCardsInLocation("turn");
+                        self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed ${card1}'), array(
+                            'i18n' => array('revealed_card'),
+                            'revealed_card' => $revealed_card,
+                            'card1' => array_values($new_cards)[0],
+                            'cards' => $new_cards
+                        ));
+                        // No break statement => will continue with the remaining cases
+                    case 3:
+                        // Burn a card before drawing the river card
+                        $revealed_card = "river";
+                        $this->cards->pickCardForLocation("deck", "discard");
+                        $this->cards->pickCardForLocation("deck", "river");
+                        $new_cards = $this->cards->getCardsInLocation("river");
+                        self::notifyAllPlayers("revealNextCard", clienttranslate('The ${revealed_card} is revealed ${card1}'), array(
+                            'i18n' => array('revealed_card'),
+                            'revealed_card' => $revealed_card,
+                            'card1' => array_values($new_cards)[0],
+                            'cards' => $new_cards
+                        ));
+                        break;
+                }
+            }
+
             $non_folded_player = array_values(array_filter($players, function($player) {return !$player["is_fold"] && !$player["player_eliminated"];}))[0];
             // Check if the non-folded player wants to be asked if he wants to show his hand
             if ($non_folded_player["wants_showhand"]) {

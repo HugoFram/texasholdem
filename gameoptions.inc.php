@@ -152,6 +152,21 @@ $game_options = array(
             )
         ),
         'default' => 1
+    ),
+
+    105 => array(
+        'name' => totranslate('Show remaining river cards'),    
+        'values' => array(
+            1 => array(
+                'name' => totranslate("Yes"),
+                'description' => totranslate("All the cards of the river are shown at the end of a hand even if all players but one have folded.")
+            ),
+            2 => array(
+                'name' => totranslate("No"),
+                'description' => totranslate("Regular rule: if all players but one have folded, the remaining river cards are not revealed.")
+            )
+        ),
+        'default' => 2
     )
 
 );
