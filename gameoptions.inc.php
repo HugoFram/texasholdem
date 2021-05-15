@@ -198,5 +198,14 @@ $game_preferences = array(
                     3 => array('name' => totranslate('Red')),
                     4 => array('name' => totranslate('Green'))
             )
+    ),
+    103 => array(
+            'name' => totranslate('Table scale (for mobile only)'),
+            'needReload' => true, // after user changes this preference game interface would auto-reload
+            'values' => array(
+                    1 => array('name' => totranslate('Large')),
+                    2 => array('name' => totranslate('Medium')),
+                    3 => array('name' => totranslate('Small'))
+                )
     )
 );

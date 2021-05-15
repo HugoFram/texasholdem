@@ -67,7 +67,7 @@
     }
 */
 
-@media (min-width: 1400px) {
+@media (orientation: landscape) {
     #table {
         position: relative;
         width: 1125px;
@@ -357,7 +357,7 @@
     }
 }
 
-@media (max-width: 1399px) {
+@media (orientation: portrait) {
     #table {
         position: relative;
         width: 600px;

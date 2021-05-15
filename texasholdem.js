@@ -62,6 +62,22 @@ function (dojo, declare) {
             console.log("table_bga_" + styleColors[styleIdx]);
             var styleColor = styleColors[styleIdx];
             dojo.addClass('table', "table-" + styleColor);
+
+            // Table scale
+            switch(this.prefs[103].value) {
+                case "1":
+                    this.default_viewport = 'width=600, user-scalable=no'
+                    break;
+                case "2":
+                    this.default_viewport = 'width=1024, user-scalable=no'
+                    break;
+                case "3":
+                    this.default_viewport = 'width=1600, user-scalable=yes'
+                    break;
+                default:
+                    this.default_viewport = 'width=550, user-scalable=no'
+                    break;
+            }
             
             // Get token values
             this.tokenValues = gamedatas.tokenvalues;
@@ -326,6 +342,88 @@ function (dojo, declare) {
             this.setupNotifications();
 
             console.log( "Ending game setup" );
+        },
+
+        // To be override default viewport width in landscape mode
+        onGameUiWidthChange: function() {
+            if (this.chatDetached) {
+                return;
+            }
+            if (typeof this.default_viewport == "undefined") {
+                var _cef = dojo.query("meta[name=\"viewport\"]");
+                if (typeof _cef[0] != "undefined") {
+                    this.default_viewport = _cef[0].content;
+                }
+            }
+            var _cf0 = false;
+            if (typeof window.orientation != "undefined") {
+                var _cef = dojo.query("meta[name=\"viewport\"]");
+                if (typeof _cef[0] != "undefined") {
+                    if (this.isTouchDevice) {
+                        _cf0 = true;
+                    }
+                    if (this.default_viewport !== null) {
+                        _cef[0].content = this.default_viewport;
+                    }
+                }
+            }
+            var _cf1 = dojo.position("ebd-body");
+            var _cf2 = 240;
+            if (this.log_mode == "2cols") {
+                _cf2 = 240 + 250;
+            }
+            var _cf3 = this.interface_min_width + _cf2;
+            if (this.log_mode == "2cols" && (_cf1.w < _cf3 || this.currentZoom < 1)) {
+                this.switchLogModeTo(0);
+                return;
+            }
+            if (!dojo.hasClass("ebd-body", "mobile_version")) {
+                if (_cf1.w < _cf3 || this.currentZoom < 1 || _cf0) {
+                    dojo.removeClass("ebd-body", "desktop_version");
+                    dojo.addClass("ebd-body", "mobile_version");
+                    this.adaptChatbarDock();
+                }
+            } else {
+                if (_cf1.w >= _cf3 && this.currentZoom == 1 && !_cf0) {
+                    dojo.removeClass("ebd-body", "mobile_version");
+                    dojo.addClass("ebd-body", "desktop_version");
+                    this.adaptChatbarDock();
+                }
+            }
+            var _cf4 = 1;
+            var _cf5 = 1;
+            if (_cf1.w < this.interface_min_width) {
+                _cf4 = _cf1.w / this.interface_min_width;
+                _cf5 = _cf4;
+            }
+            if (_cf4 < 0.9 && dojo.hasClass("globalaction_zoom_icon", "fa-search-minus")) {
+                _cf4 = 1;
+                dojo.style("pagesection_gameview", "overflow", "auto");
+                dojo.style("game_play_area", "minWidth", this.interface_min_width + "px");
+            } else {
+                if (typeof this.bForceMobileHorizontalScroll != "undefined" && dojo.hasClass("ebd-body", "mobile_version") && this.bForceMobileHorizontalScroll) {
+                    dojo.style("pagesection_gameview", "overflow", "auto");
+                } else {
+                    dojo.style("pagesection_gameview", "overflow", "visible");
+                }
+                dojo.style("game_play_area", "minWidth", 0);
+            }
+            if (_cf4 != this.gameinterface_zoomFactor) {
+                this.gameinterface_zoomFactor = _cf4;
+                dojo.style("page-content", "zoom", _cf4);
+                dojo.style("right-side-first-part", "zoom", _cf4);
+                dojo.style("page-title", "zoom", _cf4);
+            }
+            if (_cf5 < 0.9) {
+                dojo.style("globalaction_zoom_wrap", "display", "inline-block");
+                dojo.style("toggleSound", "display", "none");
+            } else {
+                dojo.style("globalaction_zoom_wrap", "display", "none");
+                dojo.style("toggleSound", "display", "inline-block");
+            }
+            this.adaptPlayersPanels();
+            this.adaptStatusBar();
+            this.onScreenWidthChange();
         },
        
 
