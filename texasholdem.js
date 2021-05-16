@@ -66,16 +66,32 @@ function (dojo, declare) {
             // Table scale
             switch(this.prefs[103].value) {
                 case "1":
-                    this.default_viewport = 'width=600, user-scalable=no'
+                    if (window.orientation !== 0) {
+                        this.default_viewport = 'width=1024, user-scalable=no'
+                    } else {
+                        this.default_viewport = 'height=600, user-scalable=no'
+                    }
                     break;
                 case "2":
-                    this.default_viewport = 'width=1024, user-scalable=no'
+                    if (window.orientation !== 0) {
+                        this.default_viewport = 'width=1600, user-scalable=no'
+                    } else {
+                        this.default_viewport = 'height=1300, user-scalable=no'
+                    }
                     break;
                 case "3":
-                    this.default_viewport = 'width=1600, user-scalable=yes'
+                    if (window.orientation !== 0) {
+                        this.default_viewport = 'width=1920, user-scalable=no'
+                    } else {
+                        this.default_viewport = 'height=1600, user-scalable=no'
+                    }
                     break;
                 default:
-                    this.default_viewport = 'width=550, user-scalable=no'
+                    if (window.orientation !== 0) {
+                        this.default_viewport = 'width=1600, user-scalable=no'
+                    } else {
+                        this.default_viewport = 'height=1300, user-scalable=no'
+                    }
                     break;
             }
             
@@ -342,6 +358,41 @@ function (dojo, declare) {
             this.setupNotifications();
 
             console.log( "Ending game setup" );
+        },
+
+        onScreenWidthChange: function() {
+            // Table scale
+            console.log(window.orientation);
+            switch(this.prefs[103].value) {
+                case "1":
+                    if (window.orientation !== 0) {
+                        this.default_viewport = 'width=1024, user-scalable=no'
+                    } else {
+                        this.default_viewport = 'width=700, user-scalable=no'
+                    }
+                    break;
+                case "2":
+                    if (window.orientation !== 0) {
+                        this.default_viewport = 'width=1600, user-scalable=no'
+                    } else {
+                        this.default_viewport = 'height=1300, user-scalable=no'
+                    }
+                    break;
+                case "3":
+                    if (window.orientation !== 0) {
+                        this.default_viewport = 'width=1920, user-scalable=no'
+                    } else {
+                        this.default_viewport = 'height=1600, user-scalable=no'
+                    }
+                    break;
+                default:
+                    if (window.orientation !== 0) {
+                        this.default_viewport = 'width=1600, user-scalable=no'
+                    } else {
+                        this.default_viewport = 'height=1300, user-scalable=no'
+                    }
+                    break;
+            }
         },
 
         // To be override default viewport width in landscape mode

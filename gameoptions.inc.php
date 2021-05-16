@@ -206,6 +206,7 @@ $game_preferences = array(
                     1 => array('name' => totranslate('Large')),
                     2 => array('name' => totranslate('Medium')),
                     3 => array('name' => totranslate('Small'))
-                )
+            ),
+            'default' => 2
     )
 );
