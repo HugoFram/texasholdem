@@ -1901,9 +1901,9 @@ class texasholdem extends Table
 
         // Call
         if ($player_tokens["bet"] < $current_bet_level) {
-            $possible_actions["call"] = TRUE;
+            $possible_actions["call"] = $current_bet_level - $player_tokens["bet"];
         } else {
-            $possible_actions["call"] = FALSE;
+            $possible_actions["call"] = 0;
         }
 
         // Raise

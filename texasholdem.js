@@ -579,7 +579,7 @@ function (dojo, declare) {
 
                     case 'playerTurn':
                         if (args.check) this.addActionButton('check', _('Check'), 'onCheck'); 
-                        if (args.call) this.addActionButton('call', _('Call'), 'onCall'); 
+                        if (args.call) this.addActionButton('call', _('Call (+' + args.call + ')'), 'onCall'); 
                         if (args.raise_by_first) {
                             this.addActionButton('raiseByFirst', _('Raise by ' + args.raise_by_first), 'onRaiseBy', null, false, "red");
                         }
