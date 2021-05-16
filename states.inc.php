@@ -117,7 +117,7 @@ $machinestates = array(
         "description" => "",
         "type" => "game",
         "action" => "stNewBet",
-        "transitions" => array("startRound" => 40, "allAllIn" => 31)
+        "transitions" => array("startRound" => 40, "placeBet" => 41, "allAllIn" => 31)
     ),  
 
     // Player's turn
@@ -128,7 +128,7 @@ $machinestates = array(
         "type" => "activeplayer",
         "args" => "argPlayerTurn",
         "possibleactions" => array( "placeBet", "fold", "makeChange" ),
-        "transitions" => array( "placeBet" => 41, "fold" => 41, "zombiePass" => 98)
+        "transitions" => array("placeBet" => 41, "fold" => 41, "zombiePass" => 98)
     ),
 
     // Transition to next player or end of betting round
@@ -137,7 +137,7 @@ $machinestates = array(
         "description" => "",
         "type" => "game",
         "action" => "stNextPlayer",
-        "transitions" => array("nextPlayer" => 40, "endBetRound" => 31)
+        "transitions" => array("nextPlayer" => 40, "placeBet" => 41, "endBetRound" => 31)
     ),
 
     31 => array(

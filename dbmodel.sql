@@ -60,6 +60,8 @@ ALTER TABLE `player` ADD `wants_autoblinds` BOOLEAN DEFAULT false;
 ALTER TABLE `player` ADD `wants_manualbet` BOOLEAN DEFAULT false;
 ALTER TABLE `player` ADD `wants_showhand` BOOLEAN DEFAULT false;
 ALTER TABLE `player` ADD `wants_confirmactions` BOOLEAN DEFAULT false;
+ALTER TABLE `player` ADD `wants_autocheck` BOOLEAN DEFAULT false;
+ALTER TABLE `player` ADD `wants_autocall` BOOLEAN DEFAULT false;
 
 -- Table to store tokens bet on previous betting rounds
 CREATE TABLE IF NOT EXISTS `token` (

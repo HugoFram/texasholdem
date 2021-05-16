@@ -219,6 +219,16 @@ function (dojo, declare) {
                             $("autoblinds").checked = true;
                         }
 
+                        // AutoCheck slider
+                        if (player.wants_autocheck == 1) {
+                            $("autocheck").checked = true;
+                        }
+
+                        // AutoCall slider
+                        if (player.wants_autocall == 1) {
+                            $("autocall").checked = true;
+                        }
+
                         // ConfirmActions slider
                         if (player.wants_confirmactions == 1) {
                             $("confirmactions").checked = true;
@@ -270,6 +280,8 @@ function (dojo, declare) {
 
             // Add tooltips to option sliders
             this.addTooltip("autoblinds", _("This option lets you define if you want your blinds to be placed automatically or if you prefer to place them manually by clicking on your chips for more immersion"), '');
+            this.addTooltip("autocheck", _("This option lets you define if you want the game to automatically check for you if it is possible"), '');
+            this.addTooltip("autocall", _("This option lets you define if you want the game to automatically call or check for you if it is possible"), '');
             this.addTooltip("confirmactions", _("This option lets you define if you want to be asked for a confirmation for any action taken (slider enabled) or just for all in actions (slider disabled). This is primarily used for mobiles where the action buttons are very small."), '');
             this.addTooltip("betmode", _("This option lets you define if you want to choose the amount of your raises by entering a number in a pop-up window or by manually placing chips in your betting area by clicking on them"), '');
             this.addTooltip("doshowhand", _("This option lets you define if you want to have the option to reveal your hand when all other players have folded"), '');
@@ -353,6 +365,12 @@ function (dojo, declare) {
 
             // Connect autoblinds check box
             dojo.query('#autoblinds').connect('change', this, 'onAutoblindsChange');
+
+            // Connect autocheck check box
+            dojo.query('#autocheck').connect('change', this, 'onAutoCheckChange');
+
+            // Connect autocall check box
+            dojo.query('#autocall').connect('change', this, 'onAutoCallChange');
 
             // Connect confirmactions check box
             dojo.query('#confirmactions').connect('change', this, 'onConfirmActionsChange');
@@ -1738,6 +1756,22 @@ function (dojo, declare) {
              }, this, function(result) {}, function(is_error) {});
         },
 
+        onAutoCheckChange: function(event) {
+            this.ajaxcall("/texasholdem/texasholdem/autocheck.html", { 
+                lock: true, 
+                playerId: this.player_id,
+                isAutoCheck: event.target.checked ? 1 : 0
+             }, this, function(result) {}, function(is_error) {});
+        },
+
+        onAutoCallChange: function(event) {
+            this.ajaxcall("/texasholdem/texasholdem/autocall.html", { 
+                lock: true, 
+                playerId: this.player_id,
+                isAutoCall: event.target.checked ? 1 : 0
+             }, this, function(result) {}, function(is_error) {});
+        },
+
         onConfirmActionsChange: function(event) {
             this.ajaxcall("/texasholdem/texasholdem/confirmactions.html", { 
                 lock: true, 
@@ -1845,6 +1879,7 @@ function (dojo, declare) {
             dojo.subscribe('changeRequired', this, "notif_changeRequired");
             this.notifqueue.setSynchronous('changeRequired', 2000);
 
+            this.notifqueue.setSynchronous('check', 500);
             dojo.subscribe('betPlaced', this, "notif_betPlaced");
             this.notifqueue.setSynchronous('betPlaced', 2000);
             dojo.subscribe('fold', this, "notif_fold");
@@ -1877,6 +1912,9 @@ function (dojo, declare) {
             dojo.subscribe('changeDealer', this, "notif_changeDealer");
 
             dojo.subscribe('autoblindsChange', this, "notif_autoblindsChange");
+            dojo.subscribe('autoCheckChange', this, "notif_autoCheckChange");
+            dojo.subscribe('autoCallChange', this, "notif_autoCallChange");
+            dojo.subscribe('autoCallForbidden', this, "notif_autoCallForbidden");
             dojo.subscribe('confirmActionsChange', this, "notif_confirmActionsChange");
             dojo.subscribe('betmodeChange', this, "notif_betmodeChange");
             dojo.subscribe('doshowhandChange', this, "notif_doshowhandChange");
@@ -2974,6 +3012,22 @@ function (dojo, declare) {
         notif_autoblindsChange: function(notif) {
             console.log('notif_autoblindsChange');
             this.showMessage(_("Autoblinds configuration change applied"), "info");
+        },
+
+        notif_autoCheckChange: function(notif) {
+            console.log('notif_autoCheckChange');
+            this.showMessage(_("Auto-check configuration change applied"), "info");
+        },
+
+        notif_autoCallChange: function(notif) {
+            console.log('notif_autoCallChange');
+            this.showMessage(_("Auto-call configuration change applied"), "info");
+        },
+
+        notif_autoCallForbidden: function(notif) {
+            console.log('notif_autoCallForbidden');
+            this.showMessage(_("You cannot enable auto-call because all other players have already chosen to auto-call. This would lead to the game completing automatically without any human intervention."), "error");
+            $("autocall").checked = false;
         },
 
         notif_confirmActionsChange: function(notif) {

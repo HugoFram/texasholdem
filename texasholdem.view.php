@@ -110,6 +110,8 @@
         $this->tpl['TURN'] = self::_("Turn");
         $this->tpl['RIVER'] = self::_("River");
         $this->tpl['AUTOBLINDS_DESCRIPTION'] = self::_("Place blinds automatically");
+        $this->tpl['AUTOCHECK_DESCRIPTION'] = self::_("Check automatically");
+        $this->tpl['AUTOCALL_DESCRIPTION'] = self::_("Call automatically");
         $this->tpl['CONFIRMACTIONS_DESCRIPTION'] = self::_("Ask for a confirmation for any action");
         $this->tpl['BETMODE_DESCRIPTION'] = self::_("Choose raise amount by clicking on chips");
         $this->tpl['DOSHOWHAND_DESCRIPTION'] = self::_("Ask to reveal hand if all other players are folded");

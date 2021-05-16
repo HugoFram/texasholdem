@@ -133,6 +133,14 @@
     <label for = "autoblinds" class="label">{AUTOBLINDS_DESCRIPTION}</label>
 </div>
 <div class="slider-checkbox">
+    <input type="checkbox" class="autocheck" name="autocheck" id="autocheck">
+    <label for = "autocheck" class="label">{AUTOCHECK_DESCRIPTION}</label>
+</div>
+<div class="slider-checkbox">
+    <input type="checkbox" class="autocall" name="autocall" id="autocall">
+    <label for = "autocall" class="label">{AUTOCALL_DESCRIPTION}</label>
+</div>
+<div class="slider-checkbox">
     <input type="checkbox" class="confirmactions" name="confirmactions" id="confirmactions">
     <label for = "confirmactions" class="label">{CONFIRMACTIONS_DESCRIPTION}</label>
 </div>

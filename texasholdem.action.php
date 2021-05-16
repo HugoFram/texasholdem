@@ -130,7 +130,7 @@
         $tokens = explode( ';', $tokens_raw);
       }
       
-      $this->game->check($tokens);
+      $this->game->check($tokens, false);
 
       self::ajaxResponse();
     }
@@ -154,7 +154,7 @@
         $tokens = explode( ';', $tokens_raw);
       }
 
-      $this->game->call($tokens);
+      $this->game->call($tokens, false);
 
       self::ajaxResponse();
     }
@@ -309,13 +309,43 @@
         self::ajaxResponse();
     }
 
+    public function autocheck() {
+      self::setAjaxMode();     
+
+        // Retrieve arguments
+        // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+        // playerId: integer for the id of the player who clicked the slider
+        // checked: integer, 0 = disable autocheck, 1 = enable autocheck
+        $player_id = self::getArg("playerId", AT_int, true);
+        $is_checked = self::getArg("isAutoCheck", AT_int, true);
+
+        $this->game->changeAutoCheck($player_id, $is_checked);
+
+        self::ajaxResponse();
+    }
+
+    public function autocall() {
+      self::setAjaxMode();     
+
+        // Retrieve arguments
+        // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+        // playerId: integer for the id of the player who clicked the slider
+        // checked: integer, 0 = disable autocheck, 1 = enable autocheck
+        $player_id = self::getArg("playerId", AT_int, true);
+        $is_checked = self::getArg("isAutoCall", AT_int, true);
+
+        $this->game->changeAutoCall($player_id, $is_checked);
+
+        self::ajaxResponse();
+    }
+
     public function confirmactions() {
       self::setAjaxMode();     
 
         // Retrieve arguments
         // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
         // playerId: integer for the id of the player who clicked the slider
-        // checked: integer, 0 = disable autoblinds, 1 = enable autoblinds
+        // checked: integer, 0 = disable actions confirmation, 1 = enable actions confirmation
         $player_id = self::getArg("playerId", AT_int, true);
         $is_checked = self::getArg("isConfirmActions", AT_int, true);
 

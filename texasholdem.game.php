@@ -91,7 +91,7 @@ class texasholdem extends Table
             player_stock_token_white, player_stock_token_blue, player_stock_token_red, player_stock_token_green,
             player_stock_token_black, player_bet_token_white, player_bet_token_blue,
             player_bet_token_red, player_bet_token_green, player_bet_token_black, is_fold, is_all_in, wants_autoblinds, 
-            wants_manualbet, wants_showhand, wants_confirmactions) VALUES ";
+            wants_manualbet, wants_showhand, wants_confirmactions, wants_autocheck, wants_autocall) VALUES ";
         $values = array();
         $initialStockOption = $this->getGameStateValue('initialStock');
         switch ($initialStockOption) {
@@ -123,13 +123,16 @@ class texasholdem extends Table
         $initial_wants_manualbet = 0;
         $initial_wants_showhand = 1;
         $initial_wants_confirmactions = 0;
+        $initial_wants_autocheck = 0;
+        $initial_wants_autocall = 0;
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
             $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."',".
                 $initial_score.",".$initial_white_tokens.",".$initial_blue_tokens.",".$initial_red_tokens.",".$initial_green_tokens.",".$initial_black_tokens.",".
                 $initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_is_fold.",".$initial_is_all_in.
-                ",".$initial_wants_autoblinds.",".$initial_wants_manualbet.",".$initial_wants_showhand.",".$initial_wants_confirmactions.")";
+                ",".$initial_wants_autoblinds.",".$initial_wants_manualbet.",".$initial_wants_showhand.",".$initial_wants_confirmactions.",".$initial_wants_autocheck.
+                ",".$initial_wants_autocall.")";
         }
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
@@ -230,7 +233,7 @@ class texasholdem extends Table
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
         $sql = "SELECT player_id id, player_score score, is_fold, player_eliminated, wants_autoblinds, wants_manualbet, 
-            wants_showhand,  wants_confirmactions, player_stock_token_white stock_white, 
+            wants_showhand, wants_confirmactions, wants_autocheck, wants_autocall, player_stock_token_white stock_white, 
             player_stock_token_blue stock_blue, player_stock_token_red stock_red, player_stock_token_green stock_green,
             player_stock_token_black stock_black, player_bet_token_white bet_white, player_bet_token_blue bet_blue,
             player_bet_token_red bet_red, player_bet_token_green bet_green, player_bet_token_black bet_black FROM player ";
@@ -1201,8 +1204,10 @@ class texasholdem extends Table
         $this->gamestate->nextState('placeBigBlind');
     }
 
-    function check($tokens) {
-        self::checkAction("placeBet");
+    function check($tokens, $is_auto) {
+        if (!$is_auto) {
+            self::checkAction("placeBet");
+        }
         $player_id = self::getActivePlayerId();
         $player_name = self::getActivePlayerName();
         $small_blind_player = self::getGameStateValue("smallBlindPlayer");
@@ -1253,8 +1258,10 @@ class texasholdem extends Table
         $this->gamestate->nextState('placeBet');
     }
 
-    function call($tokens) {
-        self::checkAction("placeBet");
+    function call($tokens, $is_auto) {
+        if (!$is_auto) {
+            self::checkAction("placeBet");
+        }
         $player_id = self::getActivePlayerId();
         $player_name = self::getActivePlayerName();   
 
@@ -1800,6 +1807,35 @@ class texasholdem extends Table
         self::notifyPlayer($player_id, "autoblindsChange", '', array());
     }
 
+    function changeAutoCheck($player_id, $is_checked) {
+        self::trace("Auto-check for player ${player_id}: " . ($is_checked == 1 ? "enabled" : "disabled"));
+        $sql = "UPDATE player SET wants_autocheck = ${is_checked} WHERE player_id = ${player_id}";
+        self::DbQuery($sql);
+        self::notifyPlayer($player_id, "autoCheckChange", '', array());
+    }
+
+    function changeAutoCall($player_id, $is_checked) {
+        if ($is_checked) {
+            // Prevent ALL players to choose to auto call because it would immediately finish the game on the backend
+            $non_auto_call_players_count = self::getUniqueValueFromDB("SELECT COUNT(player_id) FROM player WHERE NOT wants_autocall AND NOT player_eliminated;");
+            if ($non_auto_call_players_count <= 1) {
+                self::notifyPlayer($player_id, "autoCallForbidden", '', array());
+                return;
+            }
+        }
+        self::trace("Auto-call for player ${player_id}: " . ($is_checked == 1 ? "enabled" : "disabled"));
+        $sql = "UPDATE player SET wants_autocall = ${is_checked} WHERE player_id = ${player_id}";
+        self::DbQuery($sql);
+        self::notifyPlayer($player_id, "autoCallChange", '', array());
+    }
+
+    function changeConfirmActions($player_id, $is_checked) {
+        self::trace("Confirm all actions for player ${player_id}: " . ($is_checked == 1 ? "enabled" : "disabled"));
+        $sql = "UPDATE player SET wants_confirmactions = ${is_checked} WHERE player_id = ${player_id}";
+        self::DbQuery($sql);
+        self::notifyPlayer($player_id, "confirmActionsChange", '', array());
+    }
+
     function changeBetmode($player_id, $is_checked, $tokens) {
         self::trace("Manual bet for player ${player_id}: " . ($is_checked == 1 ? "enabled" : "disabled"));
         $sql = "UPDATE player SET wants_manualbet = ${is_checked} WHERE player_id = ${player_id}";
@@ -1829,13 +1865,6 @@ class texasholdem extends Table
         $sql = "UPDATE player SET wants_showhand = ${is_checked} WHERE player_id = ${player_id}";
         self::DbQuery($sql);
         self::notifyPlayer($player_id, "doshowhandChange", '', array());
-    }
-
-    function changeConfirmActions($player_id, $is_checked) {
-        self::trace("Confirm all actions for player ${player_id}: " . ($is_checked == 1 ? "enabled" : "disabled"));
-        $sql = "UPDATE player SET wants_confirmactions = ${is_checked} WHERE player_id = ${player_id}";
-        self::DbQuery($sql);
-        self::notifyPlayer($player_id, "confirmactionschange", '', array());
     }
     
 //////////////////////////////////////////////////////////////////////////////
@@ -2169,19 +2198,55 @@ class texasholdem extends Table
                 $this->gamestate->nextState("allAllIn");
             }
         } else {
-            $this->gamestate->nextState("startRound");
+            $sql = "SELECT player_id, wants_autocheck, wants_autocall, player_stock_token_white, player_stock_token_blue,
+                player_stock_token_red, player_stock_token_green, player_stock_token_black FROM player WHERE player_id = ${player_id}";
+            $player_info = self::getCollectionFromDb($sql)[$player_id];
+            // If the next player can check, verify if he wants to auto-check
+            if ($current_player_bet == $current_bet_level) {
+                if ($player_info["wants_autocheck"] == 1 || $player_info["wants_autocall"] == 1) {
+                    // Build tokens array as if it was sent by the frontend
+                    $tokens = array(
+                        $player_info['player_stock_token_white'], 0, 
+                        $player_info['player_stock_token_blue'], 0,
+                        $player_info['player_stock_token_red'], 0,
+                        $player_info['player_stock_token_green'], 0,
+                        $player_info['player_stock_token_black'], 0,
+                    );
+                    self::check($tokens, true);
+                } else {
+                    self::giveExtraTime($player_id);
+                    $this->gamestate->nextState("startRound");
+                }
+            } else {
+                // Otherwise, verify if the player wants to auto-call
+                if ($player_info["wants_autocall"] == 1) {
+                    // Build tokens array as if it was sent by the frontend
+                    $tokens = array(
+                        $player_info['player_stock_token_white'], 0, 
+                        $player_info['player_stock_token_blue'], 0,
+                        $player_info['player_stock_token_red'], 0,
+                        $player_info['player_stock_token_green'], 0,
+                        $player_info['player_stock_token_black'], 0,
+                    );
+                    self::call($tokens, true);
+                } else {
+                    self::giveExtraTime($player_id);
+                    $this->gamestate->nextState("startRound");
+                }
+            }
         }
     }
 
     function stNextPlayer() {
         // Check which players are folded
-        $sql = "SELECT player_id, is_fold, is_all_in, player_eliminated, player_bet_token_white, player_bet_token_blue, player_bet_token_red, 
-            player_bet_token_green, player_bet_token_black FROM player";
+        $sql = "SELECT player_id, is_fold, is_all_in, player_eliminated, wants_autocheck, wants_autocall,
+            player_stock_token_white, player_stock_token_blue, player_stock_token_red, player_stock_token_green, player_stock_token_black FROM player";
         $players = self::getCollectionFromDb($sql);
         $num_folded_players = self::getGameStateValue("numFoldedPlayers");
         $num_all_in_players = self::getGameStateValue("numAllInPlayers");
         $num_eliminated_players = self::getGameStateValue("numEliminatedPlayers");
-        $num_betting_players = self::getGameStateValue("numBettingPlayers");        
+        $num_betting_players = self::getGameStateValue("numBettingPlayers");
+        $current_bet_level = self::getGameStateValue("currentBetLevel");       
 
         // Check if all players except one have folded
         if (($num_folded_players + $num_eliminated_players) >= (count($players) - 1)) {
@@ -2223,8 +2288,40 @@ class texasholdem extends Table
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $player_id
                 ));
-                self::giveExtraTime($player_id);
-                $this->gamestate->nextState("nextPlayer");
+
+                // If the next player can check, verify if he wants to auto-check
+                if ($players_bet[$player_id]["bet"] == $current_bet_level) {
+                    if ($players[$player_id]["wants_autocheck"] == 1 || $players[$player_id]["wants_autocall"] == 1) {
+                        // Build tokens array as if it was sent by the frontend
+                        $tokens = array(
+                            $players[$player_id]['player_stock_token_white'], 0, 
+                            $players[$player_id]['player_stock_token_blue'], 0,
+                            $players[$player_id]['player_stock_token_red'], 0,
+                            $players[$player_id]['player_stock_token_green'], 0,
+                            $players[$player_id]['player_stock_token_black'], 0,
+                        );
+                        self::check($tokens, true);
+                    } else {
+                        self::giveExtraTime($player_id);
+                        $this->gamestate->nextState("nextPlayer");
+                    }
+                } else {
+                    // Otherwise, verify if the player wants to auto-call
+                    if ($players[$player_id]["wants_autocall"] == 1) {
+                        // Build tokens array as if it was sent by the frontend
+                        $tokens = array(
+                            $players[$player_id]['player_stock_token_white'], 0, 
+                            $players[$player_id]['player_stock_token_blue'], 0,
+                            $players[$player_id]['player_stock_token_red'], 0,
+                            $players[$player_id]['player_stock_token_green'], 0,
+                            $players[$player_id]['player_stock_token_black'], 0,
+                        );
+                        self::call($tokens, true);
+                    } else {
+                        self::giveExtraTime($player_id);
+                        $this->gamestate->nextState("nextPlayer");
+                    }
+                }
             }
         }        
     }
@@ -2713,6 +2810,16 @@ class texasholdem extends Table
                 self::notifyAllPlayers("eliminatePlayer", '', array(
                     'eliminated_player' => $player_id
                 ));
+
+                // Prevent ALL players to choose to auto call because it would immediately finish the game on the backend
+                $non_auto_call_players_count = self::getUniqueValueFromDB("SELECT COUNT(player_id) FROM player WHERE NOT wants_autocall AND NOT player_eliminated;");
+                if ($non_auto_call_players_count <= 1) {
+                    $auto_call_players = self::getCollectionFromDb("SELECT player_id FROM player WHERE wants_autocall AND NOT player_eliminated;");
+                    foreach ($auto_call_players as $id => $player) {
+                        self::DbQuery("UPDATE player SET wants_autocall = FALSE WHERE player_id = ${id}");
+                        self::notifyPlayer($id, "autoCallForbidden", '', array());
+                    }
+                }
             }
         }
 
@@ -3016,7 +3123,9 @@ class texasholdem extends Table
             // ! important ! Use DBPREFIX_<table_name> for all tables
 
             $sql = "ALTER TABLE DBPREFIX_player ADD wants_confirmactions BOOLEAN DEFAULT false;";
-            self::applyDbUpgradeToAllDB( $sql );
+            $sql .= "ALTER TABLE DBPREFIX_player ADD wants_autocheck BOOLEAN DEFAULT false;";
+            $sql .= "ALTER TABLE DBPREFIX_player ADD wants_autocall BOOLEAN DEFAULT false;";
+            self::applyDbUpgradeToAllDB($sql);
         }
 
     }    
