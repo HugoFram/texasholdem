@@ -91,7 +91,7 @@ class texasholdem extends Table
             player_stock_token_white, player_stock_token_blue, player_stock_token_red, player_stock_token_green,
             player_stock_token_black, player_bet_token_white, player_bet_token_blue,
             player_bet_token_red, player_bet_token_green, player_bet_token_black, is_fold, is_all_in, wants_autoblinds, 
-            wants_manualbet, wants_showhand) VALUES ";
+            wants_manualbet, wants_showhand, wants_confirmactions) VALUES ";
         $values = array();
         $initialStockOption = $this->getGameStateValue('initialStock');
         switch ($initialStockOption) {
@@ -122,13 +122,14 @@ class texasholdem extends Table
         $initial_wants_autoblinds = 1;
         $initial_wants_manualbet = 0;
         $initial_wants_showhand = 1;
+        $initial_wants_confirmactions = 0;
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
             $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."',".
                 $initial_score.",".$initial_white_tokens.",".$initial_blue_tokens.",".$initial_red_tokens.",".$initial_green_tokens.",".$initial_black_tokens.",".
                 $initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_bet_tokens.",".$initial_is_fold.",".$initial_is_all_in.
-                ",".$initial_wants_autoblinds.",".$initial_wants_manualbet.",".$initial_wants_showhand.")";
+                ",".$initial_wants_autoblinds.",".$initial_wants_manualbet.",".$initial_wants_showhand.",".$initial_wants_confirmactions.")";
         }
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
@@ -229,7 +230,7 @@ class texasholdem extends Table
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
         $sql = "SELECT player_id id, player_score score, is_fold, player_eliminated, wants_autoblinds, wants_manualbet, 
-            wants_showhand, player_stock_token_white stock_white, 
+            wants_showhand,  wants_confirmactions, player_stock_token_white stock_white, 
             player_stock_token_blue stock_blue, player_stock_token_red stock_red, player_stock_token_green stock_green,
             player_stock_token_black stock_black, player_bet_token_white bet_white, player_bet_token_blue bet_blue,
             player_bet_token_red bet_red, player_bet_token_green bet_green, player_bet_token_black bet_black FROM player ";
@@ -1829,6 +1830,13 @@ class texasholdem extends Table
         self::DbQuery($sql);
         self::notifyPlayer($player_id, "doshowhandChange", '', array());
     }
+
+    function changeConfirmActions($player_id, $is_checked) {
+        self::trace("Confirm all actions for player ${player_id}: " . ($is_checked == 1 ? "enabled" : "disabled"));
+        $sql = "UPDATE player SET wants_confirmactions = ${is_checked} WHERE player_id = ${player_id}";
+        self::DbQuery($sql);
+        self::notifyPlayer($player_id, "confirmactionschange", '', array());
+    }
     
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state arguments
@@ -3001,6 +3009,13 @@ class texasholdem extends Table
             // ! important ! Use DBPREFIX_<table_name> for all tables
 
             $sql = "ALTER TABLE DBPREFIX_player ADD wants_showhand BOOLEAN DEFAULT false;";
+            self::applyDbUpgradeToAllDB( $sql );
+        }
+
+        if( $from_version <= 2102021816 ) {
+            // ! important ! Use DBPREFIX_<table_name> for all tables
+
+            $sql = "ALTER TABLE DBPREFIX_player ADD wants_confirmactions BOOLEAN DEFAULT false;";
             self::applyDbUpgradeToAllDB( $sql );
         }
 

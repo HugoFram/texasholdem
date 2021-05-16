@@ -133,6 +133,10 @@
     <label for = "autoblinds" class="label">{AUTOBLINDS_DESCRIPTION}</label>
 </div>
 <div class="slider-checkbox">
+    <input type="checkbox" class="confirmactions" name="confirmactions" id="confirmactions">
+    <label for = "confirmactions" class="label">{CONFIRMACTIONS_DESCRIPTION}</label>
+</div>
+<div class="slider-checkbox">
     <input type="checkbox" class="betmode" name="betmode" id="betmode">
     <label for = "betmode" class="label">{BETMODE_DESCRIPTION}</label>
 </div>

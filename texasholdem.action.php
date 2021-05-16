@@ -309,6 +309,21 @@
         self::ajaxResponse();
     }
 
+    public function confirmactions() {
+      self::setAjaxMode();     
+
+        // Retrieve arguments
+        // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
+        // playerId: integer for the id of the player who clicked the slider
+        // checked: integer, 0 = disable autoblinds, 1 = enable autoblinds
+        $player_id = self::getArg("playerId", AT_int, true);
+        $is_checked = self::getArg("isConfirmActions", AT_int, true);
+
+        $this->game->changeConfirmActions($player_id, $is_checked);
+
+        self::ajaxResponse();
+    }
+
     public function betmode() {
       self::setAjaxMode();     
 

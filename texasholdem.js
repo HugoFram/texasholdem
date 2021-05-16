@@ -219,6 +219,11 @@ function (dojo, declare) {
                             $("autoblinds").checked = true;
                         }
 
+                        // ConfirmActions slider
+                        if (player.wants_confirmactions == 1) {
+                            $("confirmactions").checked = true;
+                        }
+
                         // Betmode slider
                         if (player.wants_manualbet == 1) {
                             $("betmode").checked = true;
@@ -265,6 +270,7 @@ function (dojo, declare) {
 
             // Add tooltips to option sliders
             this.addTooltip("autoblinds", _("This option lets you define if you want your blinds to be placed automatically or if you prefer to place them manually by clicking on your chips for more immersion"), '');
+            this.addTooltip("confirmactions", _("This option lets you define if you want to be asked for a confirmation for any action taken (slider enabled) or just for all in actions (slider disabled). This is primarily used for mobiles where the action buttons are very small."), '');
             this.addTooltip("betmode", _("This option lets you define if you want to choose the amount of your raises by entering a number in a pop-up window or by manually placing chips in your betting area by clicking on them"), '');
             this.addTooltip("doshowhand", _("This option lets you define if you want to have the option to reveal your hand when all other players have folded"), '');
 
@@ -347,6 +353,9 @@ function (dojo, declare) {
 
             // Connect autoblinds check box
             dojo.query('#autoblinds').connect('change', this, 'onAutoblindsChange');
+
+            // Connect confirmactions check box
+            dojo.query('#confirmactions').connect('change', this, 'onConfirmActionsChange');
 
             // Connect betmode check box
             dojo.query('#betmode').connect('change', this, 'onBetmodeChange');
@@ -1316,6 +1325,17 @@ function (dojo, declare) {
             // Check that this action is possible (see "possibleactions" in states.inc.php)
             if(!this.checkAction('placeBet')) return;
 
+            if ($("confirmactions").checked) {
+                this.confirmationDialog(_('Are you sure you want to call?'), dojo.hitch(this, function() {
+                    this.confirmCall();
+                })); 
+            } else {
+                this.confirmCall();
+            }
+            return;
+        },
+
+        confirmCall: function() {
             var colors = ["white", "blue", "red", "green", "black"];
             
             var valuesString = "";
@@ -1335,9 +1355,6 @@ function (dojo, declare) {
         },
 
         onRaise: function() {
-            // Check that this action is possible (see "possibleactions" in states.inc.php)
-            if(!this.checkAction('placeBet')) return;
-
             var betmodeSlider = $('betmode');
 
             if (!betmodeSlider.checked) {
@@ -1393,19 +1410,37 @@ function (dojo, declare) {
             }
         },
 
-        onRaiseBy: function(event) {
+        onRaiseBy: function() {
             // Check that this action is possible (see "possibleactions" in states.inc.php)
             if(!this.checkAction('placeBet')) return;
 
             var raiseValue = parseInt(event.target.innerText.replace(/Raise by /, "").replace(/Bet /, ""));
 
-            this.raiseBy(raiseValue);
+            if ($("confirmactions").checked) {
+                this.confirmationDialog(_('Are you sure you want to raise?'), dojo.hitch(this, function() {
+                    this.raiseBy(raiseValue);
+                })); 
+            } else {
+                this.raiseBy(raiseValue);
+            }
+            return;
         },
 
         onFold: function() {
             // Check that this action is possible (see "possibleactions" in states.inc.php)
             if(!this.checkAction('fold')) return;
 
+            if ($("confirmactions").checked) {
+                this.confirmationDialog(_('Are you sure you want to fold?'), dojo.hitch(this, function() {
+                    this.confirmFold();
+                })); 
+            } else {
+                this.confirmFold();
+            }
+            return;
+        },
+
+        confirmFold: function() {
             var colors = ["white", "blue", "red", "green", "black"];
             
             var valuesString = "";
@@ -1444,7 +1479,7 @@ function (dojo, declare) {
 
             this.confirmationDialog( _('Are you sure you want to go all in?'), dojo.hitch( this, function() {
                 this.confirmAllIn();
-            } ) ); 
+            })); 
             return;
         },
 
@@ -1703,6 +1738,14 @@ function (dojo, declare) {
              }, this, function(result) {}, function(is_error) {});
         },
 
+        onConfirmActionsChange: function(event) {
+            this.ajaxcall("/texasholdem/texasholdem/confirmactions.html", { 
+                lock: true, 
+                playerId: this.player_id,
+                isConfirmActions: event.target.checked ? 1 : 0
+             }, this, function(result) {}, function(is_error) {});
+        },
+
         onBetmodeChange: function(event) {
             if (this.isCurrentPlayerActive()) {
                 // Update choose raise button
@@ -1834,6 +1877,7 @@ function (dojo, declare) {
             dojo.subscribe('changeDealer', this, "notif_changeDealer");
 
             dojo.subscribe('autoblindsChange', this, "notif_autoblindsChange");
+            dojo.subscribe('confirmActionsChange', this, "notif_confirmActionsChange");
             dojo.subscribe('betmodeChange', this, "notif_betmodeChange");
             dojo.subscribe('doshowhandChange', this, "notif_doshowhandChange");
             dojo.subscribe('announceAction', this, "notif_announceAction");
@@ -2930,6 +2974,11 @@ function (dojo, declare) {
         notif_autoblindsChange: function(notif) {
             console.log('notif_autoblindsChange');
             this.showMessage(_("Autoblinds configuration change applied"), "info");
+        },
+
+        notif_confirmActionsChange: function(notif) {
+            console.log('notif_confirmActionsChange');
+            this.showMessage(_("Confirm Actions configuration change applied"), "info");
         },
 
         notif_betmodeChange: function(notif) {
