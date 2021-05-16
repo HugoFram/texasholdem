@@ -64,7 +64,7 @@
             </div>
         </div>
         <div class="total-badge playerbettotal orientation_{DIR}" id = "playerbettotal_{PLAYER_ID}" style = "background-color:#{PLAYER_COLOR}55">{PLAYER_BET_TOTAL}</div>
-        <div class="playertablename" style="color:#{PLAYER_COLOR}">
+        <div class="playertablename" id = "playertablename_{PLAYER_ID}" style="color:#{PLAYER_COLOR}">
             {PLAYER_NAME}
         </div>
         <div class="total-badge playerstocktotal" id = "playerstocktotal_{PLAYER_ID}" style = "background-color:#{PLAYER_COLOR}55">{PLAYER_STOCK_TOTAL}</div>

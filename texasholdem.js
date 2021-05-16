@@ -2999,7 +2999,7 @@ function (dojo, declare) {
             if (playerId != this.player_id) {
                 var message = notif.args.message;
 
-                this.showBubble("overall_player_board_" + playerId, _(message), 0, 5000);
+                this.showBubble("playertablename_" + playerId, _(message), 0, 15000);
             }
         }
    });             
