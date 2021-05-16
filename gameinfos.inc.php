@@ -154,7 +154,8 @@ $gameinfos = array(
 // circuit : A plays and choose the next player C, C plays and choose the next player D, ...
 // complex : A+B+C plays and says that the next player is A+B
 'is_sandbox' => false,
-'turnControl' => 'simple'
+'turnControl' => 'simple',
 
 ////////
+'gamepanel_page_warning' => "There is no real money involve on BGA: this game has the mechanism of Poker but is using points instead of real money."
 );
