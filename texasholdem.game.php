@@ -3119,7 +3119,7 @@ class texasholdem extends Table
             self::applyDbUpgradeToAllDB( $sql );
         }
 
-        if( $from_version <= 2102021816 ) {
+        if( $from_version <= 2105301604 ) {
             // ! important ! Use DBPREFIX_<table_name> for all tables
 
             $sql = "ALTER TABLE DBPREFIX_player ADD wants_confirmactions BOOLEAN DEFAULT false;";
