@@ -427,9 +427,6 @@ class texasholdem extends Table
         }
 
         self::dump( "Suits occurrences: ", $suits_occurrences );
-        arsort($values_occurrences);
-
-        self::dump( "Suits occurrences: ", $suits_occurrences );
         self::dump( "Values occurrences: ", $values_occurrences );
 
         $is_flush = count(array_filter($suits_occurrences, function($suit) {return $suit >= 5;})) > 0;
@@ -459,7 +456,7 @@ class texasholdem extends Table
             $combo_id = 2;
 
             $pair_values = array_slice(array_keys($values_occurrences, 2), 0, 2);
-            if (count(array_keys($values_occurrences, 2)) == 3) {
+            if (count(array_keys($values_occurrences, 2)) == 3 && array_keys($values_occurrences, 2)[2] > array_keys($values_occurrences, 1)[0]) {
                 $kicker = array_keys($values_occurrences, 2)[2];
             } else {
                 $kicker = array_keys($values_occurrences, 1)[0];
